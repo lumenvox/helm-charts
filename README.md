@@ -10,7 +10,7 @@ to Helms's [documentation](https://helm.sh/docs/) to get started
 Once Helm is set up correctly, add the repo as shown here:
 
 ```shell
-helm repo add lumenvox https://lumenvox.github.io/charts
+helm repo add lumenvox https://lumenvox.github.io/helm-charts
 ```
 You can then run `helm search repo lumenvox` to see the charts
 
@@ -40,7 +40,7 @@ Once you have those details, copy or modify the values.yaml
 file and create the application stack using:
 
 ```shell
-helm install my-lumenvox lumenvox/voice-biometrics -f my-lumenvox-values.yaml -n lumenvox
+helm install lumenvox-vb lumenvox/voice-biometrics -f my-lumenvox-values.yaml -n lumenvox
 ```
 
 
