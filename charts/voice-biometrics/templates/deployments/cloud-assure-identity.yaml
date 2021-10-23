@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: assure-identity
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: assure-identity
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: assure-identity
+  template:
+    metadata:
+      labels:
+        app: assure-identity
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '90'
+    spec:
+      containers:
+        - name: assure-identity
+          image: {{ .Values.image.repository }}/cloud-assure-identity{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: metrics
+              containerPort: 90
+            - name: grpc
+              containerPort: 80
+
+          envFrom:
+            - configMapRef:
+                name: lumenvox-configmap
+
+      imagePullSecrets:
+        - name: lumenvox-azurecr-secret

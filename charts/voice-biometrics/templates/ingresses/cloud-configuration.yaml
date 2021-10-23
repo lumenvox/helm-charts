@@ -1,0 +1,36 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: configuration-ingress
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+spec:
+  rules:
+    - host: {{ .Values.hostnamePrefix }}-configuration.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: configuration-service
+                port:
+                  number: 90
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: configuration-ingress-grpc
+  namespace: {{ .Release.Namespace }}
+spec:
+  entryPoints:
+    - grpc
+  routes:
+    - kind: Rule
+      match: Host(`{{ .Values.hostnamePrefix }}-configuration-grpc.com`) && Headers(`Content-Type`, `application/grpc`)
+      priority: 11
+      services:
+        - name: configuration-service
+          port: 80
+          scheme: h2c

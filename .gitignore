@@ -1,0 +1,6 @@
+/venv/
+*.bak
+/.idea/
+**/*.tgz
+index.yaml
+robots.txt

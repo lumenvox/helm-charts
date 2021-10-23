@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: assure-vbs
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: assure-vbs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: assure-vbs
+  template:
+    metadata:
+      labels:
+        app: assure-vbs
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '90'
+    spec:
+      containers:
+        - name: assure-vbs
+          image: {{ .Values.image.repository }}/cloud-assure-vbs{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: metrics
+              containerPort: 90
+            - name: grpc
+              containerPort: 80
+
+          envFrom:
+            - configMapRef:
+                name: lumenvox-configmap
+
+      imagePullSecrets:
+        - name: lumenvox-azurecr-secret

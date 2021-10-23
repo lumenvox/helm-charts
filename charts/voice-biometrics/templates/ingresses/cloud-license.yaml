@@ -1,0 +1,36 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: license-ingress
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+spec:
+  rules:
+    - host: {{ .Values.hostnamePrefix }}-license.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: license-service
+                port:
+                  number: 5110
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: license-ingress-grpc
+  namespace: {{ .Release.Namespace }}
+spec:
+  entryPoints:
+    - grpc
+  routes:
+    - kind: Rule
+      match: Host(`{{ .Values.hostnamePrefix }}-license-grpc.com`) && Headers(`Content-Type`, `application/grpc`)
+      priority: 11
+      services:
+        - name: license-service
+          port: 5010
+          scheme: h2c

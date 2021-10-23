@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: configuration
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: configuration
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: configuration
+  template:
+    metadata:
+      labels:
+        app: configuration
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '90'
+    spec:
+      containers:
+        - name: configuration
+          image: {{ .Values.image.repository }}/cloud-configuration{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          # imagePullPolicy: IfNotPresent
+          ports:
+            - name: metrics
+              containerPort: 90
+            - name: grpc
+              containerPort: 80
+          env:
+            - name: ConnectionStrings__PostgresConnection
+              valueFrom:
+                configMapKeyRef:
+                  name: lumenvox-configmap
+                  key: ConnectionStrings__PostgresConnection
+            - name: ASPNETCORE_ENVIRONMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: lumenvox-configmap
+                  key: ASPNETCORE_ENVIRONMENT
+            - name: MOCK_TEST_DATA
+              valueFrom:
+                configMapKeyRef:
+                  name: lumenvox-configmap
+                  key: MOCK_TEST_DATA
+            - name: ServiceAddresses__DeploymentService
+              valueFrom:
+                configMapKeyRef:
+                  name: lumenvox-configmap
+                  key: ServiceAddresses__DeploymentService
+            - name: ServiceAddresses__VoiceVerifierService
+              valueFrom:
+                configMapKeyRef:
+                  name: lumenvox-configmap
+                  key: ServiceAddresses__VoiceVerifierService
+            - name: ServiceAddresses__EngineResourceService
+              valueFrom:
+                configMapKeyRef:
+                  name: lumenvox-configmap
+                  key: ServiceAddresses__EngineResourceService
+            - name: ServiceAddresses__ConfigurationService
+              valueFrom:
+                configMapKeyRef:
+                  name: lumenvox-configmap
+                  key: ServiceAddresses__ConfigurationService
+            - name: ServiceAddresses__AssureVbs
+              valueFrom:
+                configMapKeyRef:
+                  name: lumenvox-configmap
+                  key: ServiceAddresses__AssureVbs
+            - name: DOCKER_REGISTRY
+              valueFrom:
+                configMapKeyRef:
+                  name: lumenvox-configmap
+                  key: DOCKER_REGISTRY
+            - name: DEPLOYMENT_POSTGRES_CONNECTION_STRING
+              valueFrom:
+                configMapKeyRef:
+                  name: lumenvox-configmap
+                  key: DEPLOYMENT_POSTGRES_CONNECTION_STRING
+            - name: DASHBOARD_POSTGRES_CONNECTION_STRING
+              valueFrom:
+                configMapKeyRef:
+                  name: lumenvox-configmap
+                  key: DASHBOARD_POSTGRES_CONNECTION_STRING
+            - name: MockDataSettings__DeploymentsJson
+              valueFrom:
+                configMapKeyRef:
+                  name: lumenvox-configmap
+                  key: MockDataSettings__DeploymentsJson
+      imagePullSecrets:
+        - name: lumenvox-azurecr-secret
