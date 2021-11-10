@@ -48,11 +48,7 @@ used during testing or development:
 * Redis
 * RabbitMQ
 
-You will also need the credentials to allow your LumenVox
-applications access to these resources
-
-Once you have those details, copy or modify the values.yaml
-file and create the application stack using:
+_See the **Dependencies** section below for important details_
 
 ```shell
 helm install lumenvox-vb lumenvox/voice-biometrics -f my-lumenvox-values.yaml
@@ -62,7 +58,44 @@ _See [helm install](https://helm.sh/docs/helm/helm_install/) for command documen
 
 ## Dependencies
 
-* None
+The following dependencies can optionally be installed:
+
+```shell
+  - name: "redis"
+    version: 15.5.3
+    repository: "https://charts.bitnami.com/bitnami"
+
+  - name: "mongodb"
+    version: 10.29.0
+    repository: "https://charts.bitnami.com/bitnami"
+
+  - name: "rabbitmq"
+    version: 8.24.2
+    repository: "https://charts.bitnami.com/bitnami"
+
+  - name: "postgresql"
+    version: 10.13.4
+    repository: "https://charts.bitnami.com/bitnami"
+
+  - name: "grafana"
+    version: 7.1.0
+    repository: "https://charts.bitnami.com/bitnami"
+
+  - name: "prometheus"
+    version: 14.11.1
+    repository: "https://prometheus-community.github.io/helm-charts"
+```
+> Note that these dependencies are provided for setting up a test environment only.
+
+We recommend that when creating a production environment, you provision your
+own cloud-hosted services to replace these test dependencies, which are not
+configured for persistence or scale.
+
+Each of these dependencies can be disabled in the `values.yaml` file in their
+respective sections. For example, to disable the redis dependency when using your
+own, set the `redis.enabled` setting to false in your `values.yaml` file. The
+same can be done for all of these dependencies, allowing you to easily use the
+LumenVox Helm Charts in either test or production configurations. 
 
 ## Uninstall Chart
 
@@ -91,3 +124,10 @@ helm show values lumenvox/voice-biometrics
 
 _See [helm show values](https://helm.sh/docs/helm/helm_show_values/) for
 command documentation._
+
+To configure Grafana for monitoring, when setting up the test environment
+with the optional dependencies enabled, log into Grafana and specify a
+dashboard to use with Prometheus monitoring, for example:
+
+* 12740 (Select Prometheus at the bottom) - Kubernetes Monitoring Dashboard
+
