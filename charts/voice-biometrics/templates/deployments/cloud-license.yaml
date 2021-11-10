@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: license
+  namespace: {{ default .Release.Namespace .Values.defaultNamespace }}
+  labels:
+    app: license
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: license
+  template:
+    metadata:
+      labels:
+        app: license
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '5110'
+    spec:
+      containers:
+        - name: license
+          image: {{ .Values.image.repository }}/cloud-license{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: metrics
+              containerPort: 5110
+            - name: grpc
+              containerPort: 5010
+          readinessProbe:
+            exec:
+              command:
+                - /usr/bin/healthcheck
+            initialDelaySeconds: {{ .Values.lumenvox.service.startDelaySeconds }}
+            periodSeconds: {{ .Values.probes.periodSeconds }}
+          livenessProbe:
+            exec:
+              command:
+                - /usr/bin/healthcheck
+            initialDelaySeconds: {{ .Values.lumenvox.service.startDelaySeconds }}
+            periodSeconds: {{ .Values.probes.periodSeconds }}
+          startupProbe:
+            exec:
+              command:
+                - /usr/bin/healthcheck
+            # 4 * 5 = 20 seconds of initial startup time allowed
+            failureThreshold: 4
+            periodSeconds: {{ .Values.probes.periodSeconds }}
+          env:
+            - name: DEPLOYMENT_DB_CONNECTION
+              valueFrom:
+                configMapKeyRef:
+                  name: lumenvox-configmap
+                  key: ConnectionStrings__PostgresConnection
+            - name: SHOW_DEBUG_OUTPUT
+              value: '{{ .Values.licensing.showDebugOutput }}'
+            - name: LICENSE_CLUSTER_GUID
+              value: '{{ .Values.licensing.clusterGuid }}'
+            - name: DB_HOST_OVERRIDE
+              value: '{{ .Values.licensing.databaseHostOverride }}'
+            - name: LICENSE_REPORT_FREQUENCY_MINS
+              value: '{{ .Values.licensing.reportFreqMins }}'
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.imagePullSecrets }}
+        - name: {{ . }}
+      {{- end}}
+      {{- end }}

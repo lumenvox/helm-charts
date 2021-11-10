@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: binarystorage
+  namespace: {{ default .Release.Namespace .Values.defaultNamespace }}
+  labels:
+    app: binarystorage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: binarystorage
+  template:
+    metadata:
+      labels:
+        app: binarystorage
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '90'
+    spec:
+      containers:
+        - name: binarystorage
+          image: {{ .Values.image.repository }}/cloud-binary-storage{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: metrics
+              containerPort: 90
+            - name: grpc
+              containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 90
+            initialDelaySeconds: {{ .Values.lumenvox.service.startDelaySeconds }}
+            periodSeconds: {{ .Values.probes.periodSeconds }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 90
+            initialDelaySeconds: {{ .Values.lumenvox.service.startDelaySeconds }}
+            periodSeconds: {{ .Values.probes.periodSeconds }}
+          envFrom:
+            - configMapRef:
+                name: lumenvox-configmap
+{{/*          env:*/}}
+{{/*            - name: MockDataSettings__DeploymentsJson*/}}
+{{/*              valueFrom:*/}}
+{{/*                configMapKeyRef:*/}}
+{{/*                  name: lumenvox-configmap*/}}
+{{/*                  key: MockDataSettings__DeploymentsJson*/}}
+{{/*            - name: MockDataSettings__MasterKeysJson*/}}
+{{/*              valueFrom:*/}}
+{{/*                configMapKeyRef:*/}}
+{{/*                  name: lumenvox-configmap*/}}
+{{/*                  key: MockDataSettings__MasterKeysJson*/}}
+{{/*            - name: MockDataSettings__CustomerKeysJson*/}}
+{{/*              valueFrom:*/}}
+{{/*                configMapKeyRef:*/}}
+{{/*                  name: lumenvox-configmap*/}}
+{{/*                  key: MockDataSettings__CustomerKeysJson*/}}
+
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.imagePullSecrets }}
+        - name: {{ . }}
+      {{- end}}
+      {{- end }}

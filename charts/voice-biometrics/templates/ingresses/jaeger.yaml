@@ -1,0 +1,21 @@
+{{- if .Values.traefik.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: {{ default .Release.Namespace .Values.defaultNamespace }}
+  name: jaeger-ingress
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+spec:
+  rules:
+    - host: jaeger.{{ .Values.hostnameSuffix }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: lumenvox-jaeger-query
+                port:
+                  number: 16686
+{{- end }}

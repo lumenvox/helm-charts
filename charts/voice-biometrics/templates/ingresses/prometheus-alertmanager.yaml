@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: prometheus-alertmanager-ingress
+  namespace: {{ default .Release.Namespace .Values.defaultNamespace }}
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+spec:
+  rules:
+    - host: prometheus-alertmanager.{{ .Values.hostnameSuffix }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: lumenvox-prometheus-alertmanager
+                port:
+                  number: 80

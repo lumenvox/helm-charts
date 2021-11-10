@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reporting
+  namespace: {{ default .Release.Namespace .Values.defaultNamespace }}
+  labels:
+    app: reporting
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reporting
+  template:
+    metadata:
+      labels:
+        app: reporting
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '90'
+    spec:
+      containers:
+        - name: reporting
+          image: {{ .Values.image.repository }}/cloud-reporting{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: metrics
+              containerPort: 90
+            - name: grpc
+              containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 90
+            initialDelaySeconds: 12
+            periodSeconds: {{ .Values.probes.periodSeconds }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 90
+            initialDelaySeconds: 12
+            periodSeconds: {{ .Values.probes.periodSeconds }}
+          envFrom:
+            - configMapRef:
+                name: lumenvox-configmap
+          env:
+            - name: AETHER_ENV_SERVICE_START_DELAY_SECONDS
+              value: '{{ .Values.lumenvox.service.startDelaySeconds }}'
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.imagePullSecrets }}
+        - name: {{ . }}
+      {{- end}}
+      {{- end }}

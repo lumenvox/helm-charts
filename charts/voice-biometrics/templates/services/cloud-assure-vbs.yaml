@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: assure-vbs-service
+  namespace: {{ default .Release.Namespace .Values.defaultNamespace }}
+spec:
+  selector:
+    app: assure-vbs
+  type: LoadBalancer
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 80

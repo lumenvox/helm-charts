@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: management-api-ingress
+  namespace: {{ default .Release.Namespace .Values.defaultNamespace }}
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+spec:
+  rules:
+    - host: management-api.{{ .Values.hostnameSuffix }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: management-api-service
+                port:
+                  number: 80

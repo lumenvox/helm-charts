@@ -1,0 +1,55 @@
+{{- if .Values.traefik.enabled }}
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: traefik-ingress-controller
+  namespace: {{ default .Release.Namespace .Values.traefik.namespace }}
+  labels:
+    app: traefik-ingress-lb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: traefik-ingress-lb
+  template:
+    metadata:
+      labels:
+        app: traefik-ingress-lb
+        name: traefik-ingress-lb
+    spec:
+      serviceAccountName: traefik-ingress-controller
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: traefik-ingress-lb
+          image: traefik:v2.5
+          ports:
+          - name: web
+            containerPort: 80
+          - name: websecure
+            containerPort: 443
+          - name: dashboard
+            containerPort: 8080
+          - name: grpc
+            containerPort: 9200
+          - name: postgres
+            containerPort: 5432
+          - name: mongo
+            containerPort: 27017
+          args:
+          - --api.insecure
+          - --accesslog
+          - --log.level=DEBUG
+          #- --log.format=json
+          - --entrypoints.web.Address=:80
+          - --entrypoints.websecure.Address=:443
+          - --entrypoints.grpc.Address=:9200
+          - --entrypoints.postgres.Address=:5432
+          - --entrypoints.rabbitmq.Address=:5672
+          - --entrypoints.mongo.Address=:27017
+          - --providers.kubernetescrd
+          - --providers.kubernetesingress=true
+          - --tracing.jaeger=true
+          - --tracing.jaeger.samplingServerURL=http://jaeger-agent:5778/sampling
+          - --tracing.jaeger.localAgentHostPort=jaeger-agent:6831
+          - --metrics.prometheus=true
+{{- end }}

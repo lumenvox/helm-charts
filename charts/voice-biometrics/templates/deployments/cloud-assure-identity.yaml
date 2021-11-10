@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: assure-identity
+  namespace: {{ default .Release.Namespace .Values.defaultNamespace }}
+  labels:
+    app: assure-identity
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: assure-identity
+  template:
+    metadata:
+      labels:
+        app: assure-identity
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '90'
+    spec:
+      containers:
+        - name: assure-identity
+          image: {{ .Values.image.repository }}/cloud-assure-identity{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: metrics
+              containerPort: 90
+            - name: grpc
+              containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 90
+            initialDelaySeconds: {{ .Values.lumenvox.service.startDelaySeconds }}
+            periodSeconds: {{ .Values.probes.periodSeconds }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 90
+            initialDelaySeconds: {{ .Values.lumenvox.service.startDelaySeconds }}
+            periodSeconds: {{ .Values.probes.periodSeconds }}
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 90
+            # 9 * 5 = 45 seconds of initial startup time allowed
+            failureThreshold: 9
+            periodSeconds: {{ .Values.probes.periodSeconds }}
+          envFrom:
+            - configMapRef:
+                name: lumenvox-configmap
+
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.imagePullSecrets }}
+        - name: {{ . }}
+      {{- end}}
+      {{- end }}

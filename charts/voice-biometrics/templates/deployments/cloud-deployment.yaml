@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment
+  namespace: {{ default .Release.Namespace .Values.defaultNamespace }}
+  labels:
+    app: deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: deployment
+  template:
+    metadata:
+      labels:
+        app: deployment
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '90'
+    spec:
+      containers:
+        - name: deployment
+          image: {{ .Values.image.repository }}/cloud-deployment{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: metrics
+              containerPort: 90
+            - name: grpc
+              containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 90
+            initialDelaySeconds: {{ .Values.lumenvox.deploymentStartDelaySeconds }}
+            periodSeconds: {{ .Values.probes.periodSeconds }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 90
+            initialDelaySeconds: {{ .Values.lumenvox.deploymentStartDelaySeconds }}
+            periodSeconds: {{ .Values.probes.periodSeconds }}
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 90
+            # 4 * 5 = 20 seconds of initial startup time allowed
+            failureThreshold: 4
+            periodSeconds: {{ .Values.probes.periodSeconds }}
+          envFrom:
+            - configMapRef:
+                name: lumenvox-configmap
+          env:
+            - name: AETHER_ENV_SERVICE_START_DELAY_SECONDS
+              value: '{{ .Values.lumenvox.deploymentStartDelaySeconds }}'
+{{/*            - name: ConnectionStrings__PostgresConnection*/}}
+{{/*              valueFrom:*/}}
+{{/*                configMapKeyRef:*/}}
+{{/*                  name: lumenvox-configmap*/}}
+{{/*                  key: ConnectionStrings__PostgresConnection*/}}
+{{/*            - name: MOCK_TEST_DATA*/}}
+{{/*              valueFrom:*/}}
+{{/*                configMapKeyRef:*/}}
+{{/*                  name: lumenvox-configmap*/}}
+{{/*                  key: MOCK_TEST_DATA*/}}
+{{/*            - name: POSTGRES_USER*/}}
+{{/*              valueFrom:*/}}
+{{/*                configMapKeyRef:*/}}
+{{/*                  name: lumenvox-configmap*/}}
+{{/*                  key: DB_USER_COMMON*/}}
+{{/*            - name: POSTGRES_DB*/}}
+{{/*              valueFrom:*/}}
+{{/*                configMapKeyRef:*/}}
+{{/*                  name: lumenvox-configmap*/}}
+{{/*                  key: POSTGRES_DB*/}}
+{{/*            - name: MockDataSettings__DeploymentsJson*/}}
+{{/*              valueFrom:*/}}
+{{/*                configMapKeyRef:*/}}
+{{/*                  name: lumenvox-configmap*/}}
+{{/*                  key: MockDataSettings__DeploymentsJson*/}}
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.imagePullSecrets }}
+        - name: {{ . }}
+      {{- end}}
+      {{- end }}

@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reporting-api
+  namespace: {{ default .Release.Namespace .Values.defaultNamespace }}
+  labels:
+    app: reporting-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reporting-api
+  template:
+    metadata:
+      labels:
+        app: reporting-api
+        # No Prometheus scraping for now
+    spec:
+      containers:
+        - name: reporting-api
+          image: {{ .Values.image.repository }}/cloud-reporting-api{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: web
+              containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 12
+            periodSeconds: {{ .Values.probes.periodSeconds }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 12
+            periodSeconds: {{ .Values.probes.periodSeconds }}
+          envFrom:
+            - configMapRef:
+                name: lumenvox-configmap
+          env:
+            - name: AETHER_ENV_SERVICE_START_DELAY_SECONDS
+              value: '{{ .Values.lumenvox.service.startDelaySeconds }}'
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.imagePullSecrets }}
+        - name: {{ . }}
+      {{- end}}
+      {{- end }}

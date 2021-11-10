@@ -1,0 +1,40 @@
+{{- if .Values.lumenvox.metrics.enableEndpoints }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: engineresource-ingress
+  namespace: {{ default .Release.Namespace .Values.defaultNamespace }}
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+spec:
+  rules:
+    - host: engineresource.{{ .Values.hostnameSuffix }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: engineresource-service
+                port:
+                  number: 90
+{{- end }}
+---
+{{- if .Values.lumenvox.enableTestEndpoints }}
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: engineresource-ingress-grpc
+  namespace: {{ default .Release.Namespace .Values.defaultNamespace }}
+spec:
+  entryPoints:
+    - grpc
+  routes:
+    - kind: Rule
+      match: Host(`engineresource-grpc.{{ .Values.hostnameSuffix }}`) && Headers(`Content-Type`, `application/grpc`)
+      priority: 11
+      services:
+        - name: engineresource-service
+          port: 80
+          scheme: h2c
+{{- end }}

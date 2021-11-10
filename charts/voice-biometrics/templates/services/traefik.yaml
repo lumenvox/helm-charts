@@ -1,0 +1,46 @@
+---
+{{- if .Values.traefik.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: traefik-ingress-service
+  namespace: {{ default .Release.Namespace .Values.traefik.namespace }}
+spec:
+  type: LoadBalancer
+  selector:
+    app: traefik-ingress-lb
+  ports:
+    - protocol: TCP
+      name: web
+      # port is the external port (outside the cluster), targetPort is the matching port in the pod
+      port: 80
+      targetPort: 80
+    - protocol: TCP
+      name: dashboard
+      port: 8080
+      targetPort: 8080
+    - protocol: TCP
+      name: grpc
+      port: 9200
+      targetPort: 9200
+    - protocol: TCP
+      name: postgres
+      port: 5432
+      targetPort: 5432
+    - protocol: TCP
+      name: rabbitmq
+      port: 5672
+      targetPort: 5672
+    - protocol: TCP
+      name: mongo
+      port: 27017
+      targetPort: 27017
+    - protocol: TCP
+      name: websecure
+      port: 443
+      targetPort: 443
+  {{- if .Values.traefik.externalIPs }}
+  externalIPs:
+    - {{ .Values.traefik.externalIPs }}
+  {{- end }}
+{{- end }}

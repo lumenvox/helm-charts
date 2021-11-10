@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: assure-vbs
+  namespace: {{ default .Release.Namespace .Values.defaultNamespace }}
+  labels:
+    app: assure-vbs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: assure-vbs
+  template:
+    metadata:
+      labels:
+        app: assure-vbs
+        # No Prometheus scraping for now
+    spec:
+      containers:
+        - name: assure-vbs
+          image: {{ .Values.image.repository }}/cloud-assure-vbs{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: web
+              containerPort: 80
+{{/*          readinessProbe:*/}}
+{{/*            httpGet:*/}}
+{{/*              path: /health*/}}
+{{/*              port: 80*/}}
+{{/*            initialDelaySeconds: 5*/}}
+{{/*            periodSeconds: {{ .Values.probes.periodSeconds }}*/}}
+{{/*          livenessProbe:*/}}
+{{/*            httpGet:*/}}
+{{/*              path: /health*/}}
+{{/*              port: 80*/}}
+{{/*            initialDelaySeconds: 10*/}}
+{{/*            periodSeconds: {{ .Values.probes.periodSeconds }}*/}}
+          envFrom:
+            - configMapRef:
+                name: lumenvox-configmap
+
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.imagePullSecrets }}
+        - name: {{ . }}
+      {{- end}}
+      {{- end }}

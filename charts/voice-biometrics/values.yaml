@@ -1,0 +1,319 @@
+# Default values for voice-biometrics.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: "lumenvox"
+  pullPolicy: "Always"
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+defaultNamespace: "lumenvox"
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+hostnameSuffix: "testmachine.com"
+composeProjectName: ""
+lumenvox:
+  # Time to allow support services (such as databases) to become available. Typically, 0 in production
+  deploymentStartDelaySeconds: 5
+
+  metrics:
+    enableEndpoints: true
+
+  # Internally used by LumenVox - should not be enabled by customers
+  enableTestEndpoints: false
+
+  service:
+    # Time from startup to allow deployment service
+    startDelaySeconds: 6
+    readinessProbe:
+      initialDelaySeconds: 10
+    livenessProbe:
+      initialDelaySeconds: 10
+
+licensing:
+  # Note: licensing (and therefore system) will not work without a value clusterGuid value
+  clusterGuid: "GET-CLUSTER-GUID-FROM-LUMENVOX"
+
+redis:
+  enabled: true
+  auth:
+    password: "iJ3WX7icYL4j3d"
+  architecture: standalone
+  master:
+    persistence:
+      enabled: false
+
+postgresql:
+  enabled: true
+  connection:
+    url: "lumenvox-postgresql.lumenvox"
+    port: 5432
+    user: "lvuser"
+    password: "iJ3WX7icYL4j3d"
+  user: "lvuser"
+  password: "iJ3WX7icYL4j3d"
+  postgresqlDatabase: "postgres"
+  postgresDb: "postgres"
+
+  postgresqlUsername: "lvuser"
+  postgresqlPassword: "iJ3WX7icYL4j3d"
+
+  commandTimeoutSeconds: 120
+  runMigrations: 'true'
+  exitAfterMigrations: 'false'
+  persistence:
+    enabled: false
+  persistentVolume:
+    storageSize: 2Gi
+  image:
+    tag: 13
+  container:
+    port: 5432
+  service:
+    type: LoadBalancer
+    nodePort: 32323
+
+mongodb:
+  enabled: true
+  architecture: "standalone"
+  persistence:
+    enabled: false
+  auth:
+    rootUser: 'lvuser'
+    rootPassword: 'iJ3WX7icYL4j3d'
+
+  image:
+    tag: 4.2
+
+rabbitmq:
+  enabled: true
+  auth:
+    username: "lvuser"
+    password: "iJ3WX7icYL4j3d"
+    existingPasswordSecret: "rabbitmq-secret"
+  persistence:
+    enabled: false
+    size: 4Gi
+  # service:
+  #  type: LoadBalancer
+  connection:
+    url: "lumenvox-rabbitmq.lumenvox"
+    port: 5672
+    user: "lvuser"
+    password: "iJ3WX7icYL4j3d"
+
+traefik:
+  enabled: true
+  namespace: "lumenvox"
+  dashboard:
+    enabled: true
+  rbac:
+    enabled: true
+  # externalIPs: "192.168.1.236"
+  additionalArguments:
+    #- --providers.file.filename=/data/traefik-config.yaml
+    - --api.insecure
+    - --accesslog
+    - --log.level=DEBUG
+    #- --log.format=json
+    - --entrypoints.web.Address=:80
+    - --entrypoints.websecure.Address=:443
+    - --entrypoints.grpc.Address=:9200
+    - --entrypoints.postgres.Address=:5432
+    - --entrypoints.rabbitmq.Address=:5672
+    - --entrypoints.mongo.Address=:27017
+    - --providers.kubernetescrd
+    - --providers.kubernetesingress=true
+    - --tracing.jaeger=true
+    - --tracing.jaeger.samplingServerURL=http://jaeger-agent:5778/sampling
+    - --tracing.jaeger.localAgentHostPort=jaeger-agent:6831
+    - --metrics.prometheus=true
+
+  ports:
+    web:
+      port: 80
+      expose: true
+      exposedPort: 80
+      protocol: TCP
+    websecure:
+      port: 8443
+      expose: true
+      exposedPort: 443
+      protocol: TCP
+      tls:
+        enabled: false
+        # this is the name of a TLSOption definition
+        options: ""
+        certResolver: ""
+        domains: []
+    dashboard:
+      port: 8080
+      expose: true
+      exposedPort: 8080
+      protocol: TCP
+    grpc:
+      port: 9200
+      targetPort: 9200
+      expose: true
+      exposedPort: 9200
+      protocol: TCP
+    postgres:
+      port: 5432
+      expose: true
+      exposedPort: 5432
+      protocol: TCP
+    rabbitmq:
+      port: 5672
+      expose: true
+      exposedPort: 5672
+      protocol: TCP
+    mongo:
+      port: 27017
+      expose: true
+      exposedPort: 27017
+      protocol: TCP
+
+  ingressRoute:
+    dashboard:
+      enabled: true
+  persistence:
+    enabled: false
+    path: /certs
+    size: 128Mi
+
+web:
+  commonUser: "lvuser"
+  commonPass: "iJ3WX7icYL4j3d"
+
+logging:
+  enableElasticsearch: false
+  defaultLevel: "Information"
+  overrideMicrosoftLevel: "Information"
+  overrideSystemLevel: "Information"
+  overrideGrpcLevel: "Information"
+
+encryption:
+  masterEncryptionKey: "mmf8fyVZPL0gSPIqsFXBdWjdy/gdOWWDn+zTT2HaH/U="
+  masterKeyProvider: "EnvVariableMasterKeyService"
+  useEncryption: true
+
+mockData:
+  testDataString: ""
+  deployments: ""
+  defaultDeployments: ""
+  jsonKeys:
+    master: ""
+    customer: ""
+    emergencyPublic: ""
+
+probes:
+  periodSeconds: 5
+
+enableAudit: true
+
+
+grafana:
+  enabled: true
+  ingress:
+    hosts: ['grafana.testmachine.com']
+  adminUser: "lvuser"
+  adminPassword: "iJ3WX7icYL4j3d"
+  admin:
+    user: "lvuser"
+    password: "iJ3WX7icYL4j3d"
+
+  config:
+    useGrafanaIniFile: true
+    grafanaIniConfigMap: grafana-configmap
+
+  datasources:
+    secretName: prometheus-grafana-secret
+
+  sidecar:
+    dashboards:
+      enabled: true
+      folder: /opt/bitnami/grafana/public/dashboards
+
+  persistence:
+    enabled: false
+
+prometheus:
+  enabled: true
+  server:
+    persistentVolume:
+      enabled: false
+  alertmanager:
+    persistentVolume:
+      enabled: false
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

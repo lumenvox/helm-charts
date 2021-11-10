@@ -1,0 +1,40 @@
+{{- if .Values.lumenvox.metrics.enableEndpoints }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: voice-verifier-ingress
+  namespace: {{ default .Release.Namespace .Values.defaultNamespace }}
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+spec:
+  rules:
+    - host: voice-verifier.{{ .Values.hostnameSuffix }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: voice-verifier-service
+                port:
+                  number: 90
+{{- end }}
+---
+{{- if .Values.lumenvox.enableTestEndpoints }}
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: voice-verifier-ingress-grpc
+  namespace: {{ default .Release.Namespace .Values.defaultNamespace }}
+spec:
+  entryPoints:
+    - grpc
+  routes:
+    - kind: Rule
+      match: Host(`voice-verifier-grpc.{{ .Values.hostnameSuffix }}`) && Headers(`Content-Type`, `application/grpc`)
+      priority: 11
+      services:
+        - name: voice-verifier-service
+          port: 80
+          scheme: h2c
+{{- end }}
