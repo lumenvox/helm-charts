@@ -72,11 +72,6 @@ postgresql:
     storageSize: 2Gi
   image:
     tag: 13
-  container:
-    port: 5432
-  service:
-    type: LoadBalancer
-    nodePort: 32323
 
 mongodb:
   enabled: true
@@ -99,8 +94,6 @@ rabbitmq:
   persistence:
     enabled: false
     size: 4Gi
-  # service:
-  #  type: LoadBalancer
   connection:
     url: "lumenvox-rabbitmq.lumenvox"
     port: 5672

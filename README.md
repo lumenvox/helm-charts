@@ -51,7 +51,7 @@ used during testing or development:
 _See the **Dependencies** section below for important details_
 
 ```shell
-helm install lumenvox-vb lumenvox/voice-biometrics -f my-lumenvox-values.yaml
+helm install lumenvox-vb lumenvox/voice-biometrics -f my-lumenvox-values.yaml -n lumenvox
 ```
  
 _See [helm install](https://helm.sh/docs/helm/helm_install/) for command documentation._
