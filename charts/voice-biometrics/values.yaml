@@ -171,6 +171,9 @@ traefik:
       exposedPort: 27017
       protocol: TCP
 
+  ingress:
+    kubernetes:
+      dashboardEnabled: false
   ingressRoute:
     dashboard:
       enabled: true

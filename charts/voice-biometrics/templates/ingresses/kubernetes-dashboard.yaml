@@ -1,22 +1,24 @@
 {{- if .Values.traefik.enabled }}
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: dashboard-ingress
-  namespace: kubernetes-dashboard
-  annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: web
+  {{- if   .Values.traefik.ingress.kubernetes.dashboardEnabled }}
+    apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      name: dashboard-ingress
+      namespace: kubernetes-dashboard
+      annotations:
+        traefik.ingress.kubernetes.io/router.entrypoints: web
 
-spec:
-  rules:
-    - host: dashboard.{{ .Values.hostnameSuffix}}
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: kubernetes-dashboard
-                port:
-                  number: 80
+    spec:
+      rules:
+        - host: dashboard.{{ .Values.hostnameSuffix}}
+          http:
+            paths:
+              - path: /
+                pathType: Prefix
+                backend:
+                  service:
+                    name: kubernetes-dashboard
+                    port:
+                      number: 80
+  {{- end }}
 {{- end }}
