@@ -111,7 +111,7 @@ traefik:
     enabled: true
   rbac:
     enabled: true
-  # externalIPs: "192.168.1.236"
+  staticIpName: ""
   additionalArguments:
     #- --providers.file.filename=/data/traefik-config.yaml
     - --api.insecure
