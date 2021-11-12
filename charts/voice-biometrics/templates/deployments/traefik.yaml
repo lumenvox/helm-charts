@@ -29,12 +29,18 @@ spec:
             containerPort: 443
           - name: dashboard
             containerPort: 8080
+          {{- if .Values.lumenvox.enableTestEndpoints }}
           - name: grpc
             containerPort: 9200
+          {{- end }}
+          {{- if .Values.postgresql.enabled }}
           - name: postgres
             containerPort: 5432
+          {{- end }}
+          {{- if .Values.mongodb.enabled }}
           - name: mongo
             containerPort: 27017
+          {{- end }}
           args:
           - --api.insecure
           - --accesslog
@@ -42,10 +48,16 @@ spec:
           #- --log.format=json
           - --entrypoints.web.Address=:80
           - --entrypoints.websecure.Address=:443
+          {{- if .Values.lumenvox.enableTestEndpoints }}
           - --entrypoints.grpc.Address=:9200
+          {{- end }}
+          {{- if .Values.postgresql.enabled }}
           - --entrypoints.postgres.Address=:5432
+          {{- end }}
           - --entrypoints.rabbitmq.Address=:5672
+          {{- if .Values.mongodb.enabled }}
           - --entrypoints.mongo.Address=:27017
+          {{- end }}
           - --providers.kubernetescrd
           - --providers.kubernetesingress=true
           - --tracing.jaeger=true
