@@ -33,12 +33,14 @@ spec:
               port: 90
             initialDelaySeconds: {{ .Values.lumenvox.deploymentStartDelaySeconds }}
             periodSeconds: {{ .Values.probes.periodSeconds }}
+          {{- if .Values.lumenvox.service.livenessProbe.enabled }}
           livenessProbe:
             httpGet:
               path: /health
               port: 90
             initialDelaySeconds: {{ .Values.lumenvox.deploymentStartDelaySeconds }}
             periodSeconds: {{ .Values.probes.periodSeconds }}
+          {{- end }}
           startupProbe:
             httpGet:
               path: /health

@@ -33,12 +33,14 @@ spec:
                 - /usr/bin/healthcheck
             initialDelaySeconds: {{ .Values.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.probes.periodSeconds }}
+          {{- if .Values.lumenvox.service.livenessProbe.enabled }}
           livenessProbe:
             exec:
               command:
                 - /usr/bin/healthcheck
             initialDelaySeconds: {{ .Values.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.probes.periodSeconds }}
+          {{- end }}
           startupProbe:
             exec:
               command:
