@@ -54,14 +54,28 @@ spec:
                 configMapKeyRef:
                   name: lumenvox-configmap
                   key: ConnectionStrings__PostgresConnection
+            {{ if .Values.licensing.showDebugOutput }}
             - name: SHOW_DEBUG_OUTPUT
               value: '{{ .Values.licensing.showDebugOutput }}'
+            {{- end }}
             - name: LICENSE_CLUSTER_GUID
               value: '{{ .Values.licensing.clusterGuid }}'
+            {{- if .Values.licensing.databaseHostOverride }}
             - name: DB_HOST_OVERRIDE
               value: '{{ .Values.licensing.databaseHostOverride }}'
+            {{- end }}
+            {{- if .Values.licensing.reportEndpoint }}
+            - name: LICENSE_REPORT_ENDPOINT
+              value: '{{ .Values.licensing.reportEndpoint }}'
+            {{- end }}
             - name: LICENSE_REPORT_FREQUENCY_MINS
               value: '{{ .Values.licensing.reportFreqMins }}'
+            - name: LICENSE_REPORT_SYNC_HOUR
+              value: '{{ .Values.licensing.reportSyncHour }}'
+            - name: LICENSE_REPORT_SYNC_MIN
+              value: '{{ .Values.licensing.reportSyncMin }}'
+            - name: VERBOSE_DB_LOGGING
+              value: '{{ .Values.licensing.verboseDbLogging }}'
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
       {{- range .Values.imagePullSecrets }}
