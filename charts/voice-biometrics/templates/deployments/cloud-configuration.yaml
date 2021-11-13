@@ -18,6 +18,8 @@ spec:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '90'
     spec:
+      # Assign this pod a higher priority than others, but lower than deployment, since others are dependent on both
+      priorityClassName: high-priority-nonpreempting
       containers:
         - name: configuration
           image: {{ .Values.image.repository }}/cloud-configuration{{ .Values.image.tag }}

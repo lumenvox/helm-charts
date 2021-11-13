@@ -18,6 +18,8 @@ spec:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '90'
     spec:
+      # Assign this pod a higher priority than others, since others depend on this one to be running first
+      priorityClassName: high-priority
       containers:
         - name: deployment
           image: {{ .Values.image.repository }}/cloud-deployment{{ .Values.image.tag }}
