@@ -6,7 +6,6 @@ metadata:
 spec:
   selector:
     app: assure-vbs
-  # type: LoadBalancer
   ports:
     - name: http
       protocol: TCP

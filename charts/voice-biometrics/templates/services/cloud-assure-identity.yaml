@@ -6,7 +6,6 @@ metadata:
 spec:
   selector:
     app: assure-identity
-  type: LoadBalancer
   ports:
     - name: http
       protocol: TCP

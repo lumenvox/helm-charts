@@ -6,7 +6,6 @@ metadata:
 spec:
   selector:
     app: voice-verifier
-  type: LoadBalancer
   ports:
     - name: http
       protocol: TCP

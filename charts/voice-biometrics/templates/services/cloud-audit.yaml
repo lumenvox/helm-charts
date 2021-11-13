@@ -6,7 +6,6 @@ metadata:
 spec:
   selector:
     app: audit
-  type: LoadBalancer
   ports:
     - name: http
       protocol: TCP

@@ -6,7 +6,6 @@ metadata:
 spec:
   selector:
     app: license
-  # type: LoadBalancer
   ports:
     - name: http
       protocol: TCP
