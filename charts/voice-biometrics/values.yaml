@@ -112,12 +112,10 @@ traefik:
   rbac:
     enabled: true
   staticIpName: ""
+  loadBalancerIpAddress: ""
   additionalArguments:
-    #- --providers.file.filename=/data/traefik-config.yaml
     - --api.insecure
     - --accesslog
-    - --log.level=DEBUG
-    #- --log.format=json
     - --entrypoints.web.Address=:80
     - --entrypoints.websecure.Address=:443
     - --entrypoints.grpc.Address=:9200

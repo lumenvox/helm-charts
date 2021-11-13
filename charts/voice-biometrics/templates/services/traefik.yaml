@@ -11,6 +11,10 @@ metadata:
   {{- end }}
 spec:
   type: LoadBalancer
+  {{- if .Values.traefik.staticIpName }}
+  loadBalancerIP:
+    {{ .Values.traefik.loadBalancerIpAddress }}
+  {{- end }}
   selector:
     app: traefik-ingress-lb
   ports:
