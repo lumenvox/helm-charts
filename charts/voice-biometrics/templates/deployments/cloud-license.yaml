@@ -28,23 +28,23 @@ spec:
             - name: grpc
               containerPort: 5010
           readinessProbe:
-            exec:
-              command:
-                - /usr/bin/healthcheck
+            httpGet:
+              path: /health
+              port: 5110
             initialDelaySeconds: {{ .Values.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.probes.periodSeconds }}
           {{- if .Values.lumenvox.service.livenessProbe.enabled }}
           livenessProbe:
-            exec:
-              command:
-                - /usr/bin/healthcheck
+            httpGet:
+              path: /health
+              port: 5110
             initialDelaySeconds: {{ .Values.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.probes.periodSeconds }}
           {{- end }}
           startupProbe:
-            exec:
-              command:
-                - /usr/bin/healthcheck
+            httpGet:
+              path: /health
+              port: 5110
             # 4 * 5 = 20 seconds of initial startup time allowed
             failureThreshold: 4
             periodSeconds: {{ .Values.probes.periodSeconds }}
