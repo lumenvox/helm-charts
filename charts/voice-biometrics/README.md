@@ -71,7 +71,6 @@ _See [helm uninstall](https://helm.sh/docs/helm/helm_uninstall/) for command doc
 | `logging.overrideMicrosoftLevel`          | Microsoft override verbosity level            | `Information`                                           |
 | `logging.overrideSystemLevel`             | System override verbosity level               | `Information`                                           |
 | `logging.overrideGrpcLevel`               | gRPC override verbosity level                 | `Information`                                           |
-| `image.registry`                          | Location to pull application images from      | `lumenvox-will-provide-this-to-you`                     |
 | `imagePullSecrets`                        | Optional login credentials for image repo     | `nil`                                                   |
 | `encryption.masterEncryptionKey`          | System master encryption key                  | `replace-this-master-encryption-key`                    |
 | `encryption.useEncryption`                | Whether system-wide encryption is enabled     | `true`                                                  |
