@@ -35,6 +35,13 @@ spec:
 {{/*              port: 80*/}}
 {{/*            initialDelaySeconds: 10*/}}
 {{/*            periodSeconds: {{ .Values.probes.periodSeconds }}*/}}
+          resources:
+            requests:
+              cpu: 10m
+              memory: 150Mi
+            limits:
+              cpu: 200m
+              memory: 250Mi
           envFrom:
             - configMapRef:
                 name: lumenvox-configmap
@@ -45,3 +52,7 @@ spec:
         - name: {{ . }}
       {{- end}}
       {{- end }}
+      initContainers:
+        - name: wait-for-deployment-service
+          image: busybox:1.28
+          command: ['sh', '-c', "until nslookup deployment-service.{{ default .Release.Namespace .Values.defaultNamespace }}; do echo waiting for Deployment Service; sleep 2; done"]

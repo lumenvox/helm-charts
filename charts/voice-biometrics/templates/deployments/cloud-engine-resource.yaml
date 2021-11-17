@@ -41,6 +41,13 @@ spec:
             initialDelaySeconds: {{ .Values.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.probes.periodSeconds }}
           {{- end }}
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+            limits:
+              cpu: 250m
+              memory: 350Mi
           envFrom:
             - configMapRef:
                 name: lumenvox-configmap

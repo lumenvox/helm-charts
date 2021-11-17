@@ -19,7 +19,7 @@ hostnameSuffix: "testmachine.com"
 composeProjectName: ""
 lumenvox:
   # Time to allow support services (such as databases) to become available. Typically, 0 in production
-  deploymentStartDelaySeconds: 5
+  deploymentStartDelaySeconds: 0
 
   metrics:
     enableEndpoints: true
@@ -29,12 +29,12 @@ lumenvox:
 
   service:
     # Time from startup to allow deployment service
-    startDelaySeconds: 6
+    startDelaySeconds: 0
     readinessProbe:
-      initialDelaySeconds: 10
+      initialDelaySeconds: 5
     livenessProbe:
       enabled: true
-      initialDelaySeconds: 10
+      initialDelaySeconds: 5
 
 licensing:
   # Note: licensing (and therefore system) will not work without a value clusterGuid value
@@ -47,6 +47,9 @@ redis:
   enabled: true
   auth:
     password: "iJ3WX7icYL4j3d"
+  connection:
+    url: "lumenvox-redis-master.lumenvox"
+    port: 6379
   architecture: standalone
   master:
     persistence:
@@ -86,23 +89,32 @@ mongodb:
     rootUser: 'lvuser'
     rootPassword: 'iJ3WX7icYL4j3d'
 
+  connection:
+    url: "lumenvox-mongodb.lumenvox"
+    port: 27017
+
   image:
     tag: 4.2
 
 rabbitmq:
   enabled: true
+  ingress:
+    enabled: true
+    hostname: "rabbitmq.testmachine.com"
+  init:
+    checkManagementEndpoint: true
   auth:
     username: "lvuser"
     password: "iJ3WX7icYL4j3d"
     existingPasswordSecret: "rabbitmq-secret"
-  persistence:
-    enabled: false
-    size: 4Gi
   connection:
     url: "lumenvox-rabbitmq.lumenvox"
     port: 5672
     user: "lvuser"
     password: "iJ3WX7icYL4j3d"
+  persistence:
+    enabled: false
+    size: 4Gi
 
 traefik:
   enabled: true

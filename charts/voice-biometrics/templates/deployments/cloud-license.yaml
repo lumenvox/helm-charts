@@ -41,13 +41,20 @@ spec:
             initialDelaySeconds: {{ .Values.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.probes.periodSeconds }}
           {{- end }}
-          startupProbe:
-            httpGet:
-              path: /health
-              port: 5110
-            # 4 * 5 = 20 seconds of initial startup time allowed
-            failureThreshold: 4
-            periodSeconds: {{ .Values.probes.periodSeconds }}
+{{/*          startupProbe:*/}}
+{{/*            httpGet:*/}}
+{{/*              path: /health*/}}
+{{/*              port: 5110*/}}
+{{/*            # 6 * 5 = 30 seconds of initial startup time allowed*/}}
+{{/*            failureThreshold: 6*/}}
+{{/*            periodSeconds: {{ .Values.probes.periodSeconds }}*/}}
+          resources:
+            requests:
+              cpu: 5m
+              memory: 15Mi
+            limits:
+              cpu: 100m
+              memory: 50Mi
           env:
             - name: DEPLOYMENT_DB_CONNECTION
               valueFrom:
@@ -82,3 +89,7 @@ spec:
         - name: {{ . }}
       {{- end}}
       {{- end }}
+      initContainers:
+        - name: wait-for-deployment-service
+          image: busybox:1.28
+          command: ['sh', '-c', "until nslookup deployment-service.{{ default .Release.Namespace .Values.defaultNamespace }}; do echo waiting for Deployment Service; sleep 2; done"]

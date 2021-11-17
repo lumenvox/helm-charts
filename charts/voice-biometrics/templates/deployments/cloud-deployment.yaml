@@ -43,13 +43,20 @@ spec:
             initialDelaySeconds: {{ .Values.lumenvox.deploymentStartDelaySeconds }}
             periodSeconds: {{ .Values.probes.periodSeconds }}
           {{- end }}
-          startupProbe:
-            httpGet:
-              path: /health
-              port: 90
-            # 4 * 5 = 20 seconds of initial startup time allowed
-            failureThreshold: 4
-            periodSeconds: {{ .Values.probes.periodSeconds }}
+{{/*          startupProbe:*/}}
+{{/*            httpGet:*/}}
+{{/*              path: /health*/}}
+{{/*              port: 90*/}}
+{{/*            # 8 * 5 = 40 seconds of initial startup time allowed*/}}
+{{/*            failureThreshold: 8*/}}
+{{/*            periodSeconds: {{ .Values.probes.periodSeconds }}*/}}
+          resources:
+            requests:
+              cpu: 200m
+              memory: 120Mi
+            limits:
+              cpu: 600m
+              memory: 500Mi
           envFrom:
             - configMapRef:
                 name: lumenvox-configmap
@@ -87,3 +94,13 @@ spec:
         - name: {{ . }}
       {{- end}}
       {{- end }}
+      initContainers:
+        - name: init-postgres
+          image: busybox:1.28
+          command: ['sh', '-c', "until nslookup {{ .Values.postgresql.connection.url }}; do echo waiting for Postgres; sleep 2; done"]
+        - name: init-mongodb
+          image: busybox:1.28
+          command: ['sh', '-c', "until nslookup {{ .Values.postgresql.connection.url }}; do echo waiting for MongoDB; sleep 2; done"]
+        - name: init-redis
+          image: busybox:1.28
+          command: ['sh', '-c', "until nslookup {{ .Values.redis.connection.url }}; do echo waiting for Redis; sleep 2; done"]

@@ -41,13 +41,20 @@ spec:
             initialDelaySeconds: {{ .Values.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.probes.periodSeconds }}
           {{- end }}
-          startupProbe:
-            httpGet:
-              path: /health
-              port: 90
-            # 12 * 5 = 60 seconds of initial startup time allowed
-            failureThreshold: 12
-            periodSeconds: {{ .Values.probes.periodSeconds }}
+{{/*          startupProbe:*/}}
+{{/*            httpGet:*/}}
+{{/*              path: /health*/}}
+{{/*              port: 90*/}}
+{{/*            # 12 * 5 = 60 seconds of initial startup time allowed*/}}
+{{/*            failureThreshold: 12*/}}
+{{/*            periodSeconds: {{ .Values.probes.periodSeconds }}*/}}
+          resources:
+            requests:
+              cpu: 200m
+              memory: 150Mi
+            limits:
+              cpu: 500m
+              memory: 350Mi
           envFrom:
             - configMapRef:
                 name: lumenvox-configmap
@@ -115,3 +122,20 @@ spec:
         - name: {{ . }}
       {{- end}}
       {{- end }}
+      initContainers:
+{{/*      - name: wait-for-deployment-service*/}}
+{{/*        image: busybox:1.28*/}}
+{{/*        command: ['sh', '-c', "until nslookup deployment-service.{{ default .Release.Namespace .Values.defaultNamespace }}; do echo waiting for Deployment Service; sleep 2; done"]*/}}
+        - name: wait-for-deployment-service
+          image: curlimages/curl:latest
+          command: ["/bin/sh","-c"]
+          args: ["while [ $(curl -sw '%{http_code}' http://deployment-service.{{ default .Release.Namespace .Values.defaultNamespace }}:90/health -o /dev/null) -ne 200 ]; do sleep 2; echo 'Waiting for the Deployment Service...'; done"]
+        - name: wait-for-rabbitmq-service
+          image: busybox:1.28
+          command: ['sh', '-c', "until nslookup {{ .Values.rabbitmq.connection.url }}; do echo waiting for RabbitMQ Service; sleep 2; done"]
+          {{- if .Values.rabbitmq.init.checkManagementEndpoint }}
+        - name: wait-for-rabbitmq-management-endpoint
+          image: curlimages/curl:latest
+          command: ["/bin/sh","-c"]
+          args: ["while [ $(curl -sw '%{http_code}' http://{{ .Values.rabbitmq.connection.url }}:15672 -o /dev/null) -ne 200 ]; do sleep 2; echo 'Waiting for the RabbitMQ Management Page...'; done"]
+          {{- end }}
