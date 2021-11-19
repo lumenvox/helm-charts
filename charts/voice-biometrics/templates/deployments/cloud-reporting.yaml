@@ -17,6 +17,7 @@ spec:
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '90'
+        linkerd.io/inject: enabled
     spec:
       containers:
         - name: reporting
@@ -43,11 +44,11 @@ spec:
           {{- end }}
           resources:
             requests:
-              cpu: 25m
-              memory: 100Mi
+              cpu: 100m
+              memory: 250Mi
             limits:
-              cpu: 200m
-              memory: 350Mi
+              cpu: 250m
+              memory: 450Mi
           envFrom:
             - configMapRef:
                 name: lumenvox-configmap
@@ -62,5 +63,6 @@ spec:
       {{- end }}
       initContainers:
         - name: wait-for-deployment-service
-          image: busybox:1.28
-          command: ['sh', '-c', "until nslookup deployment-service.{{ default .Release.Namespace .Values.defaultNamespace }}; do echo waiting for Deployment Service; sleep 2; done"]
+          image: curlimages/curl:latest
+          command: ["/bin/sh","-c"]
+          args: ["while [ $(curl -sw '%{http_code}' http://deployment-service.{{ default .Release.Namespace .Values.defaultNamespace }}:90/health -o /dev/null) -ne 200 ]; do sleep 2; echo 'Waiting for the Deployment Service...'; done"]

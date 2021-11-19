@@ -15,6 +15,7 @@ spec:
       labels:
         app: management-api
         # No Prometheus scraping for now
+        linkerd.io/inject: enabled
     spec:
       containers:
         - name: management-api
@@ -40,10 +41,10 @@ spec:
           resources:
             requests:
               cpu: 50m
-              memory: 100Mi
+              memory: 150Mi
             limits:
               cpu: 150m
-              memory: 350Mi
+              memory: 550Mi
           envFrom:
             - configMapRef:
                 name: lumenvox-configmap

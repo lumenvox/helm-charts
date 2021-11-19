@@ -15,6 +15,8 @@ spec:
       labels:
         app: reporting-api
         # No Prometheus scraping for now
+      annotations:
+        linkerd.io/inject: enabled
     spec:
       containers:
         - name: reporting-api
@@ -39,10 +41,10 @@ spec:
           {{- end }}
           resources:
             requests:
-              cpu: 25m
-              memory: 100Mi
+              cpu: 100m
+              memory: 200Mi
             limits:
-              cpu: 200m
+              cpu: 400m
               memory: 350Mi
           envFrom:
             - configMapRef:
@@ -58,5 +60,6 @@ spec:
       {{- end }}
       initContainers:
         - name: wait-for-reporting-service
-          image: busybox:1.28
-          command: ['sh', '-c', "until nslookup reporting-service.{{ default .Release.Namespace .Values.defaultNamespace }}; do echo waiting for Reporting Service; sleep 2; done"]
+          image: curlimages/curl:latest
+          command: ["/bin/sh","-c"]
+          args: ["while [ $(curl -sw '%{http_code}' http://reporting-service.{{ default .Release.Namespace .Values.defaultNamespace }}:90/health -o /dev/null) -ne 200 ]; do sleep 2; echo 'Waiting for the Reporting Service...'; done"]

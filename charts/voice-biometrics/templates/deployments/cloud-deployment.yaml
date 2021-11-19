@@ -17,6 +17,7 @@ spec:
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '90'
+        linkerd.io/inject: enabled
     spec:
       # Assign this pod a higher priority than others, since others depend on this one to be running first
       priorityClassName: high-priority
@@ -52,11 +53,11 @@ spec:
 {{/*            periodSeconds: {{ .Values.probes.periodSeconds }}*/}}
           resources:
             requests:
-              cpu: 200m
-              memory: 120Mi
+              cpu: 100m
+              memory: 350Mi
             limits:
-              cpu: 600m
-              memory: 500Mi
+              cpu: 250m
+              memory: 550Mi
           envFrom:
             - configMapRef:
                 name: lumenvox-configmap

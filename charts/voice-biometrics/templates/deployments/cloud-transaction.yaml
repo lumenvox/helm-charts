@@ -17,6 +17,7 @@ spec:
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '90'
+        linkerd.io/inject: enabled
     spec:
       containers:
         - name: transaction
@@ -50,11 +51,11 @@ spec:
 {{/*            periodSeconds: {{ .Values.probes.periodSeconds }}*/}}
           resources:
             requests:
-              cpu: 200m
-              memory: 150Mi
+              cpu: 100m
+              memory: 250Mi
             limits:
               cpu: 500m
-              memory: 350Mi
+              memory: 550Mi
           envFrom:
             - configMapRef:
                 name: lumenvox-configmap

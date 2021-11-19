@@ -60,6 +60,8 @@ spec:
           {{- end }}
           - --providers.kubernetescrd
           - --providers.kubernetesingress=true
+          # - --providers.kubernetesingress.labelselector="app=traefik"
+          # - --providers.kubernetesingress.ingressclass=traefik-internal
           - --tracing.jaeger=true
           - --tracing.jaeger.samplingServerURL=http://jaeger-agent:5778/sampling
           - --tracing.jaeger.localAgentHostPort=jaeger-agent:6831
