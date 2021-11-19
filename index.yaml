@@ -2,6 +2,42 @@ apiVersion: v1
 entries:
   voice-biometrics:
   - apiVersion: v2
+    appVersion: 0.0.5
+    created: "2021-11-19T00:31:10.54395427Z"
+    dependencies:
+    - condition: redis.enabled
+      name: redis
+      repository: https://charts.bitnami.com/bitnami
+      version: 15.5.3
+    - condition: mongodb.enabled
+      name: mongodb
+      repository: https://charts.bitnami.com/bitnami
+      version: 10.29.0
+    - condition: rabbitmq.enabled
+      name: rabbitmq
+      repository: https://charts.bitnami.com/bitnami
+      version: 8.24.2
+    - condition: postgresql.enabled
+      name: postgresql
+      repository: https://charts.bitnami.com/bitnami
+      version: 10.13.4
+    - condition: grafana.enabled
+      name: grafana
+      repository: https://charts.bitnami.com/bitnami
+      version: 7.1.0
+    - condition: prometheus.enabled
+      name: prometheus
+      repository: https://prometheus-community.github.io/helm-charts
+      version: 14.11.1
+    description: LumenVox Voice Biometrics Helm chart for Kubernetes
+    digest: 64d305caf054490430651fdd41c4a11f0a5389badb07c00416d096c831200357
+    home: https://lumenvox.com
+    name: voice-biometrics
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/voice-biometrics-0.0.17/voice-biometrics-0.0.17.tgz
+    version: 0.0.17
+  - apiVersion: v2
     appVersion: 0.0.4
     created: "2021-11-17T19:15:58.986525682Z"
     dependencies:
