@@ -37,7 +37,7 @@ lumenvox:
       initialDelaySeconds: 5
 
   ingress:
-    className: "traefik"
+    className:
 
 licensing:
   # Note: licensing (and therefore system) will not work without a value clusterGuid value
