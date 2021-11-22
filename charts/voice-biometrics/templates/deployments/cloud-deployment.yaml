@@ -17,7 +17,14 @@ spec:
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '90'
+        {{- if .Values.linkerd.dashboard.ingressEnabled }}
+        {{- if eq .Values.linkerd.dashboard.ingressMode "nginx" }}
         linkerd.io/inject: enabled
+        {{- else }}
+        # Default to traefik
+        linkerd.io/inject: ingress
+        {{- end }}
+        {{- end }}
     spec:
       # Assign this pod a higher priority than others, since others depend on this one to be running first
       priorityClassName: high-priority

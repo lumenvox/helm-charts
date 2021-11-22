@@ -22,6 +22,37 @@ helm install lumenvox-vb lumenvox/voice-biometrics -f my-lumenvox-values.yaml
 _See [helm install](https://helm.sh/docs/helm/helm_install/) for command documentation._
 
 
+## Linkerd Service Mesh
+
+A service mesh is required to provide load-balancing functionality
+across services, and the default LumenVox configuration requires
+[linkerd](https://linkerd.io/2.11/getting-started/), which must be
+installed and configured manually by the Kubernetes administrator.
+
+> Note that linkerd may require certificates in order to operate
+> correctly, and these certificates may require updates, which again
+> should be handled by Kubernetes system administrators
+
+Once installed, LumenVox services should automatically inject the
+linkerd proxy container into its pods to enable load-balancing
+without needing further configuration.
+
+It may be possible to configure and use a different service mesh,
+however this is beyond the scope of LumenVox' current support
+policy.
+
+Please contact LumenVox if you have specific questions relating to
+this.
+
+This Voice Biometrics Helm Chart can be run without linkerd being
+installed, however load-balancing across the services will not be
+performed, so scaling will be significantly impacted. This may be
+suitable for a test configuration, where only one pod of each type
+is anticipated, however for production, using a Service Mesh is
+strongly recommended, with linkerd being preferred.
+
+We recommend installing linkerd before this Helm Chart.
+
 ## Uninstalling the Chart
 
 To uninstall/delete the chart named `lumenvox-vb`:
@@ -78,3 +109,4 @@ _See [helm uninstall](https://helm.sh/docs/helm/helm_uninstall/) for command doc
 | `grafana.adminUser`                       | Grafana admin user                            | `lvuser`                                                |
 | `grafana.adminPassword`                   | Grafana admin password                        | `iJ3WX7icYL4j3d`                                        |
 | `prometheus.enabled`                      | Whether Prometheus helm chart is installed    | `true`                                                  |
+

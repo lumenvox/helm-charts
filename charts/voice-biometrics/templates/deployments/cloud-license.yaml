@@ -17,7 +17,14 @@ spec:
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '5110'
+        {{- if .Values.linkerd.dashboard.ingressEnabled }}
+        {{- if eq .Values.linkerd.dashboard.ingressMode "nginx" }}
         linkerd.io/inject: enabled
+        {{- else }}
+        # Default to traefik
+        linkerd.io/inject: ingress
+        {{- end }}
+        {{- end }}
     spec:
       containers:
         - name: license

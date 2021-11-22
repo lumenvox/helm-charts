@@ -36,6 +36,9 @@ lumenvox:
       enabled: true
       initialDelaySeconds: 5
 
+  ingress:
+    className: "traefik"
+
 licensing:
   # Note: licensing (and therefore system) will not work without a value clusterGuid value
   clusterGuid: "GET-CLUSTER-GUID-FROM-LUMENVOX"
@@ -254,12 +257,33 @@ grafana:
 
 prometheus:
   enabled: true
+
+  connection:
+    url: http://lumenvox-prometheus-server
+
   server:
     persistentVolume:
       enabled: false
   alertmanager:
     persistentVolume:
       enabled: false
+
+linkerd:
+  dashboard:
+    # Applies ingress for linkerd dashboard when enabled (true)
+    ingressEnabled: true
+
+    # Namespace used by linkerd dashboard
+    ingressNamespace: linkerd-viz
+
+    # Hostname prefix to use for ingress
+    ingressHostname: linkerd
+
+    # Opaque secret value for linkerd ingress
+    ingressSecret: YWRtaW46JGFwcjEkbjdDdTZnSGwkRTQ3b2dmN0NPOE5SWWpFakJPa1dNLgoK
+
+    # ingress mode can be either nginx or traefik
+    ingressMode: nginx
 
 serviceAccount:
   # Specifies whether a service account should be created

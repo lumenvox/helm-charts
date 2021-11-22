@@ -7,6 +7,9 @@ metadata:
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: web
 spec:
+  {{- if .Values.lumenvox.ingress.className }}
+  ingressClassName: {{ .Values.lumenvox.ingress.className }}
+  {{- end }}
   rules:
     - host: engineresource.{{ .Values.hostnameSuffix }}
       http:
