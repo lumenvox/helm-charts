@@ -37,6 +37,7 @@ lumenvox:
       initialDelaySeconds: 5
 
   ingress:
+    # Specify an ingressClassName for advanced HTTP ingress configuration (default nginx). Unset to use default ingress
     className:
 
 licensing:
@@ -47,6 +48,7 @@ licensing:
   reportSyncMin: "0"
 
 redis:
+  # Specifies whether redis helm chart should be installed
   enabled: true
   auth:
     password: "iJ3WX7icYL4j3d"
@@ -59,6 +61,7 @@ redis:
       enabled: false
 
 postgresql:
+  # Specifies whether postgresql helm chart should be installed
   enabled: true
   connection:
     url: "lumenvox-postgresql.lumenvox"
@@ -84,6 +87,7 @@ postgresql:
     tag: 13
 
 mongodb:
+  # Specifies whether mongodb helm chart should be installed
   enabled: true
   architecture: "standalone"
   persistence:
@@ -97,13 +101,17 @@ mongodb:
     port: 27017
 
   image:
+    # Note using an older version due to incompatibilities on some test machines
     tag: 4.2
 
 rabbitmq:
+  # Specifies whether rabbitmq helm chart should be installed
   enabled: true
   ingress:
     enabled: true
     hostname: "rabbitmq.testmachine.com"
+    # optional ingressClassName for advanced ingress handling. Comment out to use default ingress
+    # ingressClassName: "nginx"
   init:
     checkManagementEndpoint: true
   auth:
@@ -120,84 +128,16 @@ rabbitmq:
     size: 4Gi
 
 traefik:
+  # Specifies whether traefik ingress controller should be installed (recommended as default ingress for LumenVox)
   enabled: true
   namespace: "lumenvox"
-  dashboard:
-    enabled: true
-  rbac:
-    enabled: true
-  staticIpName: ""
-  loadBalancerIpAddress: ""
-  additionalArguments:
-    - --api.insecure
-    - --accesslog
-    - --entrypoints.web.Address=:80
-    - --entrypoints.websecure.Address=:443
-    - --entrypoints.grpc.Address=:9200
-    - --entrypoints.postgres.Address=:5432
-    - --entrypoints.rabbitmq.Address=:5672
-    - --entrypoints.mongo.Address=:27017
-    - --providers.kubernetescrd
-    - --providers.kubernetesingress=true
-    - --tracing.jaeger=true
-    - --tracing.jaeger.samplingServerURL=http://jaeger-agent:5778/sampling
-    - --tracing.jaeger.localAgentHostPort=jaeger-agent:6831
-    - --metrics.prometheus=true
 
-  ports:
-    web:
-      port: 80
-      expose: true
-      exposedPort: 80
-      protocol: TCP
-    websecure:
-      port: 8443
-      expose: true
-      exposedPort: 443
-      protocol: TCP
-      tls:
-        enabled: false
-        # this is the name of a TLSOption definition
-        options: ""
-        certResolver: ""
-        domains: []
-    dashboard:
-      port: 8080
-      expose: true
-      exposedPort: 8080
-      protocol: TCP
-    grpc:
-      port: 9200
-      targetPort: 9200
-      expose: true
-      exposedPort: 9200
-      protocol: TCP
-    postgres:
-      port: 5432
-      expose: true
-      exposedPort: 5432
-      protocol: TCP
-    rabbitmq:
-      port: 5672
-      expose: true
-      exposedPort: 5672
-      protocol: TCP
-    mongo:
-      port: 27017
-      expose: true
-      exposedPort: 27017
-      protocol: TCP
+  service:
+    type: ClusterIP
 
   ingress:
     kubernetes:
       dashboardEnabled: false
-  ingressRoute:
-    dashboard:
-      enabled: true
-  persistence:
-    enabled: false
-    path: /certs
-    size: 128Mi
 
 web:
   commonUser: "lvuser"
@@ -231,6 +171,7 @@ enableAudit: true
 
 
 grafana:
+  # Specifies whether grafana helm chart should be installed
   enabled: true
   ingress:
     hosts: ['grafana.testmachine.com']
@@ -256,6 +197,7 @@ grafana:
     enabled: false
 
 prometheus:
+  # Specifies whether prometheus helm chart should be installed
   enabled: true
 
   connection:
@@ -272,16 +214,12 @@ linkerd:
   dashboard:
     # Applies ingress for linkerd dashboard when enabled (true)
     ingressEnabled: true
-
     # Namespace used by linkerd dashboard
     ingressNamespace: linkerd-viz
-
     # Hostname prefix to use for ingress
     ingressHostname: linkerd
-
     # Opaque secret value for linkerd ingress
     ingressSecret: YWRtaW46JGFwcjEkbjdDdTZnSGwkRTQ3b2dmN0NPOE5SWWpFakJPa1dNLgoK
-
     # ingress mode can be either nginx or traefik
     ingressMode: nginx
 

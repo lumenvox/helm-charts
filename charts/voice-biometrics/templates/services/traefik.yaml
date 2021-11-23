@@ -10,7 +10,7 @@ metadata:
     kubernetes.io/ingress.global-static-ip-name: {{ .Values.traefik.staticIpName }}
   {{- end }}
 spec:
-  type: LoadBalancer
+  type: {{ .Values.traefik.service.type }}
   {{- if .Values.traefik.staticIpName }}
   loadBalancerIP:
     {{ .Values.traefik.loadBalancerIpAddress }}
