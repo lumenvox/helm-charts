@@ -77,19 +77,26 @@ _See [helm uninstall](https://helm.sh/docs/helm/helm_uninstall/) for command doc
 | `licensing.reportSyncMin`                 | License preferred sync minute                 | `0`                                                     |
 | `redis.enabled`                           | Whether Redis helm chart is installed         | `true`                                                  |
 | `redis.auth.password`                     | Redis password                                | `iJ3WX7icYL4j3d`                                        |
-| `postgres.enabled`                        | Whether Postgres helm chart is installed      | `true`                                                  |
-| `postgres.connection.url`                 | Postgres database URL                         | `lumenvox-postgresql.lumenvox`                          |
-| `postgres.connection.port`                | Postgres connection Port                      | `5432`                                                  |
-| `postgres.connection.user`                | Postgres username                             | `lvuser`                                                |
-| `postgres.connection.password`            | Postgres password                             | `iJ3WX7icYL4j3d`                                        |
-| `postgres.user`                           | Common username for postgres activity         | `lvuser`                                                |
-| `postgres.password`                       | Common password for postgres activity         | `iJ3WX7icYL4j3d`                                        |
-| `postgres.postgresDb`                     | Name of the main postgres database            | `postgres`                                              |
+| `redis.connection.url`                    | Redis database URL                            | `lumenvox-redis-master.lumenvox`                        |
+| `redis.connection.port`                   | Redis connection port                         | `6379`                                                  |
+| `postgresql.enabled`                      | Whether Postgres helm chart is installed      | `true`                                                  |
+| `postgresql.connection.url`               | Postgres database URL                         | `lumenvox-postgresql.lumenvox`                          |
+| `postgresql.connection.port`              | Postgres connection Port                      | `5432`                                                  |
+| `postgresql.connection.user`              | Postgres username                             | `lvuser`                                                |
+| `postgresql.connection.password`          | Postgres password                             | `iJ3WX7icYL4j3d`                                        |
+| `postgresql.user`                         | Common username for postgres activity         | `lvuser`                                                |
+| `postgresql.password`                     | Common password for postgres activity         | `iJ3WX7icYL4j3d`                                        |
+| `postgresql.postgresqlDatabase`           | Name of the main postgres database            | `postgres`                                              |
+| `postgresql.postgresDb`                   | Name of the main postgres database            | `postgres`                                              |
+| `postgresql.postgresqlUsername`           | Common username for postgres activity         | `lvuser`                                                |
+| `postgresql.postgresqlPassword`           | Common password for postgres activity         | `iJ3WX7icYL4j3d`                                        |
 | `mongodb.enabled`                         | Whether MongoDB helm chart is installed       | `true`                                                  |
 | `mongodb.auth.rootUser`                   | MongoDB root user                             | `lvuser`                                                |
 | `mongodb.auth.rootPassword`               | MongoDB root password                         | `iJ3WX7icYL4j3d`                                        |
+| `mongodb.connection.url`                  | MongoDB connection url                        | `lumenvox-mongodb.lumenvox`                             |
+| `mongodb.connection.port`                 | MongoDB port                                  | `27017`                                                 |
 | `rabbitmq.enabled`                        | Whether RabbitMQ helm chart is installed      | `true`                                                  |
-| `rabbitmq.connection.url`                 | RabbitMQ connection URL                       | `rabbitmq-url`                                          |
+| `rabbitmq.connection.url`                 | RabbitMQ connection URL                       | `lumenvox-rabbitmq.lumenvox`                            |
 | `rabbitmq.connection.port`                | RabbitMQ connection Port                      | `5672`                                                  |
 | `rabbitmq.connection.user`                | RabbitMQ username                             | `lvuser`                                                |
 | `rabbitmq.connection.password`            | RabbitMQ password                             | `iJ3WX7icYL4j3d`                                        |
