@@ -22,7 +22,8 @@ lumenvox:
   deploymentStartDelaySeconds: 0
 
   metrics:
-    enableEndpoints: true
+    # Whether to expose internal services' ingress (likely only used by LumenVox development)
+    enableEndpoints: false
 
   # Internally used by LumenVox - should not be enabled by customers
   enableTestEndpoints: false
