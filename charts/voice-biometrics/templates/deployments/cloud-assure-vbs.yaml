@@ -32,18 +32,18 @@ spec:
           ports:
             - name: web
               containerPort: 80
-{{/*          readinessProbe:*/}}
-{{/*            httpGet:*/}}
-{{/*              path: /health*/}}
-{{/*              port: 80*/}}
-{{/*            initialDelaySeconds: 5*/}}
-{{/*            periodSeconds: {{ .Values.probes.periodSeconds }}*/}}
-{{/*          livenessProbe:*/}}
-{{/*            httpGet:*/}}
-{{/*              path: /health*/}}
-{{/*              port: 80*/}}
-{{/*            initialDelaySeconds: 10*/}}
-{{/*            periodSeconds: {{ .Values.probes.periodSeconds }}*/}}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: {{ .Values.probes.periodSeconds }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: {{ .Values.probes.periodSeconds }}
           resources:
             requests:
               cpu: 100m
