@@ -108,7 +108,7 @@ spec:
           command: ['sh', '-c', "until nslookup {{ .Values.postgresql.connection.url }}; do echo waiting for Postgres; sleep 2; done"]
         - name: init-mongodb
           image: busybox:1.28
-          command: ['sh', '-c', "until nslookup {{ .Values.postgresql.connection.url }}; do echo waiting for MongoDB; sleep 2; done"]
+          command: ['sh', '-c', "until nslookup {{ .Values.mongodb.connection.url }}; do echo waiting for MongoDB; sleep 2; done"]
         - name: init-redis
           image: busybox:1.28
           command: ['sh', '-c', "until nslookup {{ .Values.redis.connection.url }}; do echo waiting for Redis; sleep 2; done"]
