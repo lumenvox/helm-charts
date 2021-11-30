@@ -112,7 +112,7 @@ rabbitmq:
     enabled: true
     hostname: "rabbitmq.testmachine.com"
     # optional ingressClassName for advanced ingress handling. Comment out to use default ingress
-    # ingressClassName: "nginx"
+    ingressClassName: "nginx"
   init:
     checkManagementEndpoint: true
   auth:
@@ -214,15 +214,20 @@ prometheus:
 linkerd:
   dashboard:
     # Applies ingress for linkerd dashboard when enabled (true)
-    ingressEnabled: true
+    enabled: true
     # Namespace used by linkerd dashboard
-    ingressNamespace: linkerd-viz
+    namespace: linkerd-viz
     # Hostname prefix to use for ingress
-    ingressHostname: linkerd
-    # Opaque secret value for linkerd ingress
+    hostPrefix: linkerd
+    # Opaque secret value for linkerd dashboard ingress
     ingressSecret: YWRtaW46JGFwcjEkbjdDdTZnSGwkRTQ3b2dmN0NPOE5SWWpFakJPa1dNLgoK
-    # ingress mode can be either nginx or traefik
-    ingressMode: nginx
+
+  # Whether linkerd is enabled in deployments
+  enabled: true
+  # ingress mode can be either nginx or traefik
+  ingressMode: nginx
+  # optional class name to assign to linkerd ingress (i.e. "nginx" for example)
+  ingressClassName: ""
 
 serviceAccount:
   # Specifies whether a service account should be created

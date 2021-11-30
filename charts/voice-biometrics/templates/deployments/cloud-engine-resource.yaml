@@ -17,11 +17,11 @@ spec:
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '90'
-        {{- if .Values.linkerd.dashboard.ingressEnabled }}
-        {{- if eq .Values.linkerd.dashboard.ingressMode "nginx" }}
+        {{- if .Values.linkerd.enabled }}
+        {{- if eq .Values.linkerd.ingressMode "nginx" }}
         linkerd.io/inject: enabled
         {{- else }}
-        # Default to traefik
+        # Use traefik mode
         linkerd.io/inject: ingress
         {{- end }}
         {{- end }}

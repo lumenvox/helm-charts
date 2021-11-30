@@ -17,11 +17,11 @@ spec:
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '5110'
-        {{- if .Values.linkerd.dashboard.ingressEnabled }}
-        {{- if eq .Values.linkerd.dashboard.ingressMode "nginx" }}
+        {{- if .Values.linkerd.enabled }}
+        {{- if eq .Values.linkerd.ingressMode "nginx" }}
         linkerd.io/inject: enabled
         {{- else }}
-        # Default to traefik
+        # Use traefik mode
         linkerd.io/inject: ingress
         {{- end }}
         {{- end }}
@@ -49,13 +49,6 @@ spec:
             initialDelaySeconds: {{ .Values.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.probes.periodSeconds }}
           {{- end }}
-{{/*          startupProbe:*/}}
-{{/*            httpGet:*/}}
-{{/*              path: /health*/}}
-{{/*              port: 5110*/}}
-{{/*            # 6 * 5 = 30 seconds of initial startup time allowed*/}}
-{{/*            failureThreshold: 6*/}}
-{{/*            periodSeconds: {{ .Values.probes.periodSeconds }}*/}}
           resources:
             requests:
               cpu: 5m

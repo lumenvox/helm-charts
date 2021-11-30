@@ -17,11 +17,11 @@ spec:
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '90'
-        {{- if .Values.linkerd.dashboard.ingressEnabled }}
-        {{- if eq .Values.linkerd.dashboard.ingressMode "nginx" }}
+        {{- if .Values.linkerd.enabled }}
+        {{- if eq .Values.linkerd.ingressMode "nginx" }}
         linkerd.io/inject: enabled
         {{- else }}
-        # Default to traefik
+        # Use traefik mode
         linkerd.io/inject: ingress
         {{- end }}
         {{- end }}
@@ -141,13 +141,14 @@ spec:
           image: curlimages/curl:latest
           command: ["/bin/sh","-c"]
           args: ["while [ $(curl -sw '%{http_code}' http://deployment-service.{{ default .Release.Namespace .Values.defaultNamespace }}:90/health -o /dev/null) -ne 200 ]; do sleep 2; echo 'Waiting for the Deployment Service...'; done"]
-          # command: ['sh', '-c', "until nslookup deployment-service.{{ default .Release.Namespace .Values.defaultNamespace }}; do echo waiting for Deployment Service; sleep 2; done"]
+        {{- if .Values.rabbitmq.enabled }}
         - name: wait-for-rabbitmq-service
           image: busybox:1.28
           command: ['sh', '-c', "until nslookup {{ .Values.rabbitmq.connection.url }}; do echo waiting for RabbitMQ Service; sleep 2; done"]
-          {{- if .Values.rabbitmq.init.checkManagementEndpoint }}
+        {{- end }}
+        {{- if .Values.rabbitmq.init.checkManagementEndpoint }}
         - name: wait-for-rabbitmq-management-endpoint
           image: curlimages/curl:latest
           command: ["/bin/sh","-c"]
           args: ["while [ $(curl -sw '%{http_code}' http://{{ .Values.rabbitmq.connection.url }}:15672 -o /dev/null) -ne 200 ]; do sleep 2; echo 'Waiting for the RabbitMQ Management Page...'; done"]
-          {{- end }}
+        {{- end }}
