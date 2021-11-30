@@ -48,9 +48,11 @@ spec:
             requests:
               cpu: 100m
               memory: 150Mi
+            {{- if .Values.lumenvox.enforceLimits }}
             limits:
               cpu: 1500m
               memory: 800Mi
+            {{- end }}
           envFrom:
             - configMapRef:
                 name: lumenvox-configmap

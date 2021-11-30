@@ -53,9 +53,11 @@ spec:
             requests:
               cpu: 5m
               memory: 15Mi
+            {{- if .Values.lumenvox.enforceLimits }}
             limits:
               cpu: 100m
               memory: 50Mi
+            {{- end }}
           env:
             - name: DEPLOYMENT_DB_CONNECTION
               valueFrom:

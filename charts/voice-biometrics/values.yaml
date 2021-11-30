@@ -37,6 +37,8 @@ lumenvox:
       enabled: true
       initialDelaySeconds: 5
 
+  enforceLimits: false
+
   ingress:
     # Specify an ingressClassName for advanced HTTP ingress configuration (default nginx). Unset to use default ingress
     className:
