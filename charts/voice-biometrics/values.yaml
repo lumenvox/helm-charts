@@ -44,7 +44,7 @@ lumenvox:
     className:
 
 licensing:
-  # Note: licensing (and therefore system) will not work without a value clusterGuid value
+  # Note: licensing (and therefore system) will not work without a valid clusterGuid value
   clusterGuid: "GET-CLUSTER-GUID-FROM-LUMENVOX"
   reportFreqMins: "1440"
   reportSyncHour: "1"

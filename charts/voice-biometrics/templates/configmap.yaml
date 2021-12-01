@@ -2,9 +2,8 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: lumenvox-configmap
-  namespace: {{ default .Release.Namespace .Values.defaultNamespace }}
+  namespace: '{{ default .Release.Namespace .Values.defaultNamespace }}'
 data:
-  # .env
   DOCKER_REGISTRY: '{{ .Values.image.repository }}'
   COMPOSE_PROJECT_NAME: '{{ .Values.composeProjectName }}'
   DB_USER_COMMON: '{{ .Values.postgresql.user }}'
@@ -23,8 +22,7 @@ data:
   SERILOG_OVERRIDE_GRPC_LOGGING_LEVEL: '{{ .Values.logging.overrideGrpcLevel }}'
   Audit: '{{ .Values.enableAudit }}'
   DEPLOYMENT_DB_CONNECTION_TIMEOUT_SECONDS: '{{ .Values.postgresql.commandTimeoutSeconds }}'
-  # docker-compose.yml
-  ## docker-compose.yml: common-variables
+  LOCAL_CACHE_REFRESH_SECONDS: 21600
   ASPNETCORE_ENVIRONMENT: 'Production'
   ServiceAddresses__DeploymentService: 'http://deployment-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
   ServiceAddresses__ConfigurationService: 'http://configuration-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
@@ -39,12 +37,10 @@ data:
   ServiceAddresses__ReportingService: 'http://reporting-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
   ServiceAddresses__ReportingApiService: 'http://reporting-api-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
   ServiceAddresses__ManagementApiService: 'http://management-api-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
-  ## docker-compose.yml: cloud-deployment
   DbSettings__PostgresConnectionString:  'Server={{ .Values.postgresql.connection.url }};Port={{ .Values.postgresql.connection.port }};User ID={{ .Values.postgresql.connection.user }};Password={{ .Values.postgresql.connection.password }};Database=aether_deployment_db;Integrated Security=true;Pooling=true;'
   DbSettings__CommandTimeoutSeconds: '{{ .Values.postgresql.commandTimeoutSeconds }}'
-  EncryptionSettings__MasterKey: '{{ .Values.encryption.masterEncryptionKey }}' # also included in binary-storage
-  AETHER_ENV_SERVICE_START_DELAY_SECONDS: '{{ .Values.lumenvox.service.startDelaySeconds }}' # also included in engine-resource, voice-verifier, assure-vbs, binary-storage, assure-identity, transaction, audit, reporting, reporting-api, management-api
-  ## docker-compose.yml: cloud-binary-storage
+  EncryptionSettings__MasterKey: '{{ .Values.encryption.masterEncryptionKey }}'
+  AETHER_ENV_SERVICE_START_DELAY_SECONDS: '{{ .Values.lumenvox.service.startDelaySeconds }}'
   EncryptionSettings__UseEncryption: '{{ .Values.encryption.useEncryption }}'
   EncryptionSettings__MasterKeyProvider: '{{ .Values.encryption.masterKeyProvider }}'
   ConnectionStrings__PostgresConnection: 'Server={{ .Values.postgresql.connection.url }};Port={{ .Values.postgresql.connection.port }};User ID={{ .Values.postgresql.connection.user }};Password={{ .Values.postgresql.connection.password }};Database=aether_deployment_db;Integrated Security=true;Pooling=true;'
@@ -54,8 +50,6 @@ data:
   MockDataSettings__MasterKeysJson: '{{ .Values.mockData.jsonKeys.master }}'
   MockDataSettings__CustomerKeysJson: '{{ .Values.mockData.jsonKeys.customer }}'
   MockDataSettings__EmergencyPublicKeysJson: '{{ .Values.mockData.jsonKeys.emergencyPublic }}'
-  # up for deletion
-  ConnectionStrings__PostgresConnection: 'Server={{ .Values.postgresql.connection.url }};Port={{ .Values.postgresql.connection.port }};User ID={{ .Values.postgresql.connection.user }};Password={{ .Values.postgresql.connection.password }};Database=aether_deployment_db;Integrated Security=true;Pooling=true;'
   DASHBOARD_POSTGRES_CONNECTION_STRING: 'Server={{ .Values.postgresql.connection.url }};Port={{ .Values.postgresql.connection.port }};User ID={{ .Values.postgresql.connection.user }};Password={{ .Values.postgresql.connection.password }};Database=aether_dashboard_db;Integrated Security=true;Pooling=true;'
   POSTGRES_DB: '{{ .Values.postgresql.postgresDb }}'
   DEPLOYMENT_RECONNECTION_TIMEOUT_SEC: '180'
