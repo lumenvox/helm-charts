@@ -19,8 +19,6 @@ spec:
             backend:
               service:
                 name: lumenvox-grafana
-                # name: grafana
                 port:
                   number: 3000
-                  # number: 80
 {{- end }}

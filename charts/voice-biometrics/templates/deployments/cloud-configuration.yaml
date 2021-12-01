@@ -51,13 +51,6 @@ spec:
             initialDelaySeconds: {{ .Values.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.probes.periodSeconds }}
           {{- end }}
-{{/*          startupProbe:*/}}
-{{/*            httpGet:*/}}
-{{/*              path: /health*/}}
-{{/*              port: 90*/}}
-{{/*            # 2 * 5 = 10 seconds of initial startup time allowed*/}}
-{{/*            failureThreshold: 2*/}}
-{{/*            periodSeconds: {{ .Values.probes.periodSeconds }}*/}}
           resources:
             requests:
               cpu: 100m
@@ -70,67 +63,6 @@ spec:
           envFrom:
             - configMapRef:
                 name: lumenvox-configmap
-{{/*          env:*/}}
-{{/*            - name: ConnectionStrings__PostgresConnection*/}}
-{{/*              valueFrom:*/}}
-{{/*                configMapKeyRef:*/}}
-{{/*                  name: lumenvox-configmap*/}}
-{{/*                  key: ConnectionStrings__PostgresConnection*/}}
-{{/*            - name: ASPNETCORE_ENVIRONMENT*/}}
-{{/*              valueFrom:*/}}
-{{/*                configMapKeyRef:*/}}
-{{/*                  name: lumenvox-configmap*/}}
-{{/*                  key: ASPNETCORE_ENVIRONMENT*/}}
-{{/*            - name: MOCK_TEST_DATA*/}}
-{{/*              valueFrom:*/}}
-{{/*                configMapKeyRef:*/}}
-{{/*                  name: lumenvox-configmap*/}}
-{{/*                  key: MOCK_TEST_DATA*/}}
-{{/*            - name: ServiceAddresses__DeploymentService*/}}
-{{/*              valueFrom:*/}}
-{{/*                configMapKeyRef:*/}}
-{{/*                  name: lumenvox-configmap*/}}
-{{/*                  key: ServiceAddresses__DeploymentService*/}}
-{{/*            - name: ServiceAddresses__VoiceVerifierService*/}}
-{{/*              valueFrom:*/}}
-{{/*                configMapKeyRef:*/}}
-{{/*                  name: lumenvox-configmap*/}}
-{{/*                  key: ServiceAddresses__VoiceVerifierService*/}}
-{{/*            - name: ServiceAddresses__EngineResourceService*/}}
-{{/*              valueFrom:*/}}
-{{/*                configMapKeyRef:*/}}
-{{/*                  name: lumenvox-configmap*/}}
-{{/*                  key: ServiceAddresses__EngineResourceService*/}}
-{{/*            - name: ServiceAddresses__ConfigurationService*/}}
-{{/*              valueFrom:*/}}
-{{/*                configMapKeyRef:*/}}
-{{/*                  name: lumenvox-configmap*/}}
-{{/*                  key: ServiceAddresses__ConfigurationService*/}}
-{{/*            - name: ServiceAddresses__AssureVbs*/}}
-{{/*              valueFrom:*/}}
-{{/*                configMapKeyRef:*/}}
-{{/*                  name: lumenvox-configmap*/}}
-{{/*                  key: ServiceAddresses__AssureVbs*/}}
-{{/*            - name: DOCKER_REGISTRY*/}}
-{{/*              valueFrom:*/}}
-{{/*                configMapKeyRef:*/}}
-{{/*                  name: lumenvox-configmap*/}}
-{{/*                  key: DOCKER_REGISTRY*/}}
-{{/*            - name: DEPLOYMENT_POSTGRES_CONNECTION_STRING*/}}
-{{/*              valueFrom:*/}}
-{{/*                configMapKeyRef:*/}}
-{{/*                  name: lumenvox-configmap*/}}
-{{/*                  key: DEPLOYMENT_POSTGRES_CONNECTION_STRING*/}}
-{{/*            - name: DASHBOARD_POSTGRES_CONNECTION_STRING*/}}
-{{/*              valueFrom:*/}}
-{{/*                configMapKeyRef:*/}}
-{{/*                  name: lumenvox-configmap*/}}
-{{/*                  key: DASHBOARD_POSTGRES_CONNECTION_STRING*/}}
-{{/*            - name: MockDataSettings__DeploymentsJson*/}}
-{{/*              valueFrom:*/}}
-{{/*                configMapKeyRef:*/}}
-{{/*                  name: lumenvox-configmap*/}}
-{{/*                  key: MockDataSettings__DeploymentsJson*/}}
 
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:

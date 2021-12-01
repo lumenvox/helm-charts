@@ -7,7 +7,6 @@ metadata:
   namespace: {{ default .Release.Namespace .Values.traefik.namespace }}
   {{- if .Values.traefik.staticIpName }}
   annotations:
-    # kubernetes.io/ingress.global-static-ip-name: {{ .Values.traefik.staticIpName }}
     kubernetes.io/ingress.regional-static-ip-name: {{ .Values.traefik.staticIpName }}
   {{- end }}
 spec:

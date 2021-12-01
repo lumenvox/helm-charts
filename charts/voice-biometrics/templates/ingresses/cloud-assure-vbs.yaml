@@ -5,9 +5,6 @@ metadata:
   namespace: {{ default .Release.Namespace .Values.defaultNamespace }}
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: web
-{{/*    {{- if .Values.lumenvox.ingress.className }}*/}}
-{{/*    kubernetes.io/ingress.class: {{ .Values.lumenvox.ingress.className }}*/}}
-{{/*    {{- end }}*/}}
 spec:
   {{- if .Values.lumenvox.ingress.className }}
   ingressClassName: {{ .Values.lumenvox.ingress.className }}

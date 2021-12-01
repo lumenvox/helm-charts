@@ -51,13 +51,6 @@ spec:
             initialDelaySeconds: {{ .Values.lumenvox.deploymentStartDelaySeconds }}
             periodSeconds: {{ .Values.probes.periodSeconds }}
           {{- end }}
-{{/*          startupProbe:*/}}
-{{/*            httpGet:*/}}
-{{/*              path: /health*/}}
-{{/*              port: 90*/}}
-{{/*            # 8 * 5 = 40 seconds of initial startup time allowed*/}}
-{{/*            failureThreshold: 8*/}}
-{{/*            periodSeconds: {{ .Values.probes.periodSeconds }}*/}}
           resources:
             requests:
               cpu: 100m
@@ -73,31 +66,7 @@ spec:
           env:
             - name: SERVICE_START_DELAY_SECONDS
               value: '{{ .Values.lumenvox.deploymentStartDelaySeconds }}'
-{{/*            - name: ConnectionStrings__PostgresConnection*/}}
-{{/*              valueFrom:*/}}
-{{/*                configMapKeyRef:*/}}
-{{/*                  name: lumenvox-configmap*/}}
-{{/*                  key: ConnectionStrings__PostgresConnection*/}}
-{{/*            - name: MOCK_TEST_DATA*/}}
-{{/*              valueFrom:*/}}
-{{/*                configMapKeyRef:*/}}
-{{/*                  name: lumenvox-configmap*/}}
-{{/*                  key: MOCK_TEST_DATA*/}}
-{{/*            - name: POSTGRES_USER*/}}
-{{/*              valueFrom:*/}}
-{{/*                configMapKeyRef:*/}}
-{{/*                  name: lumenvox-configmap*/}}
-{{/*                  key: DB_USER_COMMON*/}}
-{{/*            - name: POSTGRES_DB*/}}
-{{/*              valueFrom:*/}}
-{{/*                configMapKeyRef:*/}}
-{{/*                  name: lumenvox-configmap*/}}
-{{/*                  key: POSTGRES_DB*/}}
-{{/*            - name: MockDataSettings__DeploymentsJson*/}}
-{{/*              valueFrom:*/}}
-{{/*                configMapKeyRef:*/}}
-{{/*                  name: lumenvox-configmap*/}}
-{{/*                  key: MockDataSettings__DeploymentsJson*/}}
+
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
       {{- range .Values.imagePullSecrets }}

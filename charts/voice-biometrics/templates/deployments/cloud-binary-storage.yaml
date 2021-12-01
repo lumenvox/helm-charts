@@ -61,22 +61,6 @@ spec:
           envFrom:
             - configMapRef:
                 name: lumenvox-configmap
-{{/*          env:*/}}
-{{/*            - name: MockDataSettings__DeploymentsJson*/}}
-{{/*              valueFrom:*/}}
-{{/*                configMapKeyRef:*/}}
-{{/*                  name: lumenvox-configmap*/}}
-{{/*                  key: MockDataSettings__DeploymentsJson*/}}
-{{/*            - name: MockDataSettings__MasterKeysJson*/}}
-{{/*              valueFrom:*/}}
-{{/*                configMapKeyRef:*/}}
-{{/*                  name: lumenvox-configmap*/}}
-{{/*                  key: MockDataSettings__MasterKeysJson*/}}
-{{/*            - name: MockDataSettings__CustomerKeysJson*/}}
-{{/*              valueFrom:*/}}
-{{/*                configMapKeyRef:*/}}
-{{/*                  name: lumenvox-configmap*/}}
-{{/*                  key: MockDataSettings__CustomerKeysJson*/}}
 
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
