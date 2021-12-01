@@ -119,7 +119,7 @@ spec:
 {{/*                  key: DASHBOARD_POSTGRES_CONNECTION_STRING*/}}
             - name: ENGINE_RESOURCE_SERVICE_MAX_RECEIVE_SIZE
               value: '52428800'
-            - name: AETHER_ENV_SERVICE_START_DELAY_SECONDS
+            - name: SERVICE_START_DELAY_SECONDS
               value: '{{ .Values.lumenvox.service.startDelaySeconds }}'
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:

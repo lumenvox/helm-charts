@@ -124,7 +124,7 @@ spec:
 {{/*                configMapKeyRef:*/}}
 {{/*                  name: lumenvox-configmap*/}}
 {{/*                  key: DASHBOARD_POSTGRES_CONNECTION_STRING*/}}
-            - name: AETHER_ENV_SERVICE_START_DELAY_SECONDS
+            - name: SERVICE_START_DELAY_SECONDS
               value: '{{ .Values.lumenvox.service.startDelaySeconds }}'
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:

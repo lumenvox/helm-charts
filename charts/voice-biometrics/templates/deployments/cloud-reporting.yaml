@@ -62,7 +62,7 @@ spec:
             - configMapRef:
                 name: lumenvox-configmap
           env:
-            - name: AETHER_ENV_SERVICE_START_DELAY_SECONDS
+            - name: SERVICE_START_DELAY_SECONDS
               value: '{{ .Values.lumenvox.service.startDelaySeconds }}'
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
