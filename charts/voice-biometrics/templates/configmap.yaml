@@ -54,4 +54,4 @@ data:
   {{- end }}
   DASHBOARD_POSTGRES_CONNECTION_STRING: 'Server={{ .Values.postgresql.connection.url }};Port={{ .Values.postgresql.connection.port }};User ID={{ .Values.postgresql.connection.user }};Password={{ .Values.postgresql.connection.password }};Database=cloud_dashboard_db;Integrated Security=true;Pooling=true;'
   POSTGRES_DB: '{{ .Values.postgresql.postgresDb }}'
-  DEPLOYMENT_RECONNECTION_TIMEOUT_SEC: '180'
+  DEPLOYMENT_RECONNECTION_TIMEOUT_SEC: '{{ .Values.lumenvox.deploymentReconnectionTimeoutSec }}'

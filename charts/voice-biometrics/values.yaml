@@ -20,6 +20,8 @@ composeProjectName: ""
 lumenvox:
   # Time to allow support services (such as databases) to become available. Typically, 0 in production
   deploymentStartDelaySeconds: 0
+  # Maximum amount of time allowed for deployment database connection to succeed
+  deploymentReconnectionTimeoutSec: 30
 
   metrics:
     # Whether to expose internal services' ingress (likely only used by LumenVox development)

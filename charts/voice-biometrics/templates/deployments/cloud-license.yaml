@@ -64,6 +64,11 @@ spec:
                 configMapKeyRef:
                   name: lumenvox-configmap
                   key: ConnectionStrings__PostgresConnection
+            - name: DEPLOYMENT_RECONNECTION_TIMEOUT_SEC
+              valueFrom:
+                configMapKeyRef:
+                  name: lumenvox-configmap
+                  key: DEPLOYMENT_RECONNECTION_TIMEOUT_SEC
             {{ if .Values.licensing.showDebugOutput }}
             - name: SHOW_DEBUG_OUTPUT
               value: '{{ .Values.licensing.showDebugOutput }}'
