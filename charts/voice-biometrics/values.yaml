@@ -79,7 +79,7 @@ postgresql:
   postgresqlUsername: "lvuser"
   postgresqlPassword: "iJ3WX7icYL4j3d"
 
-  commandTimeoutSeconds: 120
+  commandTimeoutSeconds: 100
   runMigrations: 'true'
   exitAfterMigrations: 'false'
   persistence:

@@ -21,7 +21,7 @@ data:
   SERILOG_OVERRIDE_SYSTEM_LOGGING_LEVEL: '{{ .Values.logging.overrideSystemLevel }}'
   SERILOG_OVERRIDE_GRPC_LOGGING_LEVEL: '{{ .Values.logging.overrideGrpcLevel }}'
   Audit: '{{ .Values.enableAudit }}'
-  DEPLOYMENT_DB_CONNECTION_TIMEOUT_SECONDS: '{{ .Values.postgresql.commandTimeoutSeconds }}'
+  DB_COMMAND_TIMEOUT_SECONDS: '{{ .Values.postgresql.commandTimeoutSeconds }}'
   LOCAL_CACHE_REFRESH_SECONDS: '21600'
   ASPNETCORE_ENVIRONMENT: 'Production'
   ServiceAddresses__DeploymentService: 'http://deployment-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
