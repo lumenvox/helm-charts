@@ -83,3 +83,14 @@ spec:
         - name: init-redis
           image: busybox:1.28
           command: ['sh', '-c', "until nslookup {{ .Values.redis.connection.url }}; do echo waiting for Redis; sleep 2; done"]
+        {{- if .Values.rabbitmq.enabled }}
+        - name: wait-for-rabbitmq-service
+          image: busybox:1.28
+          command: ['sh', '-c', "until nslookup {{ .Values.rabbitmq.connection.url }}; do echo waiting for RabbitMQ Service; sleep 2; done"]
+        {{- end }}
+        {{- if .Values.rabbitmq.init.checkManagementEndpoint }}
+        - name: wait-for-rabbitmq-management-endpoint
+          image: curlimages/curl:latest
+          command: ["/bin/sh","-c"]
+          args: ["while [ $(curl -sw '%{http_code}' http://{{ .Values.rabbitmq.connection.url }}:15672 -o /dev/null) -ne 200 ]; do sleep 2; echo 'Waiting for the RabbitMQ Management Page...'; done"]
+        {{- end }}
