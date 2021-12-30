@@ -91,7 +91,6 @@ _See [helm uninstall](https://helm.sh/docs/helm/helm_uninstall/) for command doc
 | `postgresql.user`                           | Common username for postgres activity        | `lvuser`                             |
 | `postgresql.password`                       | Common password for postgres activity        | `iJ3WX7icYL4j3d`                     |
 | `postgresql.postgresqlDatabase`             | Name of the main postgres database           | `postgres`                           |
-| `postgresql.postgresDb`                     | Name of the main postgres database           | `postgres`                           |
 | `postgresql.postgresqlUsername`             | Common username for postgres activity        | `lvuser`                             |
 | `postgresql.postgresqlPassword`             | Common password for postgres activity        | `iJ3WX7icYL4j3d`                     |
 | `mongodb.enabled`                           | Whether MongoDB helm chart is installed      | `true`                               |

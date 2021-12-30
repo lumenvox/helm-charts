@@ -57,6 +57,9 @@ redis:
   enabled: true
   auth:
     password: "iJ3WX7icYL4j3d"
+    existingSecret: redis-existing-secret
+    existingSecretPasswordKey: redis_password
+
   connection:
     url: "lumenvox-redis-master.lumenvox"
     port: 6379
@@ -74,12 +77,12 @@ postgresql:
     user: "lvuser"
     password: "iJ3WX7icYL4j3d"
   user: "lvuser"
-  password: "iJ3WX7icYL4j3d"
+  # password: "iJ3WX7icYL4j3d"
   postgresqlDatabase: "postgres"
-  postgresDb: "postgres"
 
   postgresqlUsername: "lvuser"
-  postgresqlPassword: "iJ3WX7icYL4j3d"
+  # postgresqlPassword: "iJ3WX7icYL4j3d"
+  existingSecret: postgres-existing-secret
 
   commandTimeoutSeconds: 100
   runMigrations: 'true'
@@ -100,6 +103,7 @@ mongodb:
   auth:
     rootUser: 'lvuser'
     rootPassword: 'iJ3WX7icYL4j3d'
+    existingSecret: mongodb-existing-secret
 
   connection:
     url: "lumenvox-mongodb.lumenvox"
@@ -121,8 +125,8 @@ rabbitmq:
     checkManagementEndpoint: true
   auth:
     username: "lvuser"
-    password: "iJ3WX7icYL4j3d"
-    existingPasswordSecret: "rabbitmq-secret"
+    # password: "iJ3WX7icYL4j3d"
+    existingPasswordSecret: "rabbitmq-existing-secret"
   connection:
     url: "lumenvox-rabbitmq.lumenvox"
     port: 5672
@@ -184,7 +188,8 @@ grafana:
   adminPassword: "iJ3WX7icYL4j3d"
   admin:
     user: "lvuser"
-    password: "iJ3WX7icYL4j3d"
+    # password: "iJ3WX7icYL4j3d"
+    existingSecret: "grafana-existing-secret"
 
   config:
     useGrafanaIniFile: true
