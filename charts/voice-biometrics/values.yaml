@@ -56,7 +56,6 @@ redis:
   # Specifies whether redis helm chart should be installed
   enabled: true
   auth:
-    password: "iJ3WX7icYL4j3d"
     existingSecret: redis-existing-secret
     existingSecretPasswordKey: redis_password
 
