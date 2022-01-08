@@ -69,6 +69,11 @@ spec:
                 configMapKeyRef:
                   name: lumenvox-configmap
                   key: DEPLOYMENT_RECONNECTION_TIMEOUT_SEC
+            - name: ServiceAddresses__DeploymentService
+              valueFrom:
+                configMapKeyRef:
+                  name: lumenvox-configmap
+                  key: ServiceAddresses__DeploymentService
             {{ if .Values.licensing.showDebugOutput }}
             - name: SHOW_DEBUG_OUTPUT
               value: '{{ .Values.licensing.showDebugOutput }}'
