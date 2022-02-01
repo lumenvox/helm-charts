@@ -75,13 +75,9 @@ postgresql:
     user: "lvuser"
     password: "iJ3WX7icYL4j3d"
   user: "lvuser"
-  # password: "iJ3WX7icYL4j3d"
   postgresqlDatabase: "postgres"
-
   postgresqlUsername: "lvuser"
-  # postgresqlPassword: "iJ3WX7icYL4j3d"
   existingSecret: postgres-existing-secret
-
   commandTimeoutSeconds: 100
   runMigrations: 'true'
   exitAfterMigrations: 'false'
