@@ -94,13 +94,10 @@ mongodb:
     enabled: false
   auth:
     rootUser: 'lvuser'
-    rootPassword: "iJ3WX7icYL4j3d"
     existingSecret: mongodb-existing-secret
-
   connection:
     url: "lumenvox-mongodb.lumenvox"
     port: 27017
-
   image:
     # Note using an older version due to incompatibilities on some test machines
     tag: 4.2
