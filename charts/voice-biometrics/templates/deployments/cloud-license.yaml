@@ -59,11 +59,13 @@ spec:
               memory: 50Mi
             {{- end }}
           env:
-            - name: DEPLOYMENT_DB_CONNECTION
+            - name: postgresql-password
               valueFrom:
-                configMapKeyRef:
-                  name: lumenvox-configmap
-                  key: ConnectionStrings__PostgresConnection
+                secretKeyRef:
+                  key: postgresql-password
+                  name: "{{ .Values.postgresql.existingSecret }}"
+            - name: DEPLOYMENT_DB_CONNECTION
+              value: 'Server={{ .Values.postgresql.connection.url }};Port={{ .Values.postgresql.connection.port }};User ID={{ .Values.postgresql.connection.user }};Password=$(postgresql-password);Database=cloud_deployment_db;Integrated Security=true;Pooling=true;'
             - name: DEPLOYMENT_RECONNECTION_TIMEOUT_SEC
               valueFrom:
                 configMapKeyRef:

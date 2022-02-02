@@ -73,8 +73,6 @@ postgresql:
     url: "lumenvox-postgresql.lumenvox"
     port: 5432
     user: "lvuser"
-    password: "iJ3WX7icYL4j3d"
-  user: "lvuser"
   postgresqlDatabase: "postgres"
   postgresqlUsername: "lvuser"
   existingSecret: postgres-existing-secret
