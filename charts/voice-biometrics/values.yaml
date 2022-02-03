@@ -147,7 +147,7 @@ logging:
   overrideGrpcLevel: "Information"
 
 encryption:
-  masterEncryptionKey: "mmf8fyVZPL0gSPIqsFXBdWjdy/gdOWWDn+zTT2HaH/U="
+  masterEncryptionSecret: encryption-secret
   masterKeyProvider: "EnvVariableMasterKeyService"
   useEncryption: true
 

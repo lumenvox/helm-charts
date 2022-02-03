@@ -95,6 +95,11 @@ spec:
               value: 'amqp://{{ .Values.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ .Values.rabbitmq.connection.url }}:{{ .Values.rabbitmq.connection.port }}'
             - name: RABBIT_MQ_EASY_CONNECTION_STRING
               value: 'host={{ .Values.rabbitmq.connection.url }};port={{ .Values.rabbitmq.connection.port }};username={{ .Values.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10'
+            - name: EncryptionSettings__MasterKey
+              valueFrom:
+                secretKeyRef:
+                  key: master-encryption-key
+                  name: encryption-secret
 
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
