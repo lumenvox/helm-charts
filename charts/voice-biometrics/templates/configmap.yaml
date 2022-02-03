@@ -7,8 +7,6 @@ data:
   DOCKER_REGISTRY: '{{ .Values.image.repository }}'
   COMPOSE_PROJECT_NAME: '{{ .Values.composeProjectName }}'
   DB_USER_COMMON: '{{ .Values.postgresql.connection.user }}'
-  RABBIT_MQ_CONNECTION_STRING: 'amqp://{{ .Values.rabbitmq.connection.user }}:{{ .Values.rabbitmq.connection.password }}@{{ .Values.rabbitmq.connection.url }}:{{ .Values.rabbitmq.connection.port }}'
-  RABBIT_MQ_EASY_CONNECTION_STRING: 'host={{ .Values.rabbitmq.connection.url }};port={{ .Values.rabbitmq.connection.port }};username={{ .Values.rabbitmq.connection.user }};password={{ .Values.rabbitmq.connection.password }};requestedHeartbeat=10'
   WEB_USER_COMMON: '{{ .Values.web.commonUser }}'
   WEB_PASS_COMMON: '{{ .Values.web.commonPass }}'
   MASTER_ENCRYPTION_KEY: '{{ .Values.encryption.masterEncryptionKey }}'

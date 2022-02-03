@@ -58,6 +58,11 @@ spec:
               cpu: 100m
               memory: 50Mi
             {{- end }}
+          envFrom:
+            {{- if .Values.rabbitmq.auth.existingPasswordSecret }}
+            - secretRef:
+                name: {{ .Values.rabbitmq.auth.existingPasswordSecret }}
+            {{- end }}
           env:
             - name: postgresql-password
               valueFrom:
@@ -98,6 +103,10 @@ spec:
               value: '{{ .Values.licensing.reportSyncMin }}'
             - name: VERBOSE_DB_LOGGING
               value: '{{ .Values.licensing.verboseDbLogging }}'
+            - name: RABBIT_MQ_CONNECTION_STRING
+              value: 'amqp://{{ .Values.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ .Values.rabbitmq.connection.url }}:{{ .Values.rabbitmq.connection.port }}'
+            - name: RABBIT_MQ_EASY_CONNECTION_STRING
+              value: 'host={{ .Values.rabbitmq.connection.url }};port={{ .Values.rabbitmq.connection.port }};username={{ .Values.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10'
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
       {{- range .Values.imagePullSecrets }}

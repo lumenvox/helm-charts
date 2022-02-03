@@ -69,6 +69,10 @@ spec:
             - secretRef:
                 name: {{ .Values.mongodb.auth.existingSecret }}
             {{- end }}
+            {{- if .Values.rabbitmq.auth.existingPasswordSecret }}
+            - secretRef:
+                name: {{ .Values.rabbitmq.auth.existingPasswordSecret }}
+            {{- end }}
             - configMapRef:
                 name: lumenvox-configmap
           env:
@@ -87,6 +91,10 @@ spec:
               value: '[{"DeploymentId":"{{ .Values.mockData.deploymentId }}","DeploymentData":{"RedisConnectionString":"{{ .Values.redis.connection.url }}:{{ .Values.redis.connection.port }},password=$(redis-password)",                "ConfigurationPostgresConnectionString":"Server={{ .Values.postgresql.connection.url }};Port={{ .Values.postgresql.connection.port }};UserID={{ .Values.postgresql.connection.user }};Password=$(postgresql-password);Database=cloud_configuration_db;IntegratedSecurity=true;Pooling=true;","AssureIdentityPostgresConnectionString":"Server={{ .Values.postgresql.connection.url }};Port={{ .Values.postgresql.connection.port }};UserID={{ .Values.postgresql.connection.user }};Password=$(postgresql-password);Database=cloud_assure_identity_db;IntegratedSecurity=true;Pooling=true;","BinaryStorageConnectionString":{"CollectionName":"BinaryStorage","ConnectionString":"mongodb://{{ .Values.mongodb.auth.rootUser }}:$(mongodb-root-password)@{{ .Values.mongodb.connection.url }}:{{ .Values.mongodb.connection.port }}","DatabaseName":"cloud_binary_db","StorageType":"MongoDb"},"TransactionPostgresConnectionString":"Server={{ .Values.postgresql.connection.url }};Port={{ .Values.postgresql.connection.port }};UserID={{ .Values.postgresql.connection.user }};Password=$(postgresql-password);Database=cloud_transaction_db;IntegratedSecurity=true;Pooling=true;","AuditPostgresConnectionString":"Server={{ .Values.postgresql.connection.url }};Port={{ .Values.postgresql.connection.port }};UserID={{ .Values.postgresql.connection.user }};Password=$(postgresql-password);Database=cloud_audit_db;IntegratedSecurity=true;Pooling=true;","ReportingOptionsMaxPerPageAllowed":100}}]'
             - name: DbSettings__PostgresConnectionString
               value: 'Server={{ .Values.postgresql.connection.url }};Port={{ .Values.postgresql.connection.port }};User ID={{ .Values.postgresql.connection.user }};Password=$(postgresql-password);Database=cloud_deployment_db;Integrated Security=true;Pooling=true;'
+            - name: RABBIT_MQ_CONNECTION_STRING
+              value: 'amqp://{{ .Values.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ .Values.rabbitmq.connection.url }}:{{ .Values.rabbitmq.connection.port }}'
+            - name: RABBIT_MQ_EASY_CONNECTION_STRING
+              value: 'host={{ .Values.rabbitmq.connection.url }};port={{ .Values.rabbitmq.connection.port }};username={{ .Values.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10'
 
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:

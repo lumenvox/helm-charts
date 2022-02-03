@@ -114,13 +114,11 @@ rabbitmq:
     checkManagementEndpoint: true
   auth:
     username: "lvuser"
-    # password: "iJ3WX7icYL4j3d"
     existingPasswordSecret: "rabbitmq-existing-secret"
   connection:
     url: "lumenvox-rabbitmq.lumenvox"
     port: 5672
     user: "lvuser"
-    password: "iJ3WX7icYL4j3d"
   persistence:
     enabled: false
     size: 4Gi
