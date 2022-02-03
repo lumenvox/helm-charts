@@ -124,7 +124,8 @@ spec:
         {{- end }}
         {{- if .Values.rabbitmq.init.checkManagementEndpoint }}
         - name: wait-for-rabbitmq-management-endpoint
-          image: curlimages/curl:latest
-          command: ["/bin/sh","-c"]
-          args: ["while [ $(curl -sw '%{http_code}' http://{{ .Values.rabbitmq.connection.url }}:15672 -o /dev/null) -ne 200 ]; do sleep 2; echo 'Waiting for the RabbitMQ Management Page...'; done"]
+          image: {{ .Values.image.repository }}/cloud-init-tools{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["curl2"]
+          args: ["http://{{ .Values.rabbitmq.connection.url }}:15672", "RabbitMQ Management Page"]
         {{- end }}

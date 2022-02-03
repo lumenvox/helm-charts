@@ -115,6 +115,7 @@ spec:
       {{- end }}
       initContainers:
         - name: wait-for-deployment-service
-          image: curlimages/curl:latest
-          command: ["/bin/sh","-c"]
-          args: ["while [ $(curl -sw '%{http_code}' http://deployment-service.{{ default .Release.Namespace .Values.defaultNamespace }}:90/health -o /dev/null) -ne 200 ]; do sleep 2; echo 'Waiting for the Deployment Service...'; done"]
+          image: {{ .Values.image.repository }}/cloud-init-tools{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["curl2"]
+          args: ["http://deployment-service.{{ default .Release.Namespace .Values.defaultNamespace }}:90/health", "Deployment Service"]
