@@ -109,18 +109,26 @@ spec:
       {{- end }}
       initContainers:
         - name: init-postgres
-          image: busybox:1.28
-          command: ['sh', '-c', "until nslookup {{ .Values.postgresql.connection.url }}; do echo waiting for Postgres; sleep 2; done"]
+          image: {{ .Values.image.repository }}/cloud-init-tools{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["nslookup2"]
+          args: ["{{ .Values.postgresql.connection.url }}", "Postgres"]
         - name: init-mongodb
-          image: busybox:1.28
-          command: ['sh', '-c', "until nslookup {{ .Values.mongodb.connection.url }}; do echo waiting for MongoDB; sleep 2; done"]
+          image: {{ .Values.image.repository }}/cloud-init-tools{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["nslookup2"]
+          args: ["{{ .Values.mongodb.connection.url }}", "MongoDB"]
         - name: init-redis
-          image: busybox:1.28
-          command: ['sh', '-c', "until nslookup {{ .Values.redis.connection.url }}; do echo waiting for Redis; sleep 2; done"]
+          image: {{ .Values.image.repository }}/cloud-init-tools{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["nslookup2"]
+          args: ["{{ .Values.redis.connection.url }}", "Redis"]
         {{- if .Values.rabbitmq.enabled }}
         - name: wait-for-rabbitmq-service
-          image: busybox:1.28
-          command: ['sh', '-c', "until nslookup {{ .Values.rabbitmq.connection.url }}; do echo waiting for RabbitMQ Service; sleep 2; done"]
+          image: {{ .Values.image.repository }}/cloud-init-tools{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["nslookup2"]
+          args: ["{{ .Values.rabbitmq.connection.url }}", "RabbitMQ Service"]
         {{- end }}
         {{- if .Values.rabbitmq.init.checkManagementEndpoint }}
         - name: wait-for-rabbitmq-management-endpoint
