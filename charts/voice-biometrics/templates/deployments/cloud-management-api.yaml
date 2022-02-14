@@ -65,8 +65,6 @@ spec:
           env:
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
               value: 'http://deployment-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
-            - name: SERVICE_START_DELAY_SECONDS
-              value: '{{ .Values.lumenvox.service.startDelaySeconds }}'
             - name: RABBIT_MQ_CONNECTION_STRING
               value: 'amqp://{{ .Values.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ .Values.rabbitmq.connection.url }}:{{ .Values.rabbitmq.connection.port }}'
             - name: RABBIT_MQ_EASY_CONNECTION_STRING
@@ -77,6 +75,8 @@ spec:
               value: '{{ .Values.enableAudit }}'
             - name: DEPLOYMENT_RECONNECTION_TIMEOUT_SECONDS
               value: '{{ .Values.lumenvox.deploymentReconnectionTimeoutSec }}'
+            - name: SERVICE_START_DELAY_SECONDS
+              value: '6'
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
       {{- range .Values.imagePullSecrets }}

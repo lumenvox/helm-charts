@@ -85,6 +85,8 @@ spec:
               value: '{{ .Values.encryption.masterKeyProvider }}'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
               value: 'http://deployment-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
+            - name: SERVICE_START_DELAY_SECONDS
+              value: '5'
 
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:

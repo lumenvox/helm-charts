@@ -81,6 +81,8 @@ spec:
               value: '{{ .Values.enableAudit }}'
             - name: DEPLOYMENT_RECONNECTION_TIMEOUT_SECONDS
               value: '{{ .Values.lumenvox.deploymentReconnectionTimeoutSec }}'
+            - name: SERVICE_START_DELAY_SECONDS
+              value: '6'
 
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:

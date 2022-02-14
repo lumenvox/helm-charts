@@ -67,7 +67,7 @@ spec:
             {{- end }}
           env:
             - name: SERVICE_START_DELAY_SECONDS
-              value: '{{ .Values.lumenvox.service.startDelaySeconds }}'
+              value: '5'
             - name: RABBIT_MQ_CONNECTION_STRING
               value: 'amqp://{{ .Values.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ .Values.rabbitmq.connection.url }}:{{ .Values.rabbitmq.connection.port }}'
             - name: RABBIT_MQ_EASY_CONNECTION_STRING
