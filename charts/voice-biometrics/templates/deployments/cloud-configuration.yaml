@@ -82,6 +82,8 @@ spec:
               value: '{{ .Values.postgresql.exitAfterMigrations }}'
             - name: DB_MIGRATION__DB_COMMAND_TIMEOUT_SECONDS
               value: '{{ .Values.postgresql.commandTimeoutSeconds }}'
+            - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
+              value: 'http://deployment-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
 
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:

@@ -83,6 +83,8 @@ spec:
               value: '{{ .Values.encryption.useEncryption }}'
             - name: ENCRYPTION_SETTINGS__MASTER_KEY_PROVIDER
               value: '{{ .Values.encryption.masterKeyProvider }}'
+            - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
+              value: 'http://deployment-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
 
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
