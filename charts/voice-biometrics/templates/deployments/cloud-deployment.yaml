@@ -93,8 +93,6 @@ spec:
               value: 'Server={{ .Values.postgresql.connection.url }};Port={{ .Values.postgresql.connection.port }};User ID={{ .Values.postgresql.connection.user }};Password=$(postgresql-password);Database=cloud_deployment_db;Integrated Security=true;Pooling=true;'
             - name: DB_SETTINGS__COMMAND_TIMEOUT_SECONDS
               value: '{{ .Values.postgresql.commandTimeoutSeconds }}'
-            - name: RABBIT_MQ_CONNECTION_STRING
-              value: 'amqp://{{ .Values.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ .Values.rabbitmq.connection.url }}:{{ .Values.rabbitmq.connection.port }}'
             - name: RABBIT_MQ_EASY_CONNECTION_STRING
               value: 'host={{ .Values.rabbitmq.connection.url }};port={{ .Values.rabbitmq.connection.port }};username={{ .Values.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10'
             - name: ENCRYPTION_SETTINGS__MASTER_ENCRYPTION_KEY
