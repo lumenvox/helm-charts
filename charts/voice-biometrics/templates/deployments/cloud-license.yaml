@@ -71,16 +71,13 @@ spec:
                   name: "{{ .Values.postgresql.existingSecret }}"
             - name: DEPLOYMENT_DB_CONNECTION
               value: 'Server={{ .Values.postgresql.connection.url }};Port={{ .Values.postgresql.connection.port }};User ID={{ .Values.postgresql.connection.user }};Password=$(postgresql-password);Database=cloud_deployment_db;Integrated Security=true;Pooling=true;'
-            - name: DEPLOYMENT_RECONNECTION_TIMEOUT_SEC
-              valueFrom:
-                configMapKeyRef:
-                  name: lumenvox-configmap
-                  key: DEPLOYMENT_RECONNECTION_TIMEOUT_SEC
+            - name: DEPLOYMENT_RECONNECTION_TIMEOUT_SECONDS
+              value: '{{ .Values.lumenvox.deploymentReconnectionTimeoutSec }}'
             - name: ServiceAddresses__DeploymentService
               valueFrom:
                 configMapKeyRef:
                   name: lumenvox-configmap
-                  key: ServiceAddresses__DeploymentService
+                  key: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
             {{ if .Values.licensing.showDebugOutput }}
             - name: SHOW_DEBUG_OUTPUT
               value: '{{ .Values.licensing.showDebugOutput }}'

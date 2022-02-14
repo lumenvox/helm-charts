@@ -69,6 +69,10 @@ spec:
               value: 'amqp://{{ .Values.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ .Values.rabbitmq.connection.url }}:{{ .Values.rabbitmq.connection.port }}'
             - name: RABBIT_MQ_EASY_CONNECTION_STRING
               value: 'host={{ .Values.rabbitmq.connection.url }};port={{ .Values.rabbitmq.connection.port }};username={{ .Values.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10'
+            - name: ENABLE_AUDIT_LOG
+              value: '{{ .Values.enableAudit }}'
+            - name: DEPLOYMENT_RECONNECTION_TIMEOUT_SECONDS
+              value: '{{ .Values.lumenvox.deploymentReconnectionTimeoutSec }}'
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
       {{- range .Values.imagePullSecrets }}

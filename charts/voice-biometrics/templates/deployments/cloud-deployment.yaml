@@ -89,17 +89,27 @@ spec:
               {{- end }}
             - name: MockDataSettings__DeploymentsJson
               value: '[{"DeploymentId":"{{ .Values.mockData.deploymentId }}","DeploymentData":{"RedisConnectionString":"{{ .Values.redis.connection.url }}:{{ .Values.redis.connection.port }},password=$(redis-password)",                "ConfigurationPostgresConnectionString":"Server={{ .Values.postgresql.connection.url }};Port={{ .Values.postgresql.connection.port }};UserID={{ .Values.postgresql.connection.user }};Password=$(postgresql-password);Database=cloud_configuration_db;IntegratedSecurity=true;Pooling=true;","AssureIdentityPostgresConnectionString":"Server={{ .Values.postgresql.connection.url }};Port={{ .Values.postgresql.connection.port }};UserID={{ .Values.postgresql.connection.user }};Password=$(postgresql-password);Database=cloud_assure_identity_db;IntegratedSecurity=true;Pooling=true;","BinaryStorageConnectionString":{"CollectionName":"BinaryStorage","ConnectionString":"mongodb://{{ .Values.mongodb.auth.rootUser }}:$(mongodb-root-password)@{{ .Values.mongodb.connection.url }}:{{ .Values.mongodb.connection.port }}","DatabaseName":"cloud_binary_db","StorageType":"MongoDb"},"TransactionPostgresConnectionString":"Server={{ .Values.postgresql.connection.url }};Port={{ .Values.postgresql.connection.port }};UserID={{ .Values.postgresql.connection.user }};Password=$(postgresql-password);Database=cloud_transaction_db;IntegratedSecurity=true;Pooling=true;","AuditPostgresConnectionString":"Server={{ .Values.postgresql.connection.url }};Port={{ .Values.postgresql.connection.port }};UserID={{ .Values.postgresql.connection.user }};Password=$(postgresql-password);Database=cloud_audit_db;IntegratedSecurity=true;Pooling=true;","ReportingOptionsMaxPerPageAllowed":100}}]'
-            - name: DbSettings__PostgresConnectionString
+            - name: DB_SETTINGS__DEPLOYMENT_POSTGRES_CONNECTION_STRING
               value: 'Server={{ .Values.postgresql.connection.url }};Port={{ .Values.postgresql.connection.port }};User ID={{ .Values.postgresql.connection.user }};Password=$(postgresql-password);Database=cloud_deployment_db;Integrated Security=true;Pooling=true;'
+            - name: DB_SETTINGS__COMMAND_TIMEOUT_SECONDS
+              value: '{{ .Values.postgresql.commandTimeoutSeconds }}'
             - name: RABBIT_MQ_CONNECTION_STRING
               value: 'amqp://{{ .Values.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ .Values.rabbitmq.connection.url }}:{{ .Values.rabbitmq.connection.port }}'
             - name: RABBIT_MQ_EASY_CONNECTION_STRING
               value: 'host={{ .Values.rabbitmq.connection.url }};port={{ .Values.rabbitmq.connection.port }};username={{ .Values.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10'
-            - name: EncryptionSettings__MasterKey
+            - name: ENCRYPTION_SETTINGS__MASTER_ENCRYPTION_KEY
               valueFrom:
                 secretKeyRef:
                   key: master-encryption-key
                   name: encryption-secret
+            - name: ENABLE_AUDIT_LOG
+              value: '{{ .Values.enableAudit }}'
+            - name: DB_MIGRATION__RUN_DATABASE_MIGRATIONS
+              value: '{{ .Values.postgresql.runMigrations }}'
+            - name: DB_MIGRATION__EXIT_AFTER_DATABASE_MIGRATIONS
+              value: '{{ .Values.postgresql.exitAfterMigrations }}'
+            - name: DB_MIGRATION__DB_COMMAND_TIMEOUT_SECONDS
+              value: '{{ .Values.postgresql.commandTimeoutSeconds }}'
 
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:

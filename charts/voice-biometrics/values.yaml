@@ -122,6 +122,7 @@ rabbitmq:
   persistence:
     enabled: false
     size: 4Gi
+  retryTime: 60
 
 traefik:
   # Specifies whether traefik ingress controller should be installed (recommended as default ingress for LumenVox)
