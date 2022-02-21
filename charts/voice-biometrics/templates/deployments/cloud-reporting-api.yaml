@@ -58,9 +58,27 @@ spec:
           envFrom:
             - configMapRef:
                 name: lumenvox-configmap
+            {{- if .Values.rabbitmq.auth.existingPasswordSecret }}
+            - secretRef:
+                name: {{ .Values.rabbitmq.auth.existingPasswordSecret }}
+            {{- end }}
           env:
+            - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
+              value: 'http://deployment-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
+            - name: RABBIT_MQ_EASY_CONNECTION_STRING
+              value: 'host={{ .Values.rabbitmq.connection.url }};port={{ .Values.rabbitmq.connection.port }};username={{ .Values.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10'
+            - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
+              value: 'http://configuration-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
+            - name: SERVICE_ADDRESSES__BINARY_STORAGE_SERVICE
+              value: 'http://binarystorage-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
+            - name: SERVICE_ADDRESSES__REPORTING_SERVICE
+              value: 'http://reporting-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
+            - name: ENABLE_AUDIT_LOG
+              value: '{{ .Values.enableAudit }}'
+            - name: DEPLOYMENT_RECONNECTION_TIMEOUT_SECONDS
+              value: '{{ .Values.lumenvox.deploymentReconnectionTimeoutSec }}'
             - name: SERVICE_START_DELAY_SECONDS
-              value: '{{ .Values.lumenvox.service.startDelaySeconds }}'
+              value: '6'
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
       {{- range .Values.imagePullSecrets }}
@@ -69,6 +87,7 @@ spec:
       {{- end }}
       initContainers:
         - name: wait-for-reporting-service
-          image: curlimages/curl:latest
-          command: ["/bin/sh","-c"]
-          args: ["while [ $(curl -sw '%{http_code}' http://reporting-service.{{ default .Release.Namespace .Values.defaultNamespace }}:90/health -o /dev/null) -ne 200 ]; do sleep 2; echo 'Waiting for the Reporting Service...'; done"]
+          image: {{ .Values.image.repository }}/cloud-init-tools{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["curl2"]
+          args: ["http://reporting-service.{{ default .Release.Namespace .Values.defaultNamespace }}:90/health", "Reporting Service"]

@@ -58,22 +58,23 @@ spec:
               cpu: 100m
               memory: 50Mi
             {{- end }}
+          envFrom:
+            {{- if .Values.rabbitmq.auth.existingPasswordSecret }}
+            - secretRef:
+                name: {{ .Values.rabbitmq.auth.existingPasswordSecret }}
+            {{- end }}
           env:
+            - name: postgresql-password
+              valueFrom:
+                secretKeyRef:
+                  key: postgresql-password
+                  name: "{{ .Values.postgresql.existingSecret }}"
             - name: DEPLOYMENT_DB_CONNECTION
-              valueFrom:
-                configMapKeyRef:
-                  name: lumenvox-configmap
-                  key: ConnectionStrings__PostgresConnection
-            - name: DEPLOYMENT_RECONNECTION_TIMEOUT_SEC
-              valueFrom:
-                configMapKeyRef:
-                  name: lumenvox-configmap
-                  key: DEPLOYMENT_RECONNECTION_TIMEOUT_SEC
-            - name: ServiceAddresses__DeploymentService
-              valueFrom:
-                configMapKeyRef:
-                  name: lumenvox-configmap
-                  key: ServiceAddresses__DeploymentService
+              value: 'Server={{ .Values.postgresql.connection.url }};Port={{ .Values.postgresql.connection.port }};User ID={{ .Values.postgresql.connection.user }};Password=$(postgresql-password);Database=cloud_deployment_db;Integrated Security=true;Pooling=true;'
+            - name: DEPLOYMENT_RECONNECTION_TIMEOUT_SECONDS
+              value: '{{ .Values.lumenvox.deploymentReconnectionTimeoutSec }}'
+            - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
+              value: 'http://deployment-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
             {{ if .Values.licensing.showDebugOutput }}
             - name: SHOW_DEBUG_OUTPUT
               value: '{{ .Values.licensing.showDebugOutput }}'
@@ -96,6 +97,8 @@ spec:
               value: '{{ .Values.licensing.reportSyncMin }}'
             - name: VERBOSE_DB_LOGGING
               value: '{{ .Values.licensing.verboseDbLogging }}'
+            - name: RABBIT_MQ_EASY_CONNECTION_STRING
+              value: 'host={{ .Values.rabbitmq.connection.url }};port={{ .Values.rabbitmq.connection.port }};username={{ .Values.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10'
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
       {{- range .Values.imagePullSecrets }}
@@ -104,6 +107,7 @@ spec:
       {{- end }}
       initContainers:
         - name: wait-for-deployment-service
-          image: curlimages/curl:latest
-          command: ["/bin/sh","-c"]
-          args: ["while [ $(curl -sw '%{http_code}' http://deployment-service.{{ default .Release.Namespace .Values.defaultNamespace }}:90/health -o /dev/null) -ne 200 ]; do sleep 2; echo 'Waiting for the Deployment Service...'; done"]
+          image: {{ .Values.image.repository }}/cloud-init-tools{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["curl2"]
+          args: ["http://deployment-service.{{ default .Release.Namespace .Values.defaultNamespace }}:90/health", "Deployment Service"]

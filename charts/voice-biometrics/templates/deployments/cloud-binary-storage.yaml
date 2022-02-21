@@ -61,6 +61,30 @@ spec:
           envFrom:
             - configMapRef:
                 name: lumenvox-configmap
+            {{- if .Values.rabbitmq.auth.existingPasswordSecret }}
+            - secretRef:
+                name: {{ .Values.rabbitmq.auth.existingPasswordSecret }}
+            {{- end }}
+          env:
+            - name: RABBIT_MQ_EASY_CONNECTION_STRING
+              value: 'host={{ .Values.rabbitmq.connection.url }};port={{ .Values.rabbitmq.connection.port }};username={{ .Values.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10'
+            - name: ENCRYPTION_SETTINGS__MASTER_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: master-encryption-key
+                  name: encryption-secret
+            - name: ENABLE_AUDIT_LOG
+              value: '{{ .Values.enableAudit }}'
+            - name: DEPLOYMENT_RECONNECTION_TIMEOUT_SECONDS
+              value: '{{ .Values.lumenvox.deploymentReconnectionTimeoutSec }}'
+            - name: ENCRYPTION_SETTINGS__USE_ENCRYPTION
+              value: '{{ .Values.encryption.useEncryption }}'
+            - name: ENCRYPTION_SETTINGS__MASTER_KEY_PROVIDER
+              value: '{{ .Values.encryption.masterKeyProvider }}'
+            - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
+              value: 'http://deployment-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
+            - name: SERVICE_START_DELAY_SECONDS
+              value: '5'
 
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -70,6 +94,7 @@ spec:
       {{- end }}
       initContainers:
         - name: wait-for-deployment-service
-          image: curlimages/curl:latest
-          command: ["/bin/sh","-c"]
-          args: ["while [ $(curl -sw '%{http_code}' http://deployment-service.{{ default .Release.Namespace .Values.defaultNamespace }}:90/health -o /dev/null) -ne 200 ]; do sleep 2; echo 'Waiting for the Deployment Service...'; done"]
+          image: {{ .Values.image.repository }}/cloud-init-tools{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["curl2"]
+          args: ["http://deployment-service.{{ default .Release.Namespace .Values.defaultNamespace }}:90/health", "Deployment Service"]

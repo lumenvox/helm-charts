@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
         - name: assure-vbs
-          image: {{ .Values.image.repository }}/cloud-assure-vbs{{ .Values.image.tag }}
+          image: {{ .Values.image.repository }}/cloud-assure-api{{ .Values.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: web
@@ -56,6 +56,31 @@ spec:
           envFrom:
             - configMapRef:
                 name: lumenvox-configmap
+            {{- if .Values.rabbitmq.auth.existingPasswordSecret }}
+            - secretRef:
+                name: {{ .Values.rabbitmq.auth.existingPasswordSecret }}
+            {{- end }}
+          env:
+            - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
+              value: 'http://deployment-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
+            - name: RABBIT_MQ_EASY_CONNECTION_STRING
+              value: 'host={{ .Values.rabbitmq.connection.url }};port={{ .Values.rabbitmq.connection.port }};username={{ .Values.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10'
+            - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
+              value: 'http://configuration-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
+            - name: SERVICE_ADDRESSES__VOICE_VERIFIER_SERVICE
+              value: 'http://voice-verifier-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
+            - name: SERVICE_ADDRESSES__BINARY_STORAGE_SERVICE
+              value: 'http://binarystorage-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
+            - name: SERVICE_ADDRESSES__ASSURE_IDENTITY_SERVICE
+              value: 'http://assure-identity-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
+            - name: SERVICE_ADDRESSES__LICENSE_SERVICE
+              value: 'http://license-service.{{ default .Release.Namespace .Values.defaultNamespace }}:5010'
+            - name: ENABLE_AUDIT_LOG
+              value: '{{ .Values.enableAudit }}'
+            - name: DEPLOYMENT_RECONNECTION_TIMEOUT_SECONDS
+              value: '{{ .Values.lumenvox.deploymentReconnectionTimeoutSec }}'
+            - name: SERVICE_START_DELAY_SECONDS
+              value: '6'
 
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -65,6 +90,7 @@ spec:
       {{- end }}
       initContainers:
         - name: wait-for-deployment-service
-          image: curlimages/curl:latest
-          command: ["/bin/sh","-c"]
-          args: ["while [ $(curl -sw '%{http_code}' http://deployment-service.{{ default .Release.Namespace .Values.defaultNamespace }}:90/health -o /dev/null) -ne 200 ]; do sleep 2; echo 'Waiting for the Deployment Service...'; done"]
+          image: {{ .Values.image.repository }}/cloud-init-tools{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["curl2"]
+          args: ["http://deployment-service.{{ default .Release.Namespace .Values.defaultNamespace }}:90/health", "Deployment Service"]

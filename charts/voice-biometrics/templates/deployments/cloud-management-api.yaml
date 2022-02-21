@@ -58,9 +58,23 @@ spec:
           envFrom:
             - configMapRef:
                 name: lumenvox-configmap
+            {{- if .Values.rabbitmq.auth.existingPasswordSecret }}
+            - secretRef:
+                name: {{ .Values.rabbitmq.auth.existingPasswordSecret }}
+            {{- end }}
           env:
+            - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
+              value: 'http://deployment-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
+            - name: RABBIT_MQ_EASY_CONNECTION_STRING
+              value: 'host={{ .Values.rabbitmq.connection.url }};port={{ .Values.rabbitmq.connection.port }};username={{ .Values.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10'
+            - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
+              value: 'http://configuration-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
+            - name: ENABLE_AUDIT_LOG
+              value: '{{ .Values.enableAudit }}'
+            - name: DEPLOYMENT_RECONNECTION_TIMEOUT_SECONDS
+              value: '{{ .Values.lumenvox.deploymentReconnectionTimeoutSec }}'
             - name: SERVICE_START_DELAY_SECONDS
-              value: '{{ .Values.lumenvox.service.startDelaySeconds }}'
+              value: '6'
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
       {{- range .Values.imagePullSecrets }}
@@ -70,12 +84,15 @@ spec:
       initContainers:
         {{- if .Values.rabbitmq.enabled }}
         - name: wait-for-rabbitmq-service
-          image: busybox:1.28
-          command: ['sh', '-c', "until nslookup {{ .Values.rabbitmq.connection.url }}; do echo waiting for RabbitMQ Service; sleep 2; done"]
+          image: {{ .Values.image.repository }}/cloud-init-tools{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["nslookup2"]
+          args: ["{{ .Values.rabbitmq.connection.url }}", "RabbitMQ Service"]
         {{- end }}
         {{- if .Values.rabbitmq.init.checkManagementEndpoint }}
         - name: wait-for-rabbitmq-management-endpoint
-          image: curlimages/curl:latest
-          command: ["/bin/sh","-c"]
-          args: ["while [ $(curl -sw '%{http_code}' http://{{ .Values.rabbitmq.connection.url }}:15672 -o /dev/null) -ne 200 ]; do sleep 2; echo 'Waiting for the RabbitMQ Management Page...'; done"]
+          image: {{ .Values.image.repository }}/cloud-init-tools{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["curl2"]
+          args: ["http://{{ .Values.rabbitmq.connection.url }}:15672", "RabbitMQ Management Page"]
         {{- end }}
