@@ -98,9 +98,9 @@ mongodb:
   connection:
     url: "lumenvox-mongodb.lumenvox"
     port: 27017
-  image:
-    # Note using an older version due to incompatibilities on some test machines
-    tag: 4.2
+#  image:
+#    # Note using an older version due to incompatibilities on some test machines
+#    tag: 4.2
 
 rabbitmq:
   # Specifies whether rabbitmq helm chart should be installed
