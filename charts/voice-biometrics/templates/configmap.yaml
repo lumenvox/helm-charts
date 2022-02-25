@@ -13,7 +13,7 @@ data:
   ASPNETCORE_URLS: 'http://+:80'
   RABBIT_RETRYING_TIME_SECONDS: '{{ .Values.rabbitmq.retryTime }}'
   LOCAL_CACHE_REFRESH_SECONDS: '21600'
-  SERVICE_ADDRESSES__ASSURE_API: 'http://assure-vbs-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
+  SERVICE_ADDRESSES__ASSURE_API: 'http://assure-api-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
   SERVICE_ADDRESSES__TRANSACTION_SERVICE: 'http://transaction-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
   SERVICE_ADDRESSES__AUDIT_SERVICE: 'http://audit-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
   SERVICE_ADDRESSES__REPORTING_API: 'http://reporting-api-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
