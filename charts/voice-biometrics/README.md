@@ -97,6 +97,7 @@ _See [helm uninstall](https://helm.sh/docs/helm/helm_uninstall/) for command doc
 | `mongodb.enabled`                           | Whether MongoDB helm chart is installed      | `true`                               |
 | `mongodb.auth.rootUser`                     | MongoDB root user                            | `lvuser`                             |
 | `mongodb.auth.rootPassword`                 | MongoDB root password                        | `iJ3WX7icYL4j3d`                     |
+| `mongodb.auth.existingSecret`               | MongoDB root password secret                 | `mongodb-existing-secret`            |
 | `rabbitmq.auth.existingPasswordSecret`      | RabbitMQ password secret                     | `rabbitmq-existing-secret`           |
 | `mongodb.connection.url`                    | MongoDB connection url                       | `lumenvox-mongodb.lumenvox`          |
 | `mongodb.connection.port`                   | MongoDB port                                 | `27017`                              |
