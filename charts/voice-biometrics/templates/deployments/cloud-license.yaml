@@ -65,7 +65,7 @@ spec:
             {{- end }}
           env:
             - name: postgresql-password
-              {{- if .Values.postgresql.extistingSecret }}
+              {{- if .Values.postgresql.existingSecret }}
               valueFrom:
                 secretKeyRef:
                   key: postgresql-password
