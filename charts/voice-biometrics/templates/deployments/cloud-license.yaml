@@ -65,10 +65,14 @@ spec:
             {{- end }}
           env:
             - name: postgresql-password
+              {{- if .Values.postgresql.extistingSecret }}
               valueFrom:
                 secretKeyRef:
                   key: postgresql-password
                   name: "{{ .Values.postgresql.existingSecret }}"
+              {{- else }}
+              value: "{{ .Values.postgresql.connection.password }}"
+              {{- end }}
             - name: DEPLOYMENT_DB_CONNECTION
               value: 'Server={{ .Values.postgresql.connection.url }};Port={{ .Values.postgresql.connection.port }};User ID={{ .Values.postgresql.connection.user }};Password=$(postgresql-password);Database=cloud_deployment_db;Integrated Security=true;Pooling=true;'
             - name: DEPLOYMENT_RECONNECTION_TIMEOUT_SECONDS
