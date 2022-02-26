@@ -68,13 +68,12 @@ spec:
                 name: {{ .Values.rabbitmq.auth.existingPasswordSecret }}
             {{- end }}
           env:
-            {{- if .Values.rabbitmq.auth.existingPasswordSecret }}
+            {{- if not .Values.rabbitmq.auth.existingPasswordSecret }}
+            - name: rabbitmq-password
+              value: '{{ .Values.rabbitmq.connection.password }}'
+            {{- end }}
             - name: RABBIT_MQ_EASY_CONNECTION_STRING
               value: 'host={{ .Values.rabbitmq.connection.url }};port={{ .Values.rabbitmq.connection.port }};username={{ .Values.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10'
-            {{- else }}
-            - name: RABBIT_MQ_EASY_CONNECTION_STRING
-              value: 'host={{ .Values.rabbitmq.connection.url }};port={{ .Values.rabbitmq.connection.port }};username={{ .Values.rabbitmq.connection.user }};password={{ .Values.rabbitmq.connection.password }};requestedHeartbeat=10'
-            {{- end }}
             - name: ENABLE_AUDIT_LOG
               value: '{{ .Values.enableAudit }}'
             - name: DEPLOYMENT_RECONNECTION_TIMEOUT_SECONDS
