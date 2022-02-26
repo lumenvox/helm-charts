@@ -63,8 +63,13 @@ spec:
           env:
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
               value: 'http://deployment-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
+            {{- if .Values.rabbitmq.auth.existingPasswordSecret }}
             - name: RABBIT_MQ_EASY_CONNECTION_STRING
               value: 'host={{ .Values.rabbitmq.connection.url }};port={{ .Values.rabbitmq.connection.port }};username={{ .Values.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10'
+            {{- else }}
+            - name: RABBIT_MQ_EASY_CONNECTION_STRING
+              value: 'host={{ .Values.rabbitmq.connection.url }};port={{ .Values.rabbitmq.connection.port }};username={{ .Values.rabbitmq.connection.user }};password={{ .Values.rabbitmq.connection.password }};requestedHeartbeat=10'
+            {{- end }}
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
               value: 'http://configuration-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
             - name: SERVICE_ADDRESSES__VOICE_VERIFIER_SERVICE

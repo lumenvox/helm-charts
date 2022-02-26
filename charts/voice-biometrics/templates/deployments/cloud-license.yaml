@@ -97,8 +97,13 @@ spec:
               value: '{{ .Values.licensing.reportSyncMin }}'
             - name: VERBOSE_DB_LOGGING
               value: '{{ .Values.licensing.verboseDbLogging }}'
+            {{- if .Values.rabbitmq.auth.existingPasswordSecret }}
             - name: RABBIT_MQ_EASY_CONNECTION_STRING
               value: 'host={{ .Values.rabbitmq.connection.url }};port={{ .Values.rabbitmq.connection.port }};username={{ .Values.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10'
+            {{- else }}
+            - name: RABBIT_MQ_EASY_CONNECTION_STRING
+              value: 'host={{ .Values.rabbitmq.connection.url }};port={{ .Values.rabbitmq.connection.port }};username={{ .Values.rabbitmq.connection.user }};password={{ .Values.rabbitmq.connection.password }};requestedHeartbeat=10'
+            {{- end }}
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
       {{- range .Values.imagePullSecrets }}
