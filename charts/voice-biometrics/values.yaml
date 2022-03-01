@@ -164,7 +164,7 @@ mockData:
 probes:
   periodSeconds: 5
 
-enableAudit: true
+enableAudit: false
 
 
 grafana:
