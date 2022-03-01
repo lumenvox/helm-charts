@@ -85,7 +85,7 @@ spec:
                   key: redis-password
                   name: {{ .Values.redis.auth.existingSecret }}
               {{- else }}
-              value: ''
+              value: '{{ .Values.redis.auth.password }}'
               {{- end }}
             {{- if not .Values.postgresql.existingSecret }}
             - name: postgresql-password
