@@ -70,7 +70,7 @@ spec:
               value: '5'
             {{- if not .Values.rabbitmq.auth.existingPasswordSecret }}
             - name: rabbitmq-password
-              value: '{{ .Values.rabbitmq.connection.password }}'
+              value: '{{ .Values.rabbitmq.auth.password }}'
             {{- end }}
             - name: RABBIT_MQ_EASY_CONNECTION_STRING
               value: 'host={{ .Values.rabbitmq.connection.url }};port={{ .Values.rabbitmq.connection.port }};username={{ .Values.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10'
