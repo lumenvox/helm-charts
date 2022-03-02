@@ -71,7 +71,7 @@ spec:
                   key: postgresql-password
                   name: "{{ .Values.postgresql.existingSecret }}"
               {{- else }}
-              value: "{{ .Values.postgresql.connection.password }}"
+              value: "{{ .Values.postgresql.password }}"
               {{- end }}
             - name: DEPLOYMENT_DB_CONNECTION
               value: 'Server={{ .Values.postgresql.connection.url }};Port={{ .Values.postgresql.connection.port }};User ID={{ .Values.postgresql.connection.user }};Password=$(postgresql-password);Database=cloud_deployment_db;Integrated Security=true;Pooling=true;'

@@ -75,6 +75,7 @@ postgresql:
     user: "lvuser"
   postgresqlDatabase: "postgres"
   postgresqlUsername: "lvuser"
+  user: "lvuser"
   existingSecret: postgres-existing-secret
   commandTimeoutSeconds: 100
   runMigrations: 'true'

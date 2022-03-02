@@ -89,7 +89,7 @@ spec:
               {{- end }}
             {{- if not .Values.postgresql.existingSecret }}
             - name: postgresql-password
-              value: "{{ .Values.postgresql.connection.password }}"
+              value: "{{ .Values.postgresql.password }}"
             {{- end }}
             {{- if not .Values.mongodb.auth.existingSecret }}
             - name: mongodb-root-password
