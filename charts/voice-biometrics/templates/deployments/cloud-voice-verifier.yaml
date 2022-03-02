@@ -51,21 +51,37 @@ spec:
           {{- end }}
           resources:
             requests:
-              cpu: 300m
-              memory: 550Mi
+              cpu: 1000m
+              memory: 750Mi
             {{- if .Values.lumenvox.enforceLimits }}
             limits:
-              cpu: 15000m
+              cpu: 1200m
               memory: 1000Mi
             {{- end }}
           envFrom:
             - configMapRef:
                 name: lumenvox-configmap
+            {{- if .Values.rabbitmq.auth.existingPasswordSecret }}
+            - secretRef:
+                name: {{ .Values.rabbitmq.auth.existingPasswordSecret }}
+            {{- end }}
           env:
             - name: ENGINE_RESOURCE_SERVICE_MAX_RECEIVE_SIZE
               value: '52428800'
+            {{- if not .Values.rabbitmq.auth.existingPasswordSecret }}
+            - name: rabbitmq-password
+              value: '{{ .Values.rabbitmq.auth.password }}'
+            {{- end }}
+            - name: RABBIT_MQ_EASY_CONNECTION_STRING
+              value: 'host={{ .Values.rabbitmq.connection.url }};port={{ .Values.rabbitmq.connection.port }};username={{ .Values.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10'
+            - name: DEPLOYMENT_RECONNECTION_TIMEOUT_SECONDS
+              value: '{{ .Values.lumenvox.deploymentReconnectionTimeoutSec }}'
+            - name: SERVICE_ADDRESSES__ENGINE_RESOURCE_SERVICE
+              value: 'http://engineresource-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
+            - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
+              value: 'http://deployment-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
             - name: SERVICE_START_DELAY_SECONDS
-              value: '{{ .Values.lumenvox.service.startDelaySeconds }}'
+              value: '6'
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
       {{- range .Values.imagePullSecrets }}
@@ -74,6 +90,7 @@ spec:
       {{- end }}
       initContainers:
         - name: wait-for-deployment-service
-          image: curlimages/curl:latest
-          command: ["/bin/sh","-c"]
-          args: ["while [ $(curl -sw '%{http_code}' http://deployment-service.{{ default .Release.Namespace .Values.defaultNamespace }}:90/health -o /dev/null) -ne 200 ]; do sleep 2; echo 'Waiting for the Deployment Service...'; done"]
+          image: {{ .Values.image.repository }}/cloud-init-tools{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["curl2"]
+          args: ["http://deployment-service.{{ default .Release.Namespace .Values.defaultNamespace }}:90/health", "Deployment Service"]

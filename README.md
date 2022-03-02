@@ -4,7 +4,7 @@
 [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/lumenvox)](https://artifacthub.io/packages/search?repo=lumenvox)
 
 This code is provided as-is with no warranties
-
+ 
 ## Usage
 
 [Helm](https://helm.sh/) must be installed to use charts. Please refer

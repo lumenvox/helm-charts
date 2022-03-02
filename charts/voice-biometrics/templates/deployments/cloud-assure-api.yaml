@@ -1,22 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: reporting
+  name: assure-api
   namespace: {{ default .Release.Namespace .Values.defaultNamespace }}
   labels:
-    app: reporting
+    app: assure-api
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: reporting
+      app: assure-api
   template:
     metadata:
       labels:
-        app: reporting
+        app: assure-api
+        # No Prometheus scraping for now
       annotations:
-        prometheus.io/scrape: 'true'
-        prometheus.io/port: '90'
         {{- if .Values.linkerd.enabled }}
         {{- if eq .Values.linkerd.ingressMode "nginx" }}
         linkerd.io/inject: enabled
@@ -27,36 +26,32 @@ spec:
         {{- end }}
     spec:
       containers:
-        - name: reporting
-          image: {{ .Values.image.repository }}/cloud-reporting{{ .Values.image.tag }}
+        - name: assure-api
+          image: {{ .Values.image.repository }}/cloud-assure-api{{ .Values.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
-            - name: metrics
-              containerPort: 90
-            - name: grpc
+            - name: web
               containerPort: 80
           readinessProbe:
             httpGet:
               path: /health
-              port: 90
-            initialDelaySeconds: 12
+              port: 80
+            initialDelaySeconds: 5
             periodSeconds: {{ .Values.probes.periodSeconds }}
-          {{- if .Values.lumenvox.service.livenessProbe.enabled }}
           livenessProbe:
             httpGet:
               path: /health
-              port: 90
-            initialDelaySeconds: 12
+              port: 80
+            initialDelaySeconds: 10
             periodSeconds: {{ .Values.probes.periodSeconds }}
-          {{- end }}
           resources:
             requests:
-              cpu: 10m
-              memory: 100Mi
+              cpu: 500m
+              memory: 1000Mi
             {{- if .Values.lumenvox.enforceLimits }}
             limits:
-              cpu: 100m
-              memory: 350Mi
+              cpu: 600m
+              memory: 1200Mi
             {{- end }}
           envFrom:
             - configMapRef:
@@ -66,18 +61,31 @@ spec:
                 name: {{ .Values.rabbitmq.auth.existingPasswordSecret }}
             {{- end }}
           env:
-            - name: SERVICE_START_DELAY_SECONDS
-              value: '5'
+            - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
+              value: 'http://deployment-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
             {{- if not .Values.rabbitmq.auth.existingPasswordSecret }}
             - name: rabbitmq-password
               value: '{{ .Values.rabbitmq.auth.password }}'
             {{- end }}
             - name: RABBIT_MQ_EASY_CONNECTION_STRING
               value: 'host={{ .Values.rabbitmq.connection.url }};port={{ .Values.rabbitmq.connection.port }};username={{ .Values.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10'
+            - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
+              value: 'http://configuration-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
+            - name: SERVICE_ADDRESSES__VOICE_VERIFIER_SERVICE
+              value: 'http://voice-verifier-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
+            - name: SERVICE_ADDRESSES__BINARY_STORAGE_SERVICE
+              value: 'http://binarystorage-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
+            - name: SERVICE_ADDRESSES__ASSURE_IDENTITY_SERVICE
+              value: 'http://assure-identity-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
+            - name: SERVICE_ADDRESSES__LICENSE_SERVICE
+              value: 'http://license-service.{{ default .Release.Namespace .Values.defaultNamespace }}:5010'
+            - name: ENABLE_AUDIT_LOG
+              value: '{{ .Values.enableAudit }}'
             - name: DEPLOYMENT_RECONNECTION_TIMEOUT_SECONDS
               value: '{{ .Values.lumenvox.deploymentReconnectionTimeoutSec }}'
-            - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
-              value: 'http://deployment-service.{{ default .Release.Namespace .Values.defaultNamespace }}'
+            - name: SERVICE_START_DELAY_SECONDS
+              value: '6'
+
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
       {{- range .Values.imagePullSecrets }}

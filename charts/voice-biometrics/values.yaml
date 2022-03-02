@@ -8,7 +8,7 @@ image:
   repository: "lumenvox"
   pullPolicy: "Always"
   # Overrides the image tag whose default is the chart appVersion.
-  tag: ""
+  tag: ":2.0.0"
 
 defaultNamespace: "lumenvox"
 imagePullSecrets: []
@@ -56,7 +56,8 @@ redis:
   # Specifies whether redis helm chart should be installed
   enabled: true
   auth:
-    password: "iJ3WX7icYL4j3d"
+    existingSecret: redis-existing-secret
+
   connection:
     url: "lumenvox-redis-master.lumenvox"
     port: 6379
@@ -72,15 +73,10 @@ postgresql:
     url: "lumenvox-postgresql.lumenvox"
     port: 5432
     user: "lvuser"
-    password: "iJ3WX7icYL4j3d"
-  user: "lvuser"
-  password: "iJ3WX7icYL4j3d"
   postgresqlDatabase: "postgres"
-  postgresDb: "postgres"
-
   postgresqlUsername: "lvuser"
-  postgresqlPassword: "iJ3WX7icYL4j3d"
-
+  user: "lvuser"
+  existingSecret: postgres-existing-secret
   commandTimeoutSeconds: 100
   runMigrations: 'true'
   exitAfterMigrations: 'false'
@@ -99,15 +95,13 @@ mongodb:
     enabled: false
   auth:
     rootUser: 'lvuser'
-    rootPassword: 'iJ3WX7icYL4j3d'
-
+    existingSecret: mongodb-existing-secret
   connection:
     url: "lumenvox-mongodb.lumenvox"
     port: 27017
-
-  image:
-    # Note using an older version due to incompatibilities on some test machines
-    tag: 4.2
+#  image:
+#    # Note using an older version due to incompatibilities on some test machines
+#    tag: 4.2
 
 rabbitmq:
   # Specifies whether rabbitmq helm chart should be installed
@@ -121,16 +115,15 @@ rabbitmq:
     checkManagementEndpoint: true
   auth:
     username: "lvuser"
-    password: "iJ3WX7icYL4j3d"
-    existingPasswordSecret: "rabbitmq-secret"
+    existingPasswordSecret: "rabbitmq-existing-secret"
   connection:
     url: "lumenvox-rabbitmq.lumenvox"
     port: 5672
     user: "lvuser"
-    password: "iJ3WX7icYL4j3d"
   persistence:
     enabled: false
     size: 4Gi
+  retryTime: 60
 
 traefik:
   # Specifies whether traefik ingress controller should be installed (recommended as default ingress for LumenVox)
@@ -156,7 +149,7 @@ logging:
   overrideGrpcLevel: "Information"
 
 encryption:
-  masterEncryptionKey: "mmf8fyVZPL0gSPIqsFXBdWjdy/gdOWWDn+zTT2HaH/U="
+  masterEncryptionSecret: encryption-secret
   masterKeyProvider: "EnvVariableMasterKeyService"
   useEncryption: true
 
@@ -172,7 +165,7 @@ mockData:
 probes:
   periodSeconds: 5
 
-enableAudit: true
+enableAudit: false
 
 
 grafana:
@@ -180,11 +173,9 @@ grafana:
   enabled: true
   ingress:
     hosts: ['grafana.testmachine.com']
-  adminUser: "lvuser"
-  adminPassword: "iJ3WX7icYL4j3d"
   admin:
     user: "lvuser"
-    password: "iJ3WX7icYL4j3d"
+    existingSecret: "grafana-existing-secret"
 
   config:
     useGrafanaIniFile: true
