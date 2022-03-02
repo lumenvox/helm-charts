@@ -52,11 +52,11 @@ spec:
           resources:
             requests:
               cpu: 100m
-              memory: 180Mi
+              memory: 800Mi
             {{- if .Values.lumenvox.enforceLimits }}
             limits:
-              cpu: 600m
-              memory: 550Mi
+              cpu: 200m
+              memory: 1000Mi
             {{- end }}
           envFrom:
             - configMapRef:

@@ -46,12 +46,12 @@ spec:
             periodSeconds: {{ .Values.probes.periodSeconds }}
           resources:
             requests:
-              cpu: 100m
-              memory: 150Mi
+              cpu: 500m
+              memory: 1000Mi
             {{- if .Values.lumenvox.enforceLimits }}
             limits:
-              cpu: 1500m
-              memory: 800Mi
+              cpu: 600m
+              memory: 1200Mi
             {{- end }}
           envFrom:
             - configMapRef:
