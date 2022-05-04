@@ -1,0 +1,23 @@
+# Default values for voice-biometrics.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+image: {}
+
+rabbitmq:
+  auth:
+    existingPasswordSecret: "rabbitmq-existing-secret"
+
+prometheus:
+  # Specifies whether prometheus helm chart should be installed
+  enabled: true
+
+  connection:
+    url: http://lumenvox-prometheus-server
+
+  server:
+    persistentVolume:
+      enabled: false
+  alertmanager:
+    persistentVolume:
+      enabled: false
