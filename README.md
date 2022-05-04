@@ -33,7 +33,9 @@ _See [helm search repo](https://helm.sh/docs/helm/helm_search_repo/) for details
 
 We'd love to have you contribute! Please contact us for details
 
-## Installing Voice-Biometrics Chart
+## Voice-Biometrics
+
+### Installation
 
 To install LumenVox Voice Biometrics using Helm, you should
 contact LumenVox first and obtain license and configuration
@@ -56,7 +58,7 @@ helm install lumenvox-vb lumenvox/voice-biometrics -f my-lumenvox-values.yaml -n
  
 _See [helm install](https://helm.sh/docs/helm/helm_install/) for command documentation._
 
-## Dependencies
+### Dependencies
 
 The following dependencies can optionally be installed:
 
@@ -97,7 +99,7 @@ own, set the `redis.enabled` setting to false in your `values.yaml` file. The
 same can be done for all of these dependencies, allowing you to easily use the
 LumenVox Helm Charts in either test or production configurations. 
 
-## Uninstall Chart
+### Uninstall Chart
 
 ```kubernetes helm
 helm uninstall lumenvox-vb
@@ -108,7 +110,7 @@ deletes the release.
 
 _See [helm uninstall](https://helm.sh/docs/helm/helm_uninstall/) for command documentation._
 
-## Configuration
+### Configuration
 
 You will need to work with your LumenVox account manager and the support 
 team before running LumenVox application in Kubernetes. This is needed
@@ -130,4 +132,107 @@ with the optional dependencies enabled, log into Grafana and specify a
 dashboard to use with Prometheus monitoring, for example:
 
 * 12740 (Select Prometheus at the bottom) - Kubernetes Monitoring Dashboard
+
+## Speech
+
+### Installation
+
+To install LumenVox Speech using Helm, you should
+contact LumenVox first and obtain license and configuration
+information that is needed before you can start.
+
+You will also need to provision the following, ideally in a
+hosted cloud environment for production, but locally can be
+used during testing or development:
+
+* Postgres Database
+* MongoDB Database
+* Redis
+* RabbitMQ
+
+_See the **Dependencies** section below for important details_
+
+```shell
+helm install lumenvox lumenvox/lumenvox -f my-lumenvox-values.yaml -n lumenvox
+```
+
+_See [helm install](https://helm.sh/docs/helm/helm_install/) for command documentation._
+
+### Subcharts
+The `lumenvox` chart references the `lumenvox-common`, `lumenvox-speech`,
+and `lumenvox-vb` charts as subcharts. These subcharts can be enabled and
+disabled in your `values.yaml` file by changing the values of
+`global.enabled.lumenvoxCommon`, `global.enabled.lumenvoxSpeech`, and
+`global.enabled.lumenvoxVb`.
+
+At this time, the `lumenvox-vb` chart is still in development; it exists
+as a release only to satisfy the requirement in the `lumenvox` chart. This
+will be implemented in the future, but for now please leave this disabled.
+
+### Dependencies
+
+The following dependencies can optionally be installed:
+
+```shell
+  - name: "redis"
+    version: 15.5.3
+    repository: "https://charts.bitnami.com/bitnami"
+
+  - name: "mongodb"
+    version: 10.29.0
+    repository: "https://charts.bitnami.com/bitnami"
+
+  - name: "rabbitmq"
+    version: 8.24.2
+    repository: "https://charts.bitnami.com/bitnami"
+
+  - name: "postgresql"
+    version: 10.13.4
+    repository: "https://charts.bitnami.com/bitnami"
+```
+> Note that these dependencies are provided for setting up a test environment only.
+
+We recommend that when creating a production environment, you provision your
+own cloud-hosted services to replace these test dependencies, which are not
+configured for persistence or scale.
+
+Each of these dependencies can be disabled in the `values.yaml` file in the
+`lumenvox-common` section. For example, to disable the Redis dependency when
+using your own, set the `lumenvox-common.redis.enabled` setting to false in
+your `values.yaml` file. The same can be done for all of these dependencies,
+allowing you to easily use the LumenVox Helm Charts in either test or
+production configurations. Note that you will need to update the connection
+information; please see the README in the `lumenvox` chart for information
+on how to do this.
+
+### Uninstall Chart
+
+```kubernetes helm
+helm delete lumenvox
+```
+
+This removes all the Kubernetes components associated with the chart and
+deletes the release.
+
+_See [helm uninstall](https://helm.sh/docs/helm/helm_uninstall/) for command documentation._
+
+### Configuration
+
+You will need to work with your LumenVox account manager and the support
+team before running LumenVox application in Kubernetes. This is needed
+to provide you with the necessary license configuration as well as
+overall system configuration steps
+
+To see all configurable options, visit the chart's values.yaml,
+or run the following:
+
+```kubernetes helm
+helm show values lumenvox/voice-biometrics
+```
+
+_See [helm show values](https://helm.sh/docs/helm/helm_show_values/) for
+command documentation._
+
+Additionally, an overview of the values you are likely to configure can
+be found in the README for the `lumenvox` chart.
 
