@@ -1,0 +1,96 @@
+# Default values for lumenvox.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+timezone: UTC  # or America/New_York, Europe/Rome, etc.
+
+platform: minikube
+volumeRoot: "/data"
+volumeServer: ""
+
+rabbitmq:
+  retryTime: 60
+
+logging:
+  enableElasticsearch: false
+  defaultLevel: "Warning"
+  overrideMicrosoftLevel: "Warning"
+  overrideSystemLevel: "Warning"
+  overrideGrpcLevel: "Warning"
+
+https:
+  certificate: ""
+  certificateKey: ""
+  certificatePassword: ""
+  useSelfSignedCert: false
+
+lumenvox-common:
+  rabbitmq:
+    enabled: true
+  redis:
+    enabled: true
+  mongodb:
+    enabled: true
+  postgresql:
+    enabled: true
+
+global:
+  defaultNamespace: "lumenvox"
+  hostnameSuffix: "testmachine.com"
+  lumenvox:
+    ingress:
+      className: nginx
+    # Maximum amount of time allowed for deployment database connection to succeed
+    deploymentReconnectionTimeoutSec: 30
+    probes:
+      periodSeconds: 5
+    metrics:
+      # Whether to expose internal services' ingress (likely only used by LumenVox development)
+      enableEndpoints: false
+    enableAudit: false
+    service:
+      # Time from startup to allow deployment service
+      startDelaySeconds: 5
+      livenessProbe:
+        enabled: true
+    enforceLimits: false
+  image:
+    repository: "lumenvox"
+    pullPolicy: IfNotPresent
+    tag: ":3.0.0"
+  imagePullSecrets: []
+  rabbitmq:
+    connection:
+      url: "lumenvox-rabbitmq.lumenvox"
+      port: 5672
+      user: "lvuser"
+  redis:
+    connection:
+      url: "lumenvox-redis-master.lumenvox"
+      port: 6379
+  mongodb:
+    connection:
+      url: "lumenvox-mongodb.lumenvox"
+      port: 27017
+  postgresql:
+    connection:
+      url: "lumenvox-postgresql.lumenvox"
+      port: 5432
+      user: "lvuser"
+    commandTimeoutSeconds: 100
+    runMigrations: 'true'
+    exitAfterMigrations: 'false'
+  linkerd:
+    enabled: true
+  mockData:
+    enabled: false
+    testDataString: ""
+    deploymentId: ""
+    jsonKeys:
+      master: ""
+      customer: ""
+      emergencyPublic: ""
+  enabled:
+    lumenvoxSpeech: false
+    lumenvoxVb: false
+    lumenvoxCommon: true

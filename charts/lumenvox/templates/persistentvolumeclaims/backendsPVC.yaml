@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: backends-claim
+spec:
+  accessModes:
+  {{- if eq .Values.platform "minikube" }}
+    - ReadWriteOnce
+  {{- else if eq .Values.platform "gke" }}
+    - ReadWriteMany
+  {{- end }}
+  volumeName: backends
+  storageClassName: ""
+  resources:
+    requests:
+      storage: 10Gi

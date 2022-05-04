@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tts1-claim
+spec:
+  accessModes:
+  {{- if eq .Values.platform "minikube" }}
+    - ReadWriteOnce
+  {{- else if eq .Values.platform "gke" }}
+    - ReadWriteMany
+  {{- end }}
+  volumeName: tts1
+  storageClassName: ""
+  resources:
+    requests:
+      storage: 6Gi

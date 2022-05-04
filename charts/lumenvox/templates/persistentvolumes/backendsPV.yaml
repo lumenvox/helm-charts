@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: backends
+spec:
+  accessModes:
+  {{- if eq .Values.platform "minikube" }}
+    - ReadWriteOnce
+  {{- else if eq .Values.platform "gke" }}
+    - ReadWriteMany
+  {{- end }}
+  capacity:
+    storage: 10Gi
+  {{- if eq .Values.platform "minikube" }}
+  hostPath:
+  {{- else if eq .Values.platform "gke" }}
+  nfs:
+    server: {{ .Values.volumeServer }}
+  {{- end }}
+    path: {{ .Values.volumeRoot }}/lumenvox_backends
