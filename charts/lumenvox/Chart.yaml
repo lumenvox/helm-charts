@@ -10,11 +10,14 @@ dependencies:
   - name: lumenvox-vb
     version: 3.0.0
     condition: global.enabled.lumenvoxVb
+    repository: "https://lumenvox.github.io/helm-charts"
 
   - name: lumenvox-common
     version: 3.0.0
     condition: global.enabled.lumenvoxCommon
+    repository: "https://lumenvox.github.io/helm-charts"
 
   - name: lumenvox-speech
     version: 3.0.0
     condition: global.enabled.lumenvoxSpeech
+    repository: "https://lumenvox.github.io/helm-charts"
