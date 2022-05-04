@@ -1,0 +1,111 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: transaction
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+  labels:
+    app: transaction
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: transaction
+  template:
+    metadata:
+      labels:
+        app: transaction
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '90'
+        {{- if .Values.global.linkerd.enabled }}
+        linkerd.io/inject: enabled
+        {{- end }}
+    spec:
+      containers:
+        - name: transaction
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-transaction{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          ports:
+            - name: metrics
+              containerPort: 90
+            - name: grpc
+              containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 90
+            initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
+            periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
+          {{- if .Values.global.lumenvox.service.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 90
+            initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
+            periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
+          {{- end }}
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1000Mi
+            {{- if .Values.global.lumenvox.enforceLimits }}
+            limits:
+              cpu: 600m
+              memory: 1200Mi
+            {{- end }}
+          envFrom:
+            - configMapRef:
+                name: lumenvox-configmap
+            - configMapRef:
+                name: timezone-configmap
+            {{- if .Values.rabbitmq.auth.existingPasswordSecret }}
+            - secretRef:
+                name: {{ .Values.rabbitmq.auth.existingPasswordSecret }}
+            {{- end }}
+          env:
+            {{- if not .Values.rabbitmq.auth.existingPasswordSecret }}
+            - name: rabbitmq-password
+              value: '{{ .Values.rabbitmq.auth.password }}'
+            {{- end }}
+            - name: GLOBAL_SETTINGS__RABBITMQ_EASY_CONNECTION_STRING
+              value: 'host={{ .Values.global.rabbitmq.connection.url }};port={{ .Values.global.rabbitmq.connection.port }};username={{ .Values.global.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10'
+            - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
+              value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+            - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
+              value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+            - name: DB_SETTINGS__DEPLOYMENT_RECONNECTION_TIMEOUT_SEC
+              value: '{{ .Values.global.lumenvox.deploymentReconnectionTimeoutSec }}'
+            - name: DB_MIGRATION__RUN_DATABASE_MIGRATIONS
+              value: '{{ .Values.global.postgresql.runMigrations }}'
+            - name: DB_MIGRATION__EXIT_AFTER_DATABASE_MIGRATIONS
+              value: '{{ .Values.global.postgresql.exitAfterMigrations }}'
+            - name: DB_MIGRATION__DB_COMMAND_TIMEOUT_SECONDS
+              value: '{{ .Values.global.postgresql.commandTimeoutSeconds }}'
+            - name: LOCAL_SETTINGS__SERVICE_START_DELAY_SECONDS
+              value: '5'
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.global.imagePullSecrets }}
+        - name: {{ . }}
+      {{- end }}
+      {{- end }}
+      initContainers:
+        - name: wait-for-deployment-service
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          command: ["curl2"]
+          args: ["http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:90/health", "Deployment Service"]
+        {{- if .Values.rabbitmq.enabled }}
+        - name: wait-for-rabbitmq-service
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          command: ["nslookup2"]
+          args: ["{{ .Values.global.rabbitmq.connection.url }}", "RabbitMQ Service"]
+        {{- end }}
+        {{- if .Values.rabbitmq.init.checkManagementEndpoint }}
+        - name: wait-for-rabbitmq-management-endpoint
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          command: ["curl2"]
+          args: ["http://{{ .Values.global.rabbitmq.connection.url }}:15672", "RabbitMQ Management Page"]
+        {{- end }}

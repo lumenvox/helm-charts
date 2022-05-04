@@ -1,0 +1,157 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+  labels:
+    app: deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: deployment
+  template:
+    metadata:
+      labels:
+        app: deployment
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '90'
+        {{- if .Values.global.linkerd.enabled }}
+        linkerd.io/inject: enabled
+        {{- end }}
+    spec:
+      # Assign this pod a higher priority than others, since others depend on this one to be running first
+      priorityClassName: high-priority
+      containers:
+        - name: deployment
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-deployment{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          ports:
+            - name: metrics
+              containerPort: 90
+            - name: grpc
+              containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 90
+            initialDelaySeconds: {{ .Values.lumenvox.deploymentStartDelaySeconds }}
+            periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
+          {{- if .Values.global.lumenvox.service.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 90
+            initialDelaySeconds: {{ .Values.lumenvox.deploymentStartDelaySeconds }}
+            periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
+          {{- end }}
+          resources:
+            requests:
+              cpu: 10m
+              memory: 150Mi
+            {{- if .Values.global.lumenvox.enforceLimits }}
+            limits:
+              cpu: 100m
+              memory: 500Mi
+            {{- end }}
+          envFrom:
+            - configMapRef:
+                name: lumenvox-configmap
+            - configMapRef:
+                name: timezone-configmap
+            {{- if .Values.mongodb.auth.existingSecret }}
+            - secretRef:
+                name: {{ .Values.mongodb.auth.existingSecret }}
+            {{- end }}
+            {{- if .Values.postgresql.existingSecret }}
+            - secretRef:
+                name: {{ .Values.postgresql.existingSecret }}
+            {{- end }}
+            {{- if .Values.rabbitmq.auth.existingPasswordSecret }}
+            - secretRef:
+                name: {{ .Values.rabbitmq.auth.existingPasswordSecret }}
+            {{- end }}
+            {{- if .Values.redis.auth.existingSecret }}
+            - secretRef:
+                name: {{ .Values.redis.auth.existingSecret }}
+            {{- end }}
+          env:
+            {{- if not .Values.mongodb.auth.existingSecret }}
+            - name: mongodb-root-password
+              value: '{{ .Values.mongodb.auth.rootPassword }}'
+            {{- end }}
+            {{- if not .Values.postgresql.existingSecret }}
+            - name: postgresql-password
+              value: "{{ .Values.postgresql.password }}"
+            {{- end }}
+            {{- if not .Values.rabbitmq.auth.existingPasswordSecret }}
+            - name: rabbitmq-password
+              value: '{{ .Values.rabbitmq.auth.password }}'
+            {{- end }}
+            {{- if not .Values.redis.auth.existingSecret }}
+            - name: redis-password
+              value: '{{ .Values.redis.auth.password }}'
+            {{- end }}
+            - name: GLOBAL_SETTINGS__RABBITMQ_EASY_CONNECTION_STRING
+              value: 'host={{ .Values.global.rabbitmq.connection.url }};port={{ .Values.global.rabbitmq.connection.port }};username={{ .Values.global.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10'
+            - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
+              value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+            - name: DB_SETTINGS__DEPLOYMENT_POSTGRES_CONNECTION_STRING
+              value: 'Server={{ .Values.global.postgresql.connection.url }};Port={{ .Values.global.postgresql.connection.port }};UserID={{ .Values.global.postgresql.connection.user }};Password=$(postgresql-password);Database=cloud_deployment_db;Integrated Security=true;Pooling=true;'
+            - name: DB_SETTINGS__COMMAND_TIMEOUT_SECONDS
+              value: '{{ .Values.global.postgresql.commandTimeoutSeconds }}'
+            - name: DB_MIGRATION__RUN_DATABASE_MIGRATIONS
+              value: '{{ .Values.global.postgresql.runMigrations }}'
+            - name: DB_MIGRATION__EXIT_AFTER_DATABASE_MIGRATIONS
+              value: '{{ .Values.global.postgresql.exitAfterMigrations }}'
+            - name: DB_MIGRATION__DB_COMMAND_TIMEOUT_SECONDS
+              value: '{{ .Values.global.postgresql.commandTimeoutSeconds }}'
+            - name: ENCRYPTION_SETTINGS__MASTER_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: master-encryption-key
+                  name: encryption-secret
+            - name: LOCAL_SETTINGS__ENABLE_AUDIT_LOG
+              value: '{{ .Values.global.lumenvox.enableAudit }}'
+            - name: LOCAL_SETTINGS__SERVICE_START_DELAY_SECONDS
+              value: '{{ .Values.lumenvox.deploymentStartDelaySeconds }}'
+            - name: MockDataSettings__DeploymentsJson
+              value: '[{"DeploymentId":"{{ .Values.global.mockData.deploymentId }}","DeploymentData":{"RedisConnectionString":"{{ .Values.global.redis.connection.url }}:{{ .Values.global.redis.connection.port }},password=$(redis-password)","ConfigurationPostgresConnectionString":"Server={{ .Values.global.postgresql.connection.url }};Port={{ .Values.global.postgresql.connection.port }};UserID={{ .Values.global.postgresql.connection.user }};Password=$(postgresql-password);Database=cloud_configuration_db;IntegratedSecurity=true;Pooling=true;","AssureIdentityPostgresConnectionString":"Server={{ .Values.global.postgresql.connection.url }};Port={{ .Values.global.postgresql.connection.port }};UserID={{ .Values.global.postgresql.connection.user }};Password=$(postgresql-password);Database=cloud_assure_identity_db;IntegratedSecurity=true;Pooling=true;","BinaryStorageConnectionString":{"CollectionName":"BinaryStorage","ConnectionString":"mongodb://{{ .Values.mongodb.auth.rootUser }}:$(mongodb-root-password)@{{ .Values.global.mongodb.connection.url }}:{{ .Values.global.mongodb.connection.port }}","DatabaseName":"cloud_binary_db","StorageType":"MongoDb"},"TransactionPostgresConnectionString":"Server={{ .Values.global.postgresql.connection.url }};Port={{ .Values.global.postgresql.connection.port }};UserID={{ .Values.global.postgresql.connection.user }};Password=$(postgresql-password);Database=cloud_transaction_db;IntegratedSecurity=true;Pooling=true;","AuditPostgresConnectionString":"Server={{ .Values.global.postgresql.connection.url }};Port={{ .Values.global.postgresql.connection.port }};UserID={{ .Values.global.postgresql.connection.user }};Password=$(postgresql-password);Database=cloud_audit_db;IntegratedSecurity=true;Pooling=true;","ReportingOptionsMaxPerPageAllowed":100}}]'
+
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.global.imagePullSecrets }}
+        - name: {{ . }}
+      {{- end }}
+      {{- end }}
+      initContainers:
+        - name: init-postgres
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          command: ["nslookup2"]
+          args: ["{{ .Values.global.postgresql.connection.url }}", "Postgres"]
+        - name: init-mongodb
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          command: ["nslookup2"]
+          args: ["{{ .Values.global.mongodb.connection.url }}", "MongoDB"]
+        - name: init-redis
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          command: ["nslookup2"]
+          args: ["{{ .Values.global.redis.connection.url }}", "Redis"]
+        {{- if .Values.rabbitmq.enabled }}
+        - name: wait-for-rabbitmq-service
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          command: ["nslookup2"]
+          args: ["{{ .Values.global.rabbitmq.connection.url }}", "RabbitMQ Service"]
+        {{- end }}
+        {{- if .Values.rabbitmq.init.checkManagementEndpoint }}
+        - name: wait-for-rabbitmq-management-endpoint
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          command: ["curl2"]
+          args: ["http://{{ .Values.global.rabbitmq.connection.url }}:15672", "RabbitMQ Management Page"]
+        {{- end }}
