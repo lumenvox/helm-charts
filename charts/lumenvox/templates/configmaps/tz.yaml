@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: timezone-configmap
+  namespace: '{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+data:
+  TZ: {{ .Values.timezone }}

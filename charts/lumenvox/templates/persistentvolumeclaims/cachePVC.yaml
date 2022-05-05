@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cached-client-grammars-claim
+spec:
+  accessModes:
+  {{- if eq .Values.platform "minikube" }}
+    - ReadWriteOnce
+  {{- else if eq .Values.platform "cloud" }}
+    - ReadWriteMany
+  {{- end }}
+  volumeName: cached-client-grammars
+  storageClassName: ""
+  resources:
+    requests:
+      storage: 6Gi
