@@ -1,7 +1,0 @@
-apiVersion: v2
-name: speech
-description: LumenVox Speech Helm chart for Kubernetes
-type: application
-version: 2.0.0
-appVersion: "2.0.0"
-home: https://lumenvox.com
