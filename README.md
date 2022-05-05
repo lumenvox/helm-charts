@@ -227,7 +227,7 @@ To see all configurable options, visit the chart's values.yaml,
 or run the following:
 
 ```kubernetes helm
-helm show values lumenvox/voice-biometrics
+helm show values lumenvox
 ```
 
 _See [helm show values](https://helm.sh/docs/helm/helm_show_values/) for
