@@ -8,7 +8,7 @@
 | `global.lumenvox.enableAudit`                      | Whether to enable audit logging                                        | `false`                          |
 | `global.lumenvox.enforceLimits`                    | Whether to enforce resource limits                                     | `false`                          |
 | `global.image.pullPolicy`                          | Pull policy when installing cluster                                    | `IfNotPresent`                   |
-| `global.image.tag`                                 | Default image tag                                                      | `:3.0.0`                         |
+| `global.image.tag`                                 | Default image tag                                                      | `:3.0`                           |
 | `lumenvox-common.rabbitmq.enabled`                 | Create a local RabbitMQ instance                                       | `true`                           |
 | `global.rabbitmq.connection.url`                   | URL for RabbitMQ connection                                            | `lumenvox-rabbitmq.lumenvox`     |
 | `global.rabbitmq.connection.port`                  | Port for RabbitMQ connection                                           | `5672`                           |
@@ -30,9 +30,18 @@
 | `global.ttsLanguages`                              | List of TTS voices to install                                          | `[]`                             |
 | `lumenvox-common.licensing.clusterGuid`            | License GUID obtained from LumenVox account                            | `GET-CLUSTER-GUID-FROM-LUMENVOX` |
 | `platform`                                         | Cluster platform: cloud or minikube. Used for persistent volume setup. | `minikube`                       |
-| `volumeRoot`                                       | Root of persistent data location.                                      | `data`                           |
+| `volumeRoot`                                       | Root of persistent data location.                                      | `/data`                          |
 | `volumeServer`                                     | IP address of persistent data filesystem. Ignored for minikube.        | `""`                             |
 | `timezone`                                         | Timezone for logs. Examples: UTC, America/New_York, Europe/Rome        | `UTC`                            |
+
+### Image Versioning
+Our images make use of `MAJOR.MINOR.PATCH` semantic versioning. By default, the chart matches the major and minor
+versions while pulling the most recent patch version. If you would like to have a fixed set of images, you must override
+`global.images.tag` with a version including the patch number you want to run.
+
+To use different image tag policies on different sets of images, you may utilize `lumenvox-common.images.tag`,
+`lumenvox-speech.images.tag`, and `lumenvox-speech.images.tag`. These values will override the global image tag in the
+relevant charts.
 
 ### MongoDB Configuration
 By default, the chart will create a MongoDB instance. To switch to using an external instance, you must set

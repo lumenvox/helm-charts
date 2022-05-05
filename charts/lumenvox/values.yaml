@@ -57,7 +57,7 @@ global:
   image:
     repository: "lumenvox"
     pullPolicy: IfNotPresent
-    tag: ":3.0.0"
+    tag: ":3.0"
   imagePullSecrets: []
   rabbitmq:
     connection:
