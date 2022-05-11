@@ -28,10 +28,6 @@ spec:
           ports:
             - name: portal
               containerPort: 3001
-            - name: metrics
-              containerPort: 5110
-            - name: grpc
-              containerPort: 5010
 {{/*          readinessProbe:*/}}
 {{/*            httpGet:*/}}
 {{/*              path: /health*/}}
