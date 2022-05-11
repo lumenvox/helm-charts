@@ -34,14 +34,6 @@ spec:
 {{/*              port: 5110*/}}
 {{/*            initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}*/}}
 {{/*            periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}*/}}
-{{/*          {{- if .Values.global.lumenvox.service.livenessProbe.enabled }}*/}}
-{{/*          livenessProbe:*/}}
-{{/*            httpGet:*/}}
-{{/*              path: /health*/}}
-{{/*              port: 5110*/}}
-{{/*            initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}*/}}
-{{/*            periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}*/}}
-{{/*          {{- end }}*/}}
           resources:
             requests:
               cpu: 5m
