@@ -1,5 +1,63 @@
 apiVersion: v1
 entries:
+  lumenvox:
+  - apiVersion: v2
+    appVersion: 3.0.0
+    created: "2022-05-11T23:48:28.739121017Z"
+    dependencies:
+    - condition: global.enabled.lumenvoxVb
+      name: lumenvox-vb
+      repository: https://lumenvox.github.io/helm-charts
+      version: 3.0.0
+    description: LumenVox Helm chart for Kubernetes
+    digest: 5245adc6d2d8ab9667147c5263063415c64f1376345547dab43f8c2ee76c296f
+    home: https://lumenvox.com
+    name: lumenvox
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-3.0.0/lumenvox-3.0.0.tgz
+    version: 3.0.0
+  lumenvox-common:
+  - apiVersion: v2
+    appVersion: 3.0.0
+    created: "2022-05-11T23:48:28.947237372Z"
+    dependencies:
+    - condition: redis.enabled
+      name: redis
+      repository: https://charts.bitnami.com/bitnami
+      version: 15.5.3
+    - condition: mongodb.enabled
+      name: mongodb
+      repository: https://charts.bitnami.com/bitnami
+      version: 10.29.0
+    - condition: rabbitmq.enabled
+      name: rabbitmq
+      repository: https://charts.bitnami.com/bitnami
+      version: 8.24.2
+    - condition: postgresql.enabled
+      name: postgresql
+      repository: https://charts.bitnami.com/bitnami
+      version: 10.13.4
+    description: LumenVox Common Components Helm chart for Kubernetes
+    digest: ffc76a5ff935124b42a246ab5f0f512f0fabb2229f034b97c9c61190d4e058ce
+    home: https://lumenvox.com
+    name: lumenvox-common
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-common-3.0.0/lumenvox-common-3.0.0.tgz
+    version: 3.0.0
+  lumenvox-speech:
+  - apiVersion: v2
+    appVersion: 3.0.0
+    created: "2022-05-11T23:48:29.099304289Z"
+    description: LumenVox Speech Helm chart for Kubernetes
+    digest: e0184f291eaaa07065d4fd033c29911044d898bd64466835dc37ac5669486b6d
+    home: https://lumenvox.com
+    name: lumenvox-speech
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-speech-3.0.0/lumenvox-speech-3.0.0.tgz
+    version: 3.0.0
   lumenvox-vb:
   - apiVersion: v2
     appVersion: 3.0.0
