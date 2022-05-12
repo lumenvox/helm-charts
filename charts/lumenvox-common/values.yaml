@@ -1,0 +1,79 @@
+# Default values for lumenvox-common.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+image: {}
+
+lumenvox:
+  # Time to allow support services (such as databases) to become available. Typically, 0 in production
+  deploymentStartDelaySeconds: 0
+
+licensing:
+  # Note: licensing (and therefore system) will not work without a valid clusterGuid value
+  clusterGuid: "GET-CLUSTER-GUID-FROM-LUMENVOX"
+  reportFreqMins: "1440"
+  reportSyncHour: "1"
+  reportSyncMin: "0"
+
+redis:
+  enabled: true
+  auth:
+    existingSecret: redis-existing-secret
+  architecture: standalone
+  master:
+    persistence:
+      enabled: false
+
+mongodb:
+  enabled: true
+  auth:
+    rootUser: 'lvuser'
+    existingSecret: mongodb-existing-secret
+  architecture: "standalone"
+  persistence:
+    enabled: false
+
+rabbitmq:
+  # Specifies whether rabbitmq helm chart should be installed
+  enabled: true
+  auth:
+    username: "lvuser"
+    existingPasswordSecret: "rabbitmq-existing-secret"
+  init:
+    checkManagementEndpoint: true
+  ingress:
+    enabled: true
+    hostname: "rabbitmq.testmachine.com"
+    # optional ingressClassName for advanced ingress handling. Comment out to use default ingress
+    ingressClassName: "nginx"
+  persistence:
+    enabled: false
+    size: 4Gi
+
+postgresql:
+  enabled: true
+  postgresqlDatabase: "postgres"
+  postgresqlUsername: "lvuser"
+  existingSecret: postgres-existing-secret
+  persistence:
+    enabled: false
+  image:
+    tag: 13
+
+encryption:
+  masterKeyProvider: "EnvVariableMasterKeyService"
+  useEncryption: true
+
+linkerd:
+  dashboard:
+    # Applies ingress for linkerd dashboard when enabled (true)
+    enabled: true
+    # Namespace used by linkerd dashboard
+    namespace: linkerd-viz
+    # Hostname prefix to use for ingress
+    hostPrefix: linkerd
+
+  # optional class name to assign to linkerd ingress (i.e. "nginx" for example)
+  ingressClassName: ""
+
+prometheus: {}
