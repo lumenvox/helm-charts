@@ -3,6 +3,30 @@ entries:
   lumenvox:
   - apiVersion: v2
     appVersion: 3.0.0
+    created: "2022-05-12T23:42:47.706672659Z"
+    dependencies:
+    - condition: global.enabled.lumenvoxVb
+      name: lumenvox-vb
+      repository: https://lumenvox.github.io/helm-charts
+      version: 3.0.0
+    - condition: global.enabled.lumenvoxCommon
+      name: lumenvox-common
+      repository: https://lumenvox.github.io/helm-charts
+      version: 3.0.3
+    - condition: global.enabled.lumenvoxSpeech
+      name: lumenvox-speech
+      repository: https://lumenvox.github.io/helm-charts
+      version: 3.0.0
+    description: LumenVox Helm chart for Kubernetes
+    digest: 3547143d5d72fdef351028cdfbafde64b3fa11be9757b16603575ae49252b6c4
+    home: https://lumenvox.com
+    name: lumenvox
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-3.0.3/lumenvox-3.0.3.tgz
+    version: 3.0.3
+  - apiVersion: v2
+    appVersion: 3.0.0
     created: "2022-05-12T23:34:19.892032356Z"
     dependencies:
     - condition: global.enabled.lumenvoxVb
