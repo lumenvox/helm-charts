@@ -87,7 +87,7 @@ global:
   mockData:
     enabled: false
     testDataString: ""
-    deploymentId: ""
+    deploymentId: []
     jsonKeys:
       master: ""
       customer: ""
