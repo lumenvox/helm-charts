@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: asr-grammar-cache-claim
+spec:
+  accessModes:
+  {{- if eq .Values.platform "minikube" }}
+    - ReadWriteOnce
+  {{- else if eq .Values.platform "cloud" }}
+    - ReadWriteMany
+  {{- end }}
+  volumeName: asr-grammar-cache
+  storageClassName: ""
+  resources:
+    requests:
+      storage: 6Gi

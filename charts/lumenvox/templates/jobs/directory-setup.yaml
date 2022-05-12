@@ -1,0 +1,23 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: persistent-volume-directory-setup
+spec:
+  template:
+    spec:
+      containers:
+        - name: initialize-directories
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          command: ["speech_dirs"]
+          args: ["/mnt/fileserver/"]
+          volumeMounts:
+            - mountPath: /mnt/fileserver
+              name: root
+      restartPolicy: OnFailure
+      volumes:
+        - name: root
+          persistentVolumeClaim:
+            claimName: root-claim
+            readOnly: false
+  backoffLimit: 4

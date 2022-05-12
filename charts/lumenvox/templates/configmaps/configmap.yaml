@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lumenvox-configmap
+  namespace: '{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+data:
+  GLOBAL_SETTINGS__ASPNETCORE_ENVIRONMENT: 'Production'
+  GLOBAL_SETTINGS__ASPNETCORE_URLS: 'http://+:80'
+  GLOBAL_SETTINGS__RABBIT_RETRYING_TIME_SECONDS: '{{ .Values.rabbitmq.retryTime }}'
+  SERILOG__DEFAULT_LOGGING_LEVEL: '{{ .Values.logging.defaultLevel }}'
+  SERILOG__OVERRIDE_MICROSOFT_LOGGING_LEVEL: '{{ .Values.logging.overrideMicrosoftLevel }}'
+  SERILOG__OVERRIDE_SYSTEM_LOGGING_LEVEL: '{{ .Values.logging.overrideSystemLevel }}'
+  SERILOG__OVERRIDE_GRPC_LOGGING_LEVEL: '{{ .Values.logging.overrideGrpcLevel }}'
+  HTTPS_SETTINGS__CERTIFICATE: '{{ .Values.https.certificate }}'
+  HTTPS_SETTINGS__CERTIFICATE_KEY: '{{ .Values.https.certificateKey }}'
+  HTTPS_SETTINGS__CERTIFICATE_PASSWORD: '{{ .Values.https.certificatePassword }}'
+  HTTPS_SETTINGS__USE_SELF_SIGNED_CERTIFICATE: '{{ .Values.https.useSelfSignedCert }}'
+  LOCAL_SETTINGS__ENABLE_ELASTICSEARCH: '{{ .Values.logging.enableElasticsearch }}'
+  LOCAL_SETTINGS__ENABLE_AUDIT_LOG: '{{ .Values.global.lumenvox.enableAudit }}'
+  {{- if .Values.global.mockData.enabled }}
+  MOCK_TEST_DATA: '{{ .Values.global.mockData.testDataString }}'
+  MockDataSettings__MasterKeysJson: '{{ .Values.global.mockData.jsonKeys.master }}'
+  MockDataSettings__CustomerKeysJson: '{{ .Values.global.mockData.jsonKeys.customer }}'
+  MockDataSettings__EmergencyPublicKeysJson: '{{ .Values.global.mockData.jsonKeys.emergencyPublic }}'
+  {{- end }}
