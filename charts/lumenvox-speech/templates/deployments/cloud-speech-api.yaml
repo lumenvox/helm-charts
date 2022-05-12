@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: speech-api
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+  labels:
+    app: speech-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: speech-api
+  template:
+    metadata:
+      labels:
+        app: speech-api
+        # No Prometheus scraping for now
+      annotations:
+        {{- if .Values.global.linkerd.enabled }}
+        linkerd.io/inject: enabled
+        {{- end }}
+    spec:
+      containers:
+        - name: speech-api
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-speech-api{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          ports:
+            - name: web
+              containerPort: 8080
+            - name: metrics
+              containerPort: 5110
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: metrics
+            initialDelaySeconds: 10
+            periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
+          resources:
+            requests:
+              cpu: 50m
+              memory: 100Mi
+            {{- if .Values.global.lumenvox.enforceLimits }}
+            limits:
+              cpu: 60m
+              memory: 120Mi
+            {{- end }}
+          envFrom:
+            - configMapRef:
+                name: lumenvox-configmap
+            - configMapRef:
+                name: timezone-configmap
+            {{- if .Values.rabbitmq.auth.existingPasswordSecret }}
+            - secretRef:
+                name: {{ .Values.rabbitmq.auth.existingPasswordSecret }}
+            {{- end }}
+            {{- if .Values.redis.auth.existingSecret }}
+            - secretRef:
+                name: {{ .Values.redis.auth.existingSecret }}
+            {{- end }}
+          env:
+            {{- if not .Values.rabbitmq.auth.existingPasswordSecret }}
+            - name: rabbitmq-password
+              value: '{{ .Values.rabbitmq.auth.password }}'
+            {{- end }}
+            {{- if not .Values.redis.auth.existingSecret }}
+            - name: redis-password
+              value: '{{ .Values.redis.auth.password }}'
+            {{- end }}
+            - name: GLOBAL_SETTINGS__RABBITMQ_CONNECTION_STRING
+              value: 'amqp://{{ .Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ .Values.global.rabbitmq.connection.url }}:{{ .Values.global.rabbitmq.connection.port }}'
+            - name: GLOBAL_SETTINGS__REDIS_CONNECTION_STRING
+              value: '{{ .Values.global.redis.connection.url }}:{{ .Values.global.redis.connection.port }},password=$(redis-password)'
+            - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
+              value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+            - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
+              value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+            - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
+              value: 'ignore'
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.global.imagePullSecrets }}
+        - name: {{ . }}
+      {{- end }}
+      {{- end }}
+      initContainers:
+        - name: wait-for-deployment-service
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          command: ["curl2"]
+          args: ["http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:90/health", "Deployment Service"]

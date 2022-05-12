@@ -1,0 +1,20 @@
+{{- range .Values.global.ttsLanguages }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tts-{{ .name | replace "_" "-" }}-service
+  namespace: {{ default $.Release.Namespace $.Values.global.defaultNamespace }}
+spec:
+  selector:
+    app: tts-{{ .name| replace "_" "-" }}
+  ports:
+    - name: http
+      protocol: TCP
+      port: 5110
+      targetPort: 5110
+    - name: grpc
+      protocol: TCP
+      port: 5010
+      targetPort: 5010
+{{- end }}
