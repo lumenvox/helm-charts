@@ -1,5 +1,34 @@
 apiVersion: v1
 entries:
+  lumenvox-common:
+  - apiVersion: v2
+    appVersion: 3.0.0
+    created: "2022-05-12T02:53:16.33224255Z"
+    dependencies:
+    - condition: redis.enabled
+      name: redis
+      repository: https://charts.bitnami.com/bitnami
+      version: 15.5.3
+    - condition: mongodb.enabled
+      name: mongodb
+      repository: https://charts.bitnami.com/bitnami
+      version: 10.29.0
+    - condition: rabbitmq.enabled
+      name: rabbitmq
+      repository: https://charts.bitnami.com/bitnami
+      version: 8.24.2
+    - condition: postgresql.enabled
+      name: postgresql
+      repository: https://charts.bitnami.com/bitnami
+      version: 10.13.4
+    description: LumenVox Common Components Helm chart for Kubernetes
+    digest: 1d4d7d18695e5174f8dd45326e0508804acc453392704c75d924bbe41446d20f
+    home: https://lumenvox.com
+    name: lumenvox-common
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-common-3.0.0/lumenvox-common-3.0.0.tgz
+    version: 3.0.0
   lumenvox-speech:
   - apiVersion: v2
     appVersion: 3.0.0
