@@ -1,5 +1,22 @@
 apiVersion: v1
 entries:
+  lumenvox-vb:
+  - apiVersion: v2
+    appVersion: 3.0.0
+    created: "2022-05-12T02:46:46.39431996Z"
+    dependencies:
+    - condition: prometheus.enabled
+      name: prometheus
+      repository: https://prometheus-community.github.io/helm-charts
+      version: 14.11.1
+    description: LumenVox Voice Biometrics Helm chart for Kubernetes
+    digest: 1d7a57926e5d880481b8929833f2b108fae15e603086984efc61ec5d1b0ed377
+    home: https://lumenvox.com
+    name: lumenvox-vb
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-vb-3.0.0/lumenvox-vb-3.0.0.tgz
+    version: 3.0.0
   voice-biometrics:
   - apiVersion: v2
     appVersion: 2.0.0
