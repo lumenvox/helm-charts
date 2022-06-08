@@ -34,6 +34,20 @@
 {{- end }}
 {{- end }}
 
+{{- define "lumenvox-speech.CLUSTER_LANGUAGES__TTS_VOICES_VERSION" }}
+{{- $listStarted := false }}
+{{- $langRegion := "" }}
+{{- $voiceVersion := "" }}
+{{- range .Values.global.ttsLanguages }}
+{{- $langRegion = .name }}
+{{- range .voices }}
+{{- $voiceVersion = .version | default $.Values.global.ttsDefaultVersion }}
+{{- if $listStarted }};{{ end }}tts_{{ $langRegion }}_{{ .name }}_{{ .sampleRate }}{{ if $voiceVersion }}-{{ $voiceVersion }}{{ end }}
+{{- $listStarted = true }}
+{{- end }}
+{{- end }}
+{{- end }}
+
 {{- define "lumenvox-speech.TTS_SETTINGS__SERVICE_VOICES" }}
 {{- $listStarted := false }}
 {{- $langRegion := .name }}

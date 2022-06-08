@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: admin-portal
+  name: archive-manager
   namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
   labels:
-    app: admin-portal
+    app: archive-manager
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: admin-portal
+      app: archive-manager
   template:
     metadata:
       labels:
-        app: admin-portal
+        app: archive-manager
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '5110'
@@ -22,12 +22,12 @@ spec:
         {{- end }}
     spec:
       containers:
-        - name: admin-portal
-          image: {{ .Values.image.repository | default .Values.global.image.repository }}/admin-portal{{ .Values.image.tag | default .Values.global.image.tag }}
+        - name: archive-manager
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-archive-manager{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
-          ports:
-            - name: portal
-              containerPort: 3001
+{{/*          ports:*/}}
+{{/*            - name: portal*/}}
+{{/*              containerPort: 3001*/}}
 {{/*          readinessProbe:*/}}
 {{/*            httpGet:*/}}
 {{/*              path: /health*/}}
@@ -45,46 +45,38 @@ spec:
             {{- end }}
           envFrom:
             - configMapRef:
-                name: lumenvox-configmap
-            - configMapRef:
                 name: timezone-configmap
             {{- if .Values.rabbitmq.auth.existingPasswordSecret }}
             - secretRef:
                 name: {{ .Values.rabbitmq.auth.existingPasswordSecret }}
+            {{- end }}
+            {{- if .Values.postgresql.existingSecret }}
+            - secretRef:
+                name: {{ .Values.postgresql.existingSecret }}
             {{- end }}
           env:
             {{- if not .Values.rabbitmq.auth.existingPasswordSecret }}
             - name: rabbitmq-password
               value: '{{ .Values.rabbitmq.auth.password }}'
             {{- end }}
-            - name: GLOBAL_SETTINGS__RABBITMQ_EASY_CONNECTION_STRING
-              value: 'host={{ .Values.global.rabbitmq.connection.url }};port={{ .Values.global.rabbitmq.connection.port }};username={{ .Values.global.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10'
+            {{- if not .Values.postgresql.existingSecret }}
+            - name: postgresql-password
+              value: "{{ .Values.postgresql.password }}"
+            {{- end }}
+            - name: GLOBAL_SETTINGS__RABBITMQ_CONNECTION_STRING
+              value: 'amqp://{{ .Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ .Values.global.rabbitmq.connection.url }}:{{ .Values.global.rabbitmq.connection.port }}'
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
               value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
               value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
-            - name: SERVICE_ADDRESSES__SPEECH_API
-              value: 'http://speech-api-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:80'
-            - name: SERVICE_ADDRESSES__ADMIN_PORTAL
-              value: 'http://admin-portal-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
-            - name: SERVICE_EXTERNAL_ADDRESSES__REPORTING_API
-              value: 'http://reporting-api.{{ .Values.global.hostnameSuffix }}'
-            - name: SERVICE_EXTERNAL_ADDRESSES__MANAGEMENT_API
-              value: 'http://management-api.{{ .Values.global.hostnameSuffix }}'
-            - name: SERVICE_EXTERNAL_ADDRESSES__SPEECH_API
-              value: 'http://speech-api.{{ .Values.global.hostnameSuffix }}'
-            {{- if .Values.global.enabled.lumenvoxSpeech }}
-            {{- if .Values.global.asrLanguages }}
-            - name: CLUSTER_LANGUAGES__ASR_LANGUAGES
-              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__ASR_LANGUAGES" . }}'
-            {{- end }}
-            {{- if .Values.global.ttsLanguages }}
-            - name: CLUSTER_LANGUAGES__TTS_LANGUAGES
-              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__TTS_LANGUAGES" . }}'
-            - name: CLUSTER_LANGUAGES__TTS_VOICES
-              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__TTS_VOICES" . }}'
-            {{- end }}
-            {{- end }}
+            - name: SESSION_SETTINGS__API_EXCHANGE
+              value: 'BroadcastExchange'
+            - name: LOCAL_SETTINGS__ENV
+              value: 'dev'
+            - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
+              value: 'ignore'
+            - name: DB_SETTINGS__ARCHIVE_POSTGRES_CONNECTION_STRING
+              value: 'postgres://{{ .Values.global.postgresql.connection.user }}:$(postgresql-password)@{{ .Values.global.postgresql.connection.url }}:{{ .Values.global.postgresql.connection.port }}/archive_db?sslmode=disable'
       {{- if .Values.global.imagePullSecrets }}
       imagePullSecrets:
       {{- range .Values.global.imagePullSecrets }}
@@ -97,3 +89,17 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           command: ["curl2"]
           args: ["http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:90/health", "Deployment Service"]
+        {{- if .Values.rabbitmq.enabled }}
+        - name: wait-for-rabbitmq-service
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          command: ["nslookup2"]
+          args: ["{{ .Values.global.rabbitmq.connection.url }}", "RabbitMQ Service"]
+        {{- end }}
+        {{- if .Values.rabbitmq.init.checkManagementEndpoint }}
+        - name: wait-for-rabbitmq-management-endpoint
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          command: ["curl2"]
+          args: ["http://{{ .Values.global.rabbitmq.connection.url }}:15672", "RabbitMQ Management Page"]
+        {{- end }}

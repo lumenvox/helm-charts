@@ -81,7 +81,7 @@ spec:
             - name: CLUSTER_LANGUAGES__TTS_LANGUAGES
               value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__TTS_LANGUAGES" . }}'
             - name: CLUSTER_LANGUAGES__TTS_VOICES
-              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__TTS_VOICES" . }}'
+              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__TTS_VOICES_VERSION" . }}'
             {{- end }}
             {{- end }}
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE

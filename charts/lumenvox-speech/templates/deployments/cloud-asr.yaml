@@ -96,8 +96,8 @@ spec:
           volumeMounts:
             - mountPath: /etc/lumenvox/Lang/Dict
               name: dict
-            - mountPath: /etc/lumenvox/Lang/DnnModels
-              name: dnn
+            - mountPath: /etc/lumenvox/Lang/AsrModels
+              name: asrmodels
             - mountPath: /var/lumenvox/grammar_cache
               name: asr
             - mountPath: /var/lumenvox/cached_client_grammars
@@ -161,9 +161,9 @@ spec:
           persistentVolumeClaim:
             claimName: dict-claim
             readOnly: false
-        - name: dnn
+        - name: asrmodels
           persistentVolumeClaim:
-            claimName: dnn-models-claim
+            claimName: asr-models-claim
             readOnly: false
         - name: asr
           persistentVolumeClaim:
