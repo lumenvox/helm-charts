@@ -14,6 +14,12 @@ spec:
           volumeMounts:
             - mountPath: /mnt/fileserver
               name: root
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.global.imagePullSecrets }}
+        - name: {{ . }}
+      {{- end }}
+      {{- end }}
       restartPolicy: OnFailure
       volumes:
         - name: root

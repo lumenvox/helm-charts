@@ -33,7 +33,65 @@ _See [helm search repo](https://helm.sh/docs/helm/helm_search_repo/) for details
 
 We'd love to have you contribute! Please contact us for details
 
-## Installing Voice-Biometrics Chart
+## LumenVox Chart
+
+The LumenVox chart serves as a root chart through which various
+combinations of products can be managed. This is currently limited
+to the speech stack; we are in the process of migrating the voice
+biometrics stack. In the meantime, please use the voice-biometrics
+chart if you would like to use the voice biometrics stack.
+
+To install the LumenVox chart using Helm, you should contact
+LumenVox first and obtain license and configuration information
+that is needed before you can start.
+
+You will also need to provision the following, ideally in a
+hosted cloud environment for production, but locally can be
+used during testing or development:
+
+* Postgres Database
+* MongoDB Database
+* Redis
+* RabbitMQ
+
+_See the **Dependencies** section below for important details_
+
+### Configuration
+
+You will need to work with your LumenVox account manager and the support
+team before running LumenVox application in Kubernetes. This is needed
+to provide you with the necessary license configuration as well as
+overall system configuration steps
+
+To see all configurable options, visit the chart's values.yaml,
+or run the following:
+
+```shell
+helm show values lumenvox/lumenvox
+```
+
+### Installation
+
+```shell
+helm install lumenvox lumenvox/lumenvox -f my-lumenvox-values.yaml -n lumenvox
+```
+
+_See [helm install](https://helm.sh/docs/helm/helm_install/) for command documentation._
+
+### Uninstallation
+
+```shell
+helm delete lumenvox
+```
+
+This removes all the Kubernetes components associated with the chart and
+deletes the release.
+
+## Voice-Biometrics Chart
+
+This chart can be used to install the voice biometrics stack.
+This will soon be migrated to a subchart of the LumenVox chart;
+for now, please use this to run the voice biometrics stack.
 
 To install LumenVox Voice Biometrics using Helm, you should
 contact LumenVox first and obtain license and configuration
@@ -50,11 +108,33 @@ used during testing or development:
 
 _See the **Dependencies** section below for important details_
 
+### Configuration
+
+You will need to work with your LumenVox account manager and the support
+team before running LumenVox application in Kubernetes. This is needed
+to provide you with the necessary license configuration as well as
+overall system configuration steps
+
+To see all configurable options, visit the chart's values.yaml,
+or run the following:
+
+```shell
+helm show values lumenvox/voice-biometrics
+```
+
+### Installation
+
 ```shell
 helm install lumenvox-vb lumenvox/voice-biometrics -f my-lumenvox-values.yaml -n lumenvox
 ```
  
 _See [helm install](https://helm.sh/docs/helm/helm_install/) for command documentation._
+
+### Uninstallation
+
+```shell
+helm delete lumenvox-vb
+```
 
 ## Dependencies
 
@@ -96,34 +176,6 @@ respective sections. For example, to disable the redis dependency when using you
 own, set the `redis.enabled` setting to false in your `values.yaml` file. The
 same can be done for all of these dependencies, allowing you to easily use the
 LumenVox Helm Charts in either test or production configurations. 
-
-## Uninstall Chart
-
-```kubernetes helm
-helm uninstall lumenvox-vb
-```
-
-This removes all the Kubernetes components associated with the chart and
-deletes the release.
-
-_See [helm uninstall](https://helm.sh/docs/helm/helm_uninstall/) for command documentation._
-
-## Configuration
-
-You will need to work with your LumenVox account manager and the support 
-team before running LumenVox application in Kubernetes. This is needed
-to provide you with the necessary license configuration as well as
-overall system configuration steps
-
-To see all configurable options, visit the chart's values.yaml,
-or run the following:
-
-```kubernetes helm
-helm show values lumenvox/voice-biometrics
-```
-
-_See [helm show values](https://helm.sh/docs/helm/helm_show_values/) for
-command documentation._
 
 To configure Grafana for monitoring, when setting up the test environment
 with the optional dependencies enabled, log into Grafana and specify a

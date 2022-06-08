@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: dnn-models-claim
+  name: asr-models-claim
 spec:
   accessModes:
   {{- if eq .Values.platform "minikube" }}
@@ -9,7 +9,7 @@ spec:
   {{- else if eq .Values.platform "cloud" }}
     - ReadWriteMany
   {{- end }}
-  volumeName: dnn-models
+  volumeName: asr-models
   storageClassName: ""
   resources:
     requests:

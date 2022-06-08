@@ -27,7 +27,9 @@
 | `global.enabled.lumenvoxVb`                        | Enable LumenVox Voice Biometrics                                       | `false`                          |
 | `global.enabled.lumenvoxCommon`                    | Enable LumenVox Common Components                                      | `true`                           |
 | `global.asrLanguages`                              | List of ASR languages to install                                       | `[]`                             |
+| `global.asrDefaultVersion`                         | Default ASR model version                                              | `"2.2.0"`                        |
 | `global.ttsLanguages`                              | List of TTS voices to install                                          | `[]`                             |
+| `global.ttsDefaultVersion`                         | Default TTS voice version                                              | `"1.0.0"`                        |
 | `lumenvox-common.licensing.clusterGuid`            | License GUID obtained from LumenVox account                            | `GET-CLUSTER-GUID-FROM-LUMENVOX` |
 | `platform`                                         | Cluster platform: cloud or minikube. Used for persistent volume setup. | `minikube`                       |
 | `volumeRoot`                                       | Root of persistent data location.                                      | `/data`                          |

@@ -4,6 +4,7 @@
 
 timezone: UTC  # or America/New_York, Europe/Rome, etc.
 
+# Persistent volume configuration
 platform: minikube
 volumeRoot: "/data"
 volumeServer: ""
@@ -59,7 +60,7 @@ global:
   image:
     repository: "lumenvox"
     pullPolicy: IfNotPresent
-    tag: ":3.0"
+    tag: ":3.1"
   imagePullSecrets: []
   rabbitmq:
     connection:
@@ -96,3 +97,5 @@ global:
     lumenvoxSpeech: false
     lumenvoxVb: false
     lumenvoxCommon: true
+  asrDefaultVersion: "2.2"
+  ttsDefaultVersion: "1.0"
