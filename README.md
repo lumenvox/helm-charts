@@ -183,3 +183,21 @@ dashboard to use with Prometheus monitoring, for example:
 
 * 12740 (Select Prometheus at the bottom) - Kubernetes Monitoring Dashboard
 
+## Testing Environment: Minimum Resource Requirements
+
+Provided below are the minimum requirements for a testing/lab environment. For
+production environments, please contact LumenVox for assistance with sizing.
+
+### Cluster Resources
+
+* LumenVox Speech: minimum of 2 nodes with at least 8CPUs and 8GB memory each.
+* LumenVox Voice Biometrics: minimum of 1 node with at least 4CPUs and 16GB memory.
+
+### External Resources
+
+|                    | RabbitMQ | MongoDB | Postgres | Redis | Persistent Storage |
+|--------------------|----------|---------|----------|-------|--------------------|
+| **CPU**            | 1        | 2       | 2        | -     | -                  |
+| **Memory**         | 2GB      | 16GB    | 8GB      | 5GB   | -                  |
+| **Boot Disk Size** | 10GB     | 10GB    | 10GB     | -     | -                  |
+| **Data Storage**   | -        | 300GB   | 30GB     | -     | 300 GB             |
