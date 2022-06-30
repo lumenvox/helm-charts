@@ -90,7 +90,7 @@ spec:
             - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
               value: 'ignore'
           volumeMounts:
-            - mountPath: /etc/lumenvox/Lang/tts/tts1
+            - mountPath: /etc/lumenvox/Lang/tts/staging
               name: tts
             - mountPath: /var/log/lumenvox/ttsserver
               name: logs

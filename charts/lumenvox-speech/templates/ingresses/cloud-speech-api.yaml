@@ -6,6 +6,10 @@ metadata:
   annotations:
     nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/server-snippet: |
+      grpc_read_timeout 120s;
+      grpc_send_timeout 120s;
+      client_body_timeout 120s;
 spec:
   {{- if .Values.global.lumenvox.ingress.className }}
   ingressClassName: {{ .Values.global.lumenvox.ingress.className }}
