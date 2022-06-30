@@ -6,6 +6,7 @@ timezone: UTC  # or America/New_York, Europe/Rome, etc.
 
 # Persistent volume configuration
 platform: minikube
+provider: ""
 volumeRoot: "/data"
 volumeServer: ""
 

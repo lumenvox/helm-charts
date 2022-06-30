@@ -11,6 +11,15 @@ spec:
   {{- end }}
   capacity:
     storage: 10Gi
+  {{- if eq .Values.provider "aws" }}
+  mountOptions:
+    - hard
+    - nfsvers=4.1
+    - rsize=1048576
+    - wsize=1048576
+    - timeo=600
+    - retrans=2
+  {{- end }}
   {{- if eq .Values.platform "minikube" }}
   hostPath:
   {{- else if eq .Values.platform "cloud" }}
