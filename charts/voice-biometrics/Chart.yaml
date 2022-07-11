@@ -9,27 +9,27 @@ home: https://lumenvox.com
 dependencies:
   - name: "redis"
     condition: redis.enabled
-    version: 15.5.3
+    version: "15"
     repository: "https://charts.bitnami.com/bitnami"
 
   - name: "mongodb"
     condition: mongodb.enabled
-    version: 10.29.0
+    version: "10"
     repository: "https://charts.bitnami.com/bitnami"
 
   - name: "rabbitmq"
     condition: rabbitmq.enabled
-    version: 8.24.2
+    version: "8"
     repository: "https://charts.bitnami.com/bitnami"
 
   - name: "postgresql"
     condition: postgresql.enabled
-    version: 10.13.4
+    version: "10"
     repository: "https://charts.bitnami.com/bitnami"
 
   - name: "grafana"
     condition: grafana.enabled
-    version: 7.1.0
+    version: "7"
     repository: "https://charts.bitnami.com/bitnami"
 
   - name: "prometheus"
