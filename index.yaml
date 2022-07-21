@@ -288,6 +288,17 @@ entries:
     version: 3.0.0
   lumenvox-speech:
   - apiVersion: v2
+    appVersion: 3.2.0
+    created: "2022-07-21T22:43:31.320800573Z"
+    description: LumenVox Speech Helm chart for Kubernetes
+    digest: 11244dcd08e034577841010078a7cd009a14749e507ed6ceeced1c3d98163952
+    home: https://lumenvox.com
+    name: lumenvox-speech
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-speech-3.2.0/lumenvox-speech-3.2.0.tgz
+    version: 3.2.0
+  - apiVersion: v2
     appVersion: 3.1.1
     created: "2022-06-30T01:56:32.614432145Z"
     description: LumenVox Speech Helm chart for Kubernetes
