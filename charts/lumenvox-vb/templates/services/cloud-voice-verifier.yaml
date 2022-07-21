@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: voice-verifier-service
+  name: biometric-active-service
   namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
 spec:
   selector:
-    app: voice-verifier
+    app: biometric-active
   ports:
     - name: http
       protocol: TCP

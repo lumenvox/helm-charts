@@ -2,21 +2,21 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: voice-verifier-ingress
+  name: biometric-active-ingress
   namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
 spec:
   {{- if .Values.global.lumenvox.ingress.className }}
   ingressClassName: {{ .Values.global.lumenvox.ingress.className }}
   {{- end }}
   rules:
-    - host: voice-verifier.{{ .Values.global.hostnameSuffix }}
+    - host: biometric-active.{{ .Values.global.hostnameSuffix }}
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: voice-verifier-service
+                name: biometric-active-service
                 port:
                   number: 90
 {{- end }}

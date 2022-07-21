@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: assure-identity
+  name: biometric-identity
   namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
   labels:
-    app: assure-identity
+    app: biometric-identity
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: assure-identity
+      app: biometric-identity
   template:
     metadata:
       labels:
-        app: assure-identity
+        app: biometric-identity
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '90'
@@ -22,8 +22,8 @@ spec:
         {{- end }}
     spec:
       containers:
-        - name: assure-identity
-          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-assure-identity{{ .Values.image.tag | default .Values.global.image.tag }}
+        - name: biometric-identity
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/biometric-identity{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           ports:
             - name: metrics
@@ -56,6 +56,8 @@ spec:
           envFrom:
             - configMapRef:
                 name: lumenvox-configmap
+            - configMapRef:
+                name: timezone-configmap
             {{- if .Values.rabbitmq.auth.existingPasswordSecret }}
             - secretRef:
                 name: {{ .Values.rabbitmq.auth.existingPasswordSecret }}
@@ -65,21 +67,21 @@ spec:
             - name: rabbitmq-password
               value: '{{ .Values.rabbitmq.auth.password }}'
             {{- end }}
-            - name: RABBIT_MQ_EASY_CONNECTION_STRING
-              value: 'host={{ .Values.global.rabbitmq.connection.url }};port={{ .Values.global.rabbitmq.connection.port }};username={{ .Values.global.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10'
-            - name: ENABLE_AUDIT_LOG
-              value: '{{ .Values.global.lumenvox.enableAudit }}'
-            - name: DEPLOYMENT_RECONNECTION_TIMEOUT_SECONDS
+            - name: GLOBAL_SETTINGS__RABBITMQ_EASY_CONNECTION_STRING
+              value: 'host={{ .Values.global.rabbitmq.connection.url }};port={{ .Values.global.rabbitmq.connection.port }};username={{ .Values.global.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10{{ if .Values.global.rabbitmq.enableTLS }};tls=true{{ end }}'
+            - name: DB_SETTINGS__DEPLOYMENT_RECONNECTION_TIMEOUT_SEC
               value: '{{ .Values.global.lumenvox.deploymentReconnectionTimeoutSec }}'
+            - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
+              value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+            - name: LOCAL_SETTINGS__ENABLE_AUDIT_LOG
+              value: '{{ .Values.global.lumenvox.enableAudit }}'
             - name: DB_MIGRATION__RUN_DATABASE_MIGRATIONS
               value: '{{ .Values.global.postgresql.runMigrations }}'
             - name: DB_MIGRATION__EXIT_AFTER_DATABASE_MIGRATIONS
               value: '{{ .Values.global.postgresql.exitAfterMigrations }}'
             - name: DB_MIGRATION__DB_COMMAND_TIMEOUT_SECONDS
               value: '{{ .Values.global.postgresql.commandTimeoutSeconds }}'
-            - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
-              value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
-            - name: SERVICE_START_DELAY_SECONDS
+            - name: LOCAL_SETTINGS__SERVICE_START_DELAY_SECONDS
               value: '5'
 
       {{- if .Values.global.imagePullSecrets }}
