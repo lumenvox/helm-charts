@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: asr-audio-service
+  name: vad-service
   namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
 spec:
   selector:
-    app: asr-audio
+    app: vad
   ports:
     - name: http
       protocol: TCP

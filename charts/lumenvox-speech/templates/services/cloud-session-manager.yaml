@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: session-manager-service
+  name: session-service
   namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
 spec:
   selector:
-    app: session-manager
+    app: session
   ports:
     - name: http
       protocol: TCP

@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: session-manager
+  name: session
   namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
   labels:
-    app: session-manager
+    app: session
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: session-manager
+      app: session
   template:
     metadata:
       labels:
-        app: session-manager
+        app: session
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '5110'
@@ -22,8 +22,8 @@ spec:
         {{- end }}
     spec:
       containers:
-        - name: session-manager
-          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-session-manager{{ .Values.image.tag | default .Values.global.image.tag }}
+        - name: session
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/session{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           ports:
             - name: metrics
@@ -74,9 +74,9 @@ spec:
               value: '{{ .Values.redis.auth.password }}'
             {{- end }}
             - name: GLOBAL_SETTINGS__RABBITMQ_CONNECTION_STRING
-              value: 'amqp://{{ .Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ .Values.global.rabbitmq.connection.url }}:{{ .Values.global.rabbitmq.connection.port }}'
+              value: 'amqp{{ if .Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ .Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ .Values.global.rabbitmq.connection.url }}:{{ .Values.global.rabbitmq.connection.port }}'
             - name: GLOBAL_SETTINGS__REDIS_CONNECTION_STRING
-              value: '{{ .Values.global.redis.connection.url }}:{{ .Values.global.redis.connection.port }},password=$(redis-password)'
+              value: '{{ .Values.global.redis.connection.url }}:{{ .Values.global.redis.connection.port }},password=$(redis-password){{ if .Values.global.redis.enableTLS }},ssl=true{{ end }}'
             - name: CLUSTER_LANGUAGES__ASR_LANGUAGES
               value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__ASR_LANGUAGES" . }}'
             - name: CLUSTER_LANGUAGES__TTS_LANGUAGES

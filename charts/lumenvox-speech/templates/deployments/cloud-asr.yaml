@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
         - name: asr
-          image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/cloud-asr{{ $.Values.image.tag | default $.Values.global.image.tag }}
+          image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/asr{{ $.Values.image.tag | default $.Values.global.image.tag }}
           imagePullPolicy: {{ $.Values.image.pullPolicy | default $.Values.global.image.pullPolicy }}
           ports:
             - name: metrics
@@ -82,9 +82,9 @@ spec:
               value: '{{ $.Values.redis.auth.password }}'
             {{- end }}
             - name: GLOBAL_SETTINGS__RABBITMQ_CONNECTION_STRING
-              value: 'amqp://{{ $.Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ $.Values.global.rabbitmq.connection.url }}:{{ $.Values.global.rabbitmq.connection.port }}'
+              value: 'amqp{{ if $.Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ $.Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ $.Values.global.rabbitmq.connection.url }}:{{ $.Values.global.rabbitmq.connection.port }}'
             - name: GLOBAL_SETTINGS__REDIS_CONNECTION_STRING
-              value: '{{ $.Values.global.redis.connection.url }}:{{ $.Values.global.redis.connection.port }},password=$(redis-password)'
+              value: '{{ $.Values.global.redis.connection.url }}:{{ $.Values.global.redis.connection.port }},password=$(redis-password){{ if $.Values.global.redis.enableTLS }},ssl=true{{ end }}'
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
               value: 'http://configuration-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
@@ -155,7 +155,7 @@ spec:
           image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/cloud-init-tools{{ $.Values.image.tag | default $.Values.global.image.tag }}
           imagePullPolicy: {{ $.Values.image.pullPolicy | default $.Values.global.image.pullPolicy }}
           command: ["curl2"]
-          args: ["http://resource-manager-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}:90/health", "Resource Manager Service"]
+          args: ["http://resource-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}:90/health", "Resource Manager Service"]
       volumes:
         - name: dict
           persistentVolumeClaim:
