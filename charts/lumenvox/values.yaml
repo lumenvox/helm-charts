@@ -61,14 +61,16 @@ global:
   image:
     repository: "lumenvox"
     pullPolicy: IfNotPresent
-    tag: ":3.1"
+    tag: ":3.2"
   imagePullSecrets: []
   rabbitmq:
+    enableTLS: false
     connection:
       url: "lumenvox-rabbitmq.lumenvox"
       port: 5672
       user: "lvuser"
   redis:
+    enableTLS: false
     connection:
       url: "lumenvox-redis-master.lumenvox"
       port: 6379
@@ -100,3 +102,4 @@ global:
     lumenvoxCommon: true
   asrDefaultVersion: "2.2"
   ttsDefaultVersion: "1.0"
+  vbDefaultVersion: "2.1.1"
