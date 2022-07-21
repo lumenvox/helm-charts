@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: resource-manager
+  name: resource
   namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
   labels:
-    app: resource-manager
+    app: resource
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: resource-manager
+      app: resource
   template:
     metadata:
       labels:
-        app: resource-manager
+        app: resource
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '5110'
@@ -22,8 +22,8 @@ spec:
         {{- end }}
     spec:
       containers:
-        - name: resource-manager
-          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-resource-manager{{ .Values.image.tag | default .Values.global.image.tag }}
+        - name: resource
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/resource{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           ports:
             - name: metrics
@@ -83,6 +83,10 @@ spec:
             - name: CLUSTER_LANGUAGES__TTS_VOICES
               value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__TTS_VOICES_VERSION" . }}'
             {{- end }}
+            {{- end }}
+            {{- if .Values.global.enabled.lumenvoxVb }}
+            - name: CLUSTER_LANGUAGES__VB_ACTIVE
+              value: '{{ template "lumenvox-vb.CLUSTER_LANGUAGES__VB_ACTIVE" . }}'
             {{- end }}
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
               value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'

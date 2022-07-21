@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: admin-portal
+  name: deployment-portal
   namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
   labels:
-    app: admin-portal
+    app: deployment-portal
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: admin-portal
+      app: deployment-portal
   template:
     metadata:
       labels:
-        app: admin-portal
+        app: deployment-portal
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '5110'
@@ -22,12 +22,12 @@ spec:
         {{- end }}
     spec:
       containers:
-        - name: admin-portal
-          image: {{ .Values.image.repository | default .Values.global.image.repository }}/admin-portal{{ .Values.image.tag | default .Values.global.image.tag }}
+        - name: deployment-portal
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/deployment-portal{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           ports:
             - name: portal
-              containerPort: 3001
+              containerPort: 3101
 {{/*          readinessProbe:*/}}
 {{/*            httpGet:*/}}
 {{/*              path: /health*/}}
@@ -69,8 +69,8 @@ spec:
               value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: SERVICE_ADDRESSES__SPEECH_API
               value: 'http://speech-api-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:80'
-            - name: SERVICE_ADDRESSES__ADMIN_PORTAL
-              value: 'http://admin-portal-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+            - name: SERVICE_ADDRESSES__DEPLOYMENT_PORTAL
+              value: 'http://deployment-portal-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: SERVICE_EXTERNAL_ADDRESSES__REPORTING_API
               value: 'http://reporting-api.{{ .Values.global.hostnameSuffix }}'
             - name: SERVICE_EXTERNAL_ADDRESSES__MANAGEMENT_API

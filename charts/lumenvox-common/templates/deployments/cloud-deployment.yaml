@@ -25,7 +25,7 @@ spec:
       priorityClassName: high-priority
       containers:
         - name: deployment
-          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-deployment{{ .Values.image.tag | default .Values.global.image.tag }}
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/deployment{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           ports:
             - name: metrics
@@ -94,7 +94,7 @@ spec:
               value: '{{ .Values.redis.auth.password }}'
             {{- end }}
             - name: GLOBAL_SETTINGS__RABBITMQ_EASY_CONNECTION_STRING
-              value: 'host={{ .Values.global.rabbitmq.connection.url }};port={{ .Values.global.rabbitmq.connection.port }};username={{ .Values.global.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10'
+              value: 'host={{ .Values.global.rabbitmq.connection.url }};port={{ .Values.global.rabbitmq.connection.port }};username={{ .Values.global.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10{{ if .Values.global.rabbitmq.enableTLS }};tls=true{{ end }}'
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
               value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: DB_SETTINGS__DEPLOYMENT_POSTGRES_CONNECTION_STRING
@@ -117,7 +117,7 @@ spec:
             - name: LOCAL_SETTINGS__SERVICE_START_DELAY_SECONDS
               value: '{{ .Values.lumenvox.deploymentStartDelaySeconds }}'
             - name: MockDataSettings__DeploymentsJson
-              value: '[{{$mdListStarted := false}}{{range .Values.global.mockData.deploymentId}}{{if $mdListStarted}},{{end}}{{$mdListStarted = true}}{"DeploymentId":"{{.}}","DeploymentData":{"RedisConnectionString":"{{ $.Values.global.redis.connection.url }}:{{ $.Values.global.redis.connection.port }},password=$(redis-password)","ConfigurationPostgresConnectionString":"Server={{ $.Values.global.postgresql.connection.url }};Port={{ $.Values.global.postgresql.connection.port }};UserID={{ $.Values.global.postgresql.connection.user }};Password=$(postgresql-password);Database=cloud_configuration_db;IntegratedSecurity=true;Pooling=true;","AssureIdentityPostgresConnectionString":"Server={{ $.Values.global.postgresql.connection.url }};Port={{ $.Values.global.postgresql.connection.port }};UserID={{ $.Values.global.postgresql.connection.user }};Password=$(postgresql-password);Database=cloud_assure_identity_db;IntegratedSecurity=true;Pooling=true;","BinaryStorageConnectionString":{"CollectionName":"BinaryStorage","ConnectionString":"mongodb://{{ $.Values.mongodb.auth.rootUser }}:$(mongodb-root-password)@{{ $.Values.global.mongodb.connection.url }}:{{ $.Values.global.mongodb.connection.port }}","DatabaseName":"cloud_binary_db","StorageType":"MongoDb"},"TransactionPostgresConnectionString":"Server={{ $.Values.global.postgresql.connection.url }};Port={{ $.Values.global.postgresql.connection.port }};UserID={{ $.Values.global.postgresql.connection.user }};Password=$(postgresql-password);Database=cloud_transaction_db;IntegratedSecurity=true;Pooling=true;","AuditPostgresConnectionString":"Server={{ $.Values.global.postgresql.connection.url }};Port={{ $.Values.global.postgresql.connection.port }};UserID={{ $.Values.global.postgresql.connection.user }};Password=$(postgresql-password);Database=cloud_audit_db;IntegratedSecurity=true;Pooling=true;","ReportingOptionsMaxPerPageAllowed":100}}{{end}}]'
+              value: '[{{$mdListStarted := false}}{{range .Values.global.mockData.deploymentId}}{{if $mdListStarted}},{{end}}{{$mdListStarted = true}}{"DeploymentId":"{{.}}","DeploymentData":{"RedisConnectionString":"{{ $.Values.global.redis.connection.url }}:{{ $.Values.global.redis.connection.port }},password=$(redis-password){{ if $.Values.global.redis.enableTLS }},ssl=true{{ end }}","ConfigurationPostgresConnectionString":"Server={{ $.Values.global.postgresql.connection.url }};Port={{ $.Values.global.postgresql.connection.port }};UserID={{ $.Values.global.postgresql.connection.user }};Password=$(postgresql-password);Database=cloud_configuration_db;IntegratedSecurity=true;Pooling=true;","BiometricIdentityPostgresConnectionString":"Server={{ $.Values.global.postgresql.connection.url }};Port={{ $.Values.global.postgresql.connection.port }};UserID={{ $.Values.global.postgresql.connection.user }};Password=$(postgresql-password);Database=cloud_biometric_identity_db;IntegratedSecurity=true;Pooling=true;","AssureIdentityPostgresConnectionString":"Server={{ $.Values.global.postgresql.connection.url }};Port={{ $.Values.global.postgresql.connection.port }};UserID={{ $.Values.global.postgresql.connection.user }};Password=$(postgresql-password);Database=cloud_assure_identity_db;IntegratedSecurity=true;Pooling=true;","BinaryStorageConnectionString":{"CollectionName":"BinaryStorage","ConnectionString":"mongodb://{{ $.Values.mongodb.auth.rootUser }}:$(mongodb-root-password)@{{ $.Values.global.mongodb.connection.url }}:{{ $.Values.global.mongodb.connection.port }}","DatabaseName":"cloud_binary_db","StorageType":"MongoDb"},"TransactionPostgresConnectionString":"Server={{ $.Values.global.postgresql.connection.url }};Port={{ $.Values.global.postgresql.connection.port }};UserID={{ $.Values.global.postgresql.connection.user }};Password=$(postgresql-password);Database=cloud_transaction_db;IntegratedSecurity=true;Pooling=true;","AuditPostgresConnectionString":"Server={{ $.Values.global.postgresql.connection.url }};Port={{ $.Values.global.postgresql.connection.port }};UserID={{ $.Values.global.postgresql.connection.user }};Password=$(postgresql-password);Database=cloud_audit_db;IntegratedSecurity=true;Pooling=true;","ReportingOptionsMaxPerPageAllowed":100}}{{end}}]'
 
       {{- if .Values.global.imagePullSecrets }}
       imagePullSecrets:
@@ -153,5 +153,5 @@ spec:
           image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           command: ["curl2"]
-          args: ["http://{{ .Values.global.rabbitmq.connection.url }}:15672", "RabbitMQ Management Page"]
+          args: ["http{{ if .Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ .Values.global.rabbitmq.connection.url }}{{ if not .Values.global.rabbitmq.enableTLS }}:15672{{ end }}", "RabbitMQ Management Page"]
         {{- end }}

@@ -2,21 +2,21 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: binarystorage-ingress
+  name: binary-storage-ingress
   namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
 spec:
   {{- if .Values.global.lumenvox.ingress.className }}
   ingressClassName: {{ .Values.global.lumenvox.ingress.className }}
   {{- end }}
   rules:
-    - host: binarystorage.{{ .Values.global.hostnameSuffix }}
+    - host: binary-storage.{{ .Values.global.hostnameSuffix }}
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: binarystorage-service
+                name: binary-storage-service
                 port:
                   number: 90
 {{- end }}

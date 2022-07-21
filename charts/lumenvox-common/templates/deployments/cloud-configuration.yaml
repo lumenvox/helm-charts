@@ -25,7 +25,7 @@ spec:
       priorityClassName: high-priority-nonpreempting
       containers:
         - name: configuration
-          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-configuration{{ .Values.image.tag | default .Values.global.image.tag }}
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/configuration{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           ports:
             - name: metrics
@@ -70,7 +70,23 @@ spec:
               value: '{{ .Values.rabbitmq.auth.password }}'
             {{- end }}
             - name: GLOBAL_SETTINGS__RABBITMQ_EASY_CONNECTION_STRING
-              value: 'host={{ .Values.global.rabbitmq.connection.url }};port={{ .Values.global.rabbitmq.connection.port }};username={{ .Values.global.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10'
+              value: 'host={{ .Values.global.rabbitmq.connection.url }};port={{ .Values.global.rabbitmq.connection.port }};username={{ .Values.global.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10{{ if .Values.global.rabbitmq.enableTLS }};tls=true{{ end }}'
+            {{- if .Values.global.enabled.lumenvoxSpeech }}
+            {{- if .Values.global.asrLanguages }}
+            - name: CLUSTER_LANGUAGES__ASR_LANGUAGES
+              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__ASR_LANGUAGES" . }}'
+            {{- end }}
+            {{- if .Values.global.ttsLanguages }}
+            - name: CLUSTER_LANGUAGES__TTS_LANGUAGES
+              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__TTS_LANGUAGES" . }}'
+            - name: CLUSTER_LANGUAGES__TTS_VOICES
+              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__TTS_VOICES" . }}'
+            {{- end }}
+            {{- end }}
+            {{- if .Values.global.enabled.lumenvoxVb }}
+            - name: CLUSTER_LANGUAGES__VB_ACTIVE
+              value: '{{ template "lumenvox-vb.CLUSTER_LANGUAGES__VB_ACTIVE" . }}'
+            {{- end }}
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
               value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: DB_SETTINGS__DEPLOYMENT_RECONNECTION_TIMEOUT_SEC
@@ -87,6 +103,9 @@ spec:
               value: '5'
             - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
               value: 'ignore'
+          volumeMounts:
+            - mountPath: /etc/lumenvox/Lang/vb-active
+              name: vb-active
 
       {{- if .Values.global.imagePullSecrets }}
       imagePullSecrets:
@@ -112,5 +131,10 @@ spec:
           image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           command: ["curl2"]
-          args: ["http://{{ .Values.global.rabbitmq.connection.url }}:15672", "RabbitMQ Management Page"]
+          args: ["http{{ if .Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ .Values.global.rabbitmq.connection.url }}{{ if not .Values.global.rabbitmq.enableTLS }}:15672{{ end }}", "RabbitMQ Management Page"]
         {{- end }}
+      volumes:
+        - name: vb-active
+          persistentVolumeClaim:
+            claimName: vb-active-claim
+            readOnly: false

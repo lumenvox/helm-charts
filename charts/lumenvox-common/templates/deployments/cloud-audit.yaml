@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
         - name: audit
-          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-audit{{ .Values.image.tag | default .Values.global.image.tag }}
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/audit{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           ports:
             - name: metrics
@@ -68,7 +68,7 @@ spec:
               value: '{{ .Values.rabbitmq.auth.password }}'
             {{- end }}
             - name: GLOBAL_SETTINGS__RABBITMQ_EASY_CONNECTION_STRING
-              value: 'host={{ .Values.global.rabbitmq.connection.url }};port={{ .Values.global.rabbitmq.connection.port }};username={{ .Values.global.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10'
+              value: 'host={{ .Values.global.rabbitmq.connection.url }};port={{ .Values.global.rabbitmq.connection.port }};username={{ .Values.global.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10{{ if .Values.global.rabbitmq.enableTLS }};tls=true{{ end }}'
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
               value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
@@ -107,5 +107,5 @@ spec:
           image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           command: ["curl2"]
-          args: ["http://{{ .Values.global.rabbitmq.connection.url }}:15672", "RabbitMQ Management Page"]
+          args: ["http{{ if .Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ .Values.global.rabbitmq.connection.url }}{{ if not .Values.global.rabbitmq.enableTLS }}:15672{{ end }}", "RabbitMQ Management Page"]
         {{- end }}

@@ -21,22 +21,24 @@ spec:
     spec:
       containers:
         - name: reporting-api
-          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-reporting-api{{ .Values.image.tag | default .Values.global.image.tag }}
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/reporting-api{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           ports:
             - name: web
               containerPort: 80
+            - name: metrics
+              containerPort: 5110
           readinessProbe:
             httpGet:
               path: /health
-              port: 80
+              port: metrics
             initialDelaySeconds: 12
             periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
           {{- if .Values.global.lumenvox.service.livenessProbe.enabled }}
           livenessProbe:
             httpGet:
               path: /health
-              port: 80
+              port: metrics
             initialDelaySeconds: 12
             periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
           {{- end }}
@@ -58,27 +60,33 @@ spec:
             - secretRef:
                 name: {{ .Values.rabbitmq.auth.existingPasswordSecret }}
             {{- end }}
+            {{- if .Values.redis.auth.existingSecret }}
+            - secretRef:
+                name: {{ .Values.redis.auth.existingSecret }}
+            {{- end }}
           env:
             {{- if not .Values.rabbitmq.auth.existingPasswordSecret }}
             - name: rabbitmq-password
               value: '{{ .Values.rabbitmq.auth.password }}'
             {{- end }}
-            - name: GLOBAL_SETTINGS__RABBITMQ_EASY_CONNECTION_STRING
-              value: 'host={{ .Values.global.rabbitmq.connection.url }};port={{ .Values.global.rabbitmq.connection.port }};username={{ .Values.global.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10'
+            {{- if not .Values.redis.auth.existingSecret }}
+            - name: redis-password
+              value: '{{ .Values.redis.auth.password }}'
+            {{- end }}
+            - name: GLOBAL_SETTINGS__RABBITMQ_CONNECTION_STRING
+              value: 'amqp{{ if .Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ .Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ .Values.global.rabbitmq.connection.url }}:{{ .Values.global.rabbitmq.connection.port }}'
+            - name: GLOBAL_SETTINGS__REDIS_CONNECTION_STRING
+              value: '{{ .Values.global.redis.connection.url }}:{{ .Values.global.redis.connection.port }},password=$(redis-password){{ if $.Values.global.redis.enableTLS }},ssl=true{{ end }}'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
               value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
               value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: SERVICE_ADDRESSES__BINARY_STORAGE_SERVICE
-              value: 'http://binarystorage-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+              value: 'http://binary-storage-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: SERVICE_ADDRESSES__REPORTING_SERVICE
               value: 'http://reporting-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
-            - name: DB_SETTINGS__DEPLOYMENT_RECONNECTION_TIMEOUT_SEC
-              value: '{{ .Values.global.lumenvox.deploymentReconnectionTimeoutSec }}'
-            - name: LOCAL_SETTINGS__ENABLE_AUDIT_LOG
-              value: '{{ .Values.global.lumenvox.enableAudit }}'
-            - name: LOCAL_SETTINGS__SERVICE_START_DELAY_SECONDS
-              value: '6'
+            - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
+              value: 'ignore'
       {{- if .Values.global.imagePullSecrets }}
       imagePullSecrets:
       {{- range .Values.global.imagePullSecrets }}
