@@ -78,6 +78,7 @@ global:
     connection:
       url: "lumenvox-mongodb.lumenvox"
       port: 27017
+    atlas: false
   postgresql:
     connection:
       url: "lumenvox-postgresql.lumenvox"
