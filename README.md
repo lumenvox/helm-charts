@@ -36,10 +36,9 @@ We'd love to have you contribute! Please contact us for details
 ## LumenVox Chart
 
 The LumenVox chart serves as a root chart through which various
-combinations of products can be managed. This is currently limited
-to the speech stack; we are in the process of migrating the voice
-biometrics stack. In the meantime, please use the voice-biometrics
-chart if you would like to use the voice biometrics stack.
+combinations of products can be managed. Using this chart, you
+can install our Speech stack, our Voice Biometrics stack, or
+both.
 
 To install the LumenVox chart using Helm, you should contact
 LumenVox first and obtain license and configuration information
@@ -90,8 +89,8 @@ deletes the release.
 ## Voice-Biometrics Chart
 
 This chart can be used to install the voice biometrics stack.
-This will soon be migrated to a subchart of the LumenVox chart;
-for now, please use this to run the voice biometrics stack.
+This has been migrated to a subchart of the LumenVox chart,
+and it will be deprecated in the near future.
 
 To install LumenVox Voice Biometrics using Helm, you should
 contact LumenVox first and obtain license and configuration
@@ -142,28 +141,24 @@ The following dependencies can optionally be installed:
 
 ```shell
   - name: "redis"
-    version: 15.5.3
+    version: 15
     repository: "https://charts.bitnami.com/bitnami"
 
   - name: "mongodb"
-    version: 10.29.0
+    version: 10
     repository: "https://charts.bitnami.com/bitnami"
 
   - name: "rabbitmq"
-    version: 8.24.2
+    version: 8
     repository: "https://charts.bitnami.com/bitnami"
 
   - name: "postgresql"
-    version: 10.13.4
+    version: 10
     repository: "https://charts.bitnami.com/bitnami"
 
   - name: "grafana"
-    version: 7.1.0
+    version: 7
     repository: "https://charts.bitnami.com/bitnami"
-
-  - name: "prometheus"
-    version: 14.11.1
-    repository: "https://prometheus-community.github.io/helm-charts"
 ```
 > Note that these dependencies are provided for setting up a test environment only.
 
