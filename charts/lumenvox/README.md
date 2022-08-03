@@ -35,6 +35,7 @@
 | `global.rabbitmq.connection.url`  | URL for RabbitMQ connection   | `"lumenvox-rabbitmq.lumenvox"` |
 | `global.rabbitmq.connection.port` | Port for RabbitMQ connection  | `5672`                         |
 | `global.rabbitmq.connection.user` | User for RabbitMQ connection  | `"lvuser"`                     |
+
 By default, the chart will create a RabbitMQ instance. To switch to using an external instance, you must set
 `lumenvox-common.rabbitmq.enabled` to `false` and then update the relevant values under `global.rabbitmq.connection`.
 
@@ -47,6 +48,7 @@ The installation expects an existing secret, `rabbitmq-existing-secret`. This se
 | `global.redis.enableTLS`       | Connect to Redis with TLS | `false`                            |
 | `global.redis.connection.url`  | URL for Redis connection  | `"lumenvox-redis-master.lumenvox"` |
 | `global.redis.connection.port` | Port for Redis connection | `6379`                             |
+
 By default, the chart will create a Redis instance. To switch to using an external instance, you must set
 `lumenvox-common.redis.enabled` to `false` and then update the relevant values under `global.redis.connection`.
 
@@ -59,6 +61,7 @@ The installation expects an existing secret, `redis-existing-secret`. This secre
 | `global.mongodb.connection.url`  | URL for MongoDB connection       | `"lumenvox-mongodb.lumenvox"` |
 | `global.mongodb.connection.port` | Port for MongoDB connection      | `27017`                       |
 | `global.mongodb.atlas`           | Enable for MongoDB Atlas support | `false`                       |
+
 By default, the chart will create a MongoDB instance. To switch to using an external instance, you must set
 `lumenvox-common.mongodb.enabled` to `false` and then update the relevant values under `global.mongodb.connection`.
 
@@ -71,6 +74,7 @@ The installation expects an existing secret, `mongodb-existing-secret`. This sec
 |  `global.postgresql.connection.url` | URL for Postgres connection  | `"lumenvox-postgresql.lumenvox"` | 
 | `global.postgresql.connection.port` | Port for Postgres connection | `5432`                           |
 | `global.postgresql.connection.user` | User for RabbitMQ connection | `"lvuser"`                       |
+
 By default, the chart will create a Postgres instance. To switch to using an external instance, you must set
 `lumenvox-common.postgresql.enabled` to `false` and then update the relevant values under
 `global.postgresql.connection`.
@@ -90,6 +94,7 @@ user).
 |----------------------------|----------------------------------|---------|
 | `global.asrLanguages`      | List of ASR languages to install | `[]`    |
 | `global.asrDefaultVersion` | Default ASR model version        | `"2.2"` |
+
 To specify ASR languages, you must list your desired languages under `global.asrLanguages`. The list items must include
 a name; specifying a version is optional. If the version is omitted, the one specified in `global.asrDefaultVersion`
 will be used. For example, the following configuration would enable English 1.0.0 and Spanish 2.2.0:
@@ -107,6 +112,7 @@ global:
 |----------------------------|-------------------------------|---------|
 | `global.ttsLanguages`      | List of TTS voices to install | `[]`    |
 | `global.ttsDefaultVersion` | Default TTS voice version     | `"1.0"` |
+
 To specify TTS voices, you must list your desired voices under `global.ttsLanguages`. Each model will use the version
 specified in `global.vbDefaultVersion` by default, but this may be overridden by including the version under
 each language. The list items are composed of a region/language and a list of voices. For example, the following
@@ -129,6 +135,7 @@ global:
 |---------------------------|---------------------------------|-----------|
 | `global.vbLanguages`      | List of VB languages to install | `[]`      |
 | `global.vbDefaultVersion` | Default VB model version        | `"2.1.1"` |
+
 To specify VB languages, you must list your desired languages under `global.vbLanguages`. Each model will use the
 version specified in `global.vbDefaultVersion` by default, but this may be overridden by including the version under
 each language. For example, both of the following configurations would enable US English 2.1.1:
