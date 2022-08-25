@@ -131,13 +131,16 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           command: ["nslookup2"]
           args: ["{{ .Values.global.postgresql.connection.url }}", "Postgres"]
-        {{- if not .Values.global.mongodb.atlas }}
         - name: init-mongodb
           image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          {{- if .Values.global.mongodb.atlas }}
+          command: ["nslookupsrv2"]
+          args: ["mongodb", "{{ .Values.global.mongodb.connection.url }}", "MongoDB Atlas"]
+          {{- else }}
           command: ["nslookup2"]
           args: ["{{ .Values.global.mongodb.connection.url }}", "MongoDB"]
-        {{- end }}
+          {{- end }}
         - name: init-redis
           image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}

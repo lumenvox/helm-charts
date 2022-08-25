@@ -7,17 +7,3 @@ image: {}
 rabbitmq:
   auth:
     existingPasswordSecret: "rabbitmq-existing-secret"
-
-prometheus:
-  # Specifies whether prometheus helm chart should be installed
-  enabled: true
-
-  connection:
-    url: http://lumenvox-prometheus-server
-
-  server:
-    persistentVolume:
-      enabled: false
-  alertmanager:
-    persistentVolume:
-      enabled: false
