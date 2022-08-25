@@ -103,4 +103,4 @@ global:
     lumenvoxCommon: true
   asrDefaultVersion: "2.2"
   ttsDefaultVersion: "1.0"
-  vbDefaultVersion: "2.1.1"
+  vbDefaultVersion: "2.1"

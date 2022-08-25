@@ -131,10 +131,10 @@ global:
 ```
 
 ### VB Language Configuration
-| Parameter                 | Description                     | Default   |
-|---------------------------|---------------------------------|-----------|
-| `global.vbLanguages`      | List of VB languages to install | `[]`      |
-| `global.vbDefaultVersion` | Default VB model version        | `"2.1.1"` |
+| Parameter                 | Description                     | Default |
+|---------------------------|---------------------------------|---------|
+| `global.vbLanguages`      | List of VB languages to install | `[]`    |
+| `global.vbDefaultVersion` | Default VB model version        | `"2.1"` |
 
 To specify VB languages, you must list your desired languages under `global.vbLanguages`. Each model will use the
 version specified in `global.vbDefaultVersion` by default, but this may be overridden by including the version under
