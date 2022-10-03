@@ -52,6 +52,7 @@
 {{- $listStarted := false }}
 {{- $langRegion := .name }}
 {{- range .voices }}
-{{- if $listStarted }};{{ end }}tts_{{ $langRegion }}_{{ .name }}_{{ .sampleRate }}
+{{- if $listStarted }};{{ end }}tts_{{ $langRegion }}_{{ .name }}_22
+{{- $listStarted = true }}
 {{- end }}
 {{- end }}
