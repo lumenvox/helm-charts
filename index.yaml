@@ -339,6 +339,34 @@ entries:
     version: 3.0.0
   lumenvox-common:
   - apiVersion: v2
+    appVersion: 3.4.0
+    created: "2022-10-06T20:53:01.183382321Z"
+    dependencies:
+    - condition: redis.enabled
+      name: redis
+      repository: https://charts.bitnami.com/bitnami
+      version: "15"
+    - condition: mongodb.enabled
+      name: mongodb
+      repository: https://charts.bitnami.com/bitnami
+      version: "10"
+    - condition: rabbitmq.enabled
+      name: rabbitmq
+      repository: https://charts.bitnami.com/bitnami
+      version: "8"
+    - condition: postgresql.enabled
+      name: postgresql
+      repository: https://charts.bitnami.com/bitnami
+      version: "10"
+    description: LumenVox Common Components Helm chart for Kubernetes
+    digest: b2b8b1cf2433674814d280a5cb63b0a05baf8621165c2d60a4a7b411525b61b8
+    home: https://lumenvox.com
+    name: lumenvox-common
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-common-3.4.0/lumenvox-common-3.4.0.tgz
+    version: 3.4.0
+  - apiVersion: v2
     appVersion: 3.3.0
     created: "2022-08-25T17:09:44.181431282Z"
     dependencies:
@@ -564,6 +592,17 @@ entries:
     version: 3.0.0
   lumenvox-speech:
   - apiVersion: v2
+    appVersion: 3.4.0
+    created: "2022-10-06T20:53:02.703759081Z"
+    description: LumenVox Speech Helm chart for Kubernetes
+    digest: 651ad7b794d7ee0abdbfe26f2bd0b761b1f2ffe1a0c170b318d2b22acfd5b41e
+    home: https://lumenvox.com
+    name: lumenvox-speech
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-speech-3.4.0/lumenvox-speech-3.4.0.tgz
+    version: 3.4.0
+  - apiVersion: v2
     appVersion: 3.3.1
     created: "2022-10-03T15:02:45.556867833Z"
     description: LumenVox Speech Helm chart for Kubernetes
@@ -630,6 +669,17 @@ entries:
     - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-speech-3.0.0/lumenvox-speech-3.0.0.tgz
     version: 3.0.0
   lumenvox-vb:
+  - apiVersion: v2
+    appVersion: 3.4.0
+    created: "2022-10-06T20:53:02.889685302Z"
+    description: LumenVox Voice Biometrics Helm chart for Kubernetes
+    digest: 864145cc30249485e948ef78e119b3396ab1ad0671b945b02d5d2205cadc6853
+    home: https://lumenvox.com
+    name: lumenvox-vb
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-vb-3.4.0/lumenvox-vb-3.4.0.tgz
+    version: 3.4.0
   - apiVersion: v2
     appVersion: 3.3.0
     created: "2022-08-25T17:09:44.483788695Z"
