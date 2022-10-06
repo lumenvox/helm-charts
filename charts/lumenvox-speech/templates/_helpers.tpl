@@ -28,7 +28,7 @@
 {{- range .Values.global.ttsLanguages }}
 {{- $langRegion = .name }}
 {{- range .voices }}
-{{- if $listStarted }};{{ end }}tts_{{ $langRegion }}_{{ .name }}_{{ .sampleRate }}
+{{- if $listStarted }};{{ end }}tts_{{ $langRegion }}_{{ .name }}_22
 {{- $listStarted = true }}
 {{- end }}
 {{- end }}
@@ -42,7 +42,7 @@
 {{- $langRegion = .name }}
 {{- range .voices }}
 {{- $voiceVersion = .version | default $.Values.global.ttsDefaultVersion }}
-{{- if $listStarted }};{{ end }}tts_{{ $langRegion }}_{{ .name }}_{{ .sampleRate }}{{ if $voiceVersion }}-{{ $voiceVersion }}{{ end }}
+{{- if $listStarted }};{{ end }}tts_{{ $langRegion }}_{{ .name }}_22{{ if $voiceVersion }}-{{ $voiceVersion }}{{ end }}
 {{- $listStarted = true }}
 {{- end }}
 {{- end }}

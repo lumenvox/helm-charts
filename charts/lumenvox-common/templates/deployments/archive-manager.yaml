@@ -75,8 +75,6 @@ spec:
               value: 'dev'
             - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
               value: 'ignore'
-            - name: DB_SETTINGS__ARCHIVE_POSTGRES_CONNECTION_STRING
-              value: 'postgres://{{ .Values.global.postgresql.connection.user }}:$(postgresql-password)@{{ .Values.global.postgresql.connection.url }}:{{ .Values.global.postgresql.connection.port }}/archive_db?sslmode=disable'
       {{- if .Values.global.imagePullSecrets }}
       imagePullSecrets:
       {{- range .Values.global.imagePullSecrets }}

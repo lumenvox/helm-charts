@@ -82,7 +82,7 @@ spec:
             - name: DB_MIGRATION__DB_COMMAND_TIMEOUT_SECONDS
               value: '{{ .Values.global.postgresql.commandTimeoutSeconds }}'
             - name: LOCAL_SETTINGS__SERVICE_START_DELAY_SECONDS
-              value: '5'
+              value: '6'
 
       {{- if .Values.global.imagePullSecrets }}
       imagePullSecrets:

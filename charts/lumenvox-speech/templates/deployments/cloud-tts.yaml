@@ -89,6 +89,8 @@ spec:
               value: '{{ template "lumenvox-speech.TTS_SETTINGS__SERVICE_VOICES" . }}'
             - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
               value: 'ignore'
+            - name: ENABLE_FAKE_RESULT
+              value: '{{ $.Values.tts.useFakeResult }}'
           volumeMounts:
             - mountPath: /etc/lumenvox/Lang/tts/staging
               name: tts

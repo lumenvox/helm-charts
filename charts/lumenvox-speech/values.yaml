@@ -15,3 +15,9 @@ redis:
 rabbitmq:
   auth:
     existingPasswordSecret: "rabbitmq-existing-secret"
+
+asr:
+  useFakeResult: "false"
+
+tts:
+  useFakeResult: "false"

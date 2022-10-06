@@ -93,6 +93,8 @@ spec:
               value: '{{ .name }}'
             - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
               value: 'ignore'
+            - name: ENABLE_FAKE_RESULT
+              value: '{{ $.Values.asr.useFakeResult }}'
           volumeMounts:
             - mountPath: /etc/lumenvox/Lang/Dict
               name: dict

@@ -81,10 +81,8 @@ spec:
               value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
               value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
-            - name: DB_SETTINGS__DEPLOYMENT_RECONNECTION_TIMEOUT_SEC
-              value: '{{ .Values.global.lumenvox.deploymentReconnectionTimeoutSec }}'
-            - name: DB_SETTINGS__DEPLOYMENT_POSTGRES_CONNECTION_STRING
-              value: 'Server={{ .Values.global.postgresql.connection.url }};Port={{ .Values.global.postgresql.connection.port }};User ID={{ .Values.global.postgresql.connection.user }};Password=$(postgresql-password);Database=cloud_deployment_db;Integrated Security=true;Pooling=true;'
+            - name: DB_SETTINGS__POSTGRES_CONNECTION_STRING
+              value: 'postgres://{{ .Values.global.postgresql.connection.user }}:$(postgresql-password)@{{ .Values.global.postgresql.connection.url }}:{{ .Values.global.postgresql.connection.port }}/?sslmode=disable'
             - name: LICENSE_SETTINGS__CLUSTER_GUID
               value: '{{ .Values.licensing.clusterGuid }}'
             - name: LICENSE_SETTINGS__REPORT_FREQUENCY_MINS
