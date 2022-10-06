@@ -61,7 +61,7 @@ global:
   image:
     repository: "lumenvox"
     pullPolicy: IfNotPresent
-    tag: ":3.3"
+    tag: ":3.4"
   imagePullSecrets: []
   rabbitmq:
     enableTLS: false
@@ -103,4 +103,4 @@ global:
     lumenvoxCommon: true
   asrDefaultVersion: "2.2"
   ttsDefaultVersion: "1.0"
-  vbDefaultVersion: "2.1.9"
+  vbDefaultVersion: "2.1.13"

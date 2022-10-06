@@ -10,7 +10,7 @@
 | `global.lumenvox.enableAudit`                      | Whether to enable audit logging                                 | `false`                            |
 | `global.lumenvox.enforceLimits`                    | Whether to enforce resource limits                              | `false`                            |
 | `global.image.pullPolicy`                          | Pull policy when installing cluster                             | `IfNotPresent`                     |
-| `global.image.tag`                                 | Default image tag                                               | `":3.2"`                           |
+| `global.image.tag`                                 | Default image tag                                               | `":3.4"`                           |
 
 ### Persistent Volume Configuration
 | Parameter      | Description                                                                                                                 | Default    |
@@ -124,17 +124,15 @@ global:
     - name: "en_us"
       voices:
         - name: "chris"
-          sampleRate: "8"
         - name: "lindsey"
-          sampleRate: "8"
           version: "1.3"
 ```
 
 ### VB Language Configuration
-| Parameter                 | Description                     | Default   |
-|---------------------------|---------------------------------|-----------|
-| `global.vbLanguages`      | List of VB languages to install | `[]`      |
-| `global.vbDefaultVersion` | Default VB model version        | `"2.1.9"` |
+| Parameter                 | Description                     | Default    |
+|---------------------------|---------------------------------|------------|
+| `global.vbLanguages`      | List of VB languages to install | `[]`       |
+| `global.vbDefaultVersion` | Default VB model version        | `"2.1.13"` |
 
 To specify VB languages, you must list your desired languages under `global.vbLanguages`. Each model will use the
 version specified in `global.vbDefaultVersion` by default, but this may be overridden by including the version under
