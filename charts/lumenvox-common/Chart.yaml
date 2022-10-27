@@ -2,9 +2,38 @@ apiVersion: v2
 name: lumenvox-common
 description: LumenVox Common Components Helm chart for Kubernetes
 type: application
-version: 3.4.0
-appVersion: "3.4.0"
+version: 3.4.1
+appVersion: "3.4.1"
 home: https://lumenvox.com
+annotations:
+  artifacthub.io/containsSecurityUpdates: true
+  artifacthub.io/images: |
+    - name: admin-portal
+      image: lumenvox/admin-portal:3.4
+    - name: deployment-portal
+      image: lumenvox/deployment-portal:3.4
+    - name: archive
+      image: lumenvox/archive:3.4
+    - name: audit
+      image: lumenvox/audit:3.4
+    - name: binary-storage
+      image: lumenvox/binary-storage:3.4
+    - name: configuration
+      image: lumenvox/configuration:3.4
+    - name: deployment
+      image: lumenvox/deployment:3.4
+    - name: license
+      image: lumenvox/license:3.4
+    - name: management-api
+      image: lumenvox/management-api:3.4
+    - name: reporting
+      image: lumenvox/reporting:3.4
+    - name: resource
+      image: lumenvox/resource:3.4
+    - name: transaction
+      image: lumenvox/transaction:3.4
+    - name: cloud-init-tools
+      image: lumenvox/cloud-init-tools:3.4
 
 dependencies:
   - name: "redis"
