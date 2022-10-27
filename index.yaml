@@ -362,6 +362,63 @@ entries:
     - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-3.0.0/lumenvox-3.0.0.tgz
     version: 3.0.0
   lumenvox-common:
+  - annotations:
+      artifacthub.io/containsSecurityUpdates: "true"
+      artifacthub.io/images: |
+        - name: admin-portal
+          image: lumenvox/admin-portal:3.4
+        - name: deployment-portal
+          image: lumenvox/deployment-portal:3.4
+        - name: archive
+          image: lumenvox/archive:3.4
+        - name: audit
+          image: lumenvox/audit:3.4
+        - name: binary-storage
+          image: lumenvox/binary-storage:3.4
+        - name: configuration
+          image: lumenvox/configuration:3.4
+        - name: deployment
+          image: lumenvox/deployment:3.4
+        - name: license
+          image: lumenvox/license:3.4
+        - name: management-api
+          image: lumenvox/management-api:3.4
+        - name: reporting
+          image: lumenvox/reporting:3.4
+        - name: resource
+          image: lumenvox/resource:3.4
+        - name: transaction
+          image: lumenvox/transaction:3.4
+        - name: cloud-init-tools
+          image: lumenvox/cloud-init-tools:3.4
+    apiVersion: v2
+    appVersion: 3.4.1
+    created: "2022-10-27T21:54:31.781079544Z"
+    dependencies:
+    - condition: redis.enabled
+      name: redis
+      repository: https://charts.bitnami.com/bitnami
+      version: "15"
+    - condition: mongodb.enabled
+      name: mongodb
+      repository: https://charts.bitnami.com/bitnami
+      version: "10"
+    - condition: rabbitmq.enabled
+      name: rabbitmq
+      repository: https://charts.bitnami.com/bitnami
+      version: "8"
+    - condition: postgresql.enabled
+      name: postgresql
+      repository: https://charts.bitnami.com/bitnami
+      version: "10"
+    description: LumenVox Common Components Helm chart for Kubernetes
+    digest: c89e7b4416319c882bd49c93d2fd195e2b3c4e5dbc64999d3aa15340f6e11a5e
+    home: https://lumenvox.com
+    name: lumenvox-common
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-common-3.4.1/lumenvox-common-3.4.1.tgz
+    version: 3.4.1
   - apiVersion: v2
     appVersion: 3.4.0
     created: "2022-10-06T20:53:01.183382321Z"
@@ -615,6 +672,36 @@ entries:
     - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-common-3.0.0/lumenvox-common-3.0.0.tgz
     version: 3.0.0
   lumenvox-speech:
+  - annotations:
+      artifacthub.io/containsSecurityUpdates: "true"
+      artifacthub.io/images: |
+        - name: vad
+          image: lumenvox/vad:3.4
+        - name: asr
+          image: lumenvox/asr:3.4
+        - name: tts
+          image: lumenvox/tts:3.4
+        - name: session
+          image: lumenvox/session:3.4
+        - name: speech-api
+          image: lumenvox/speech-api:3.4
+        - name: reporting-api
+          image: lumenvox/reporting-api:3.4
+        - name: cloud-logging-sidecar
+          image: lumenvox/cloud-logging-sidecar:3.4
+        - name: cloud-init-tools
+          image: lumenvox/cloud-init-tools:3.4
+    apiVersion: v2
+    appVersion: 3.4.1
+    created: "2022-10-27T21:54:32.072026848Z"
+    description: LumenVox Speech Helm chart for Kubernetes
+    digest: 4fae3b76f86732c82ca0e2c28f567dd33072553c174c80ab11154a9ee74190ab
+    home: https://lumenvox.com
+    name: lumenvox-speech
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-speech-3.4.1/lumenvox-speech-3.4.1.tgz
+    version: 3.4.1
   - apiVersion: v2
     appVersion: 3.4.0
     created: "2022-10-06T20:53:02.703759081Z"
@@ -693,6 +780,30 @@ entries:
     - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-speech-3.0.0/lumenvox-speech-3.0.0.tgz
     version: 3.0.0
   lumenvox-vb:
+  - annotations:
+      artifacthub.io/containsSecurityUpdates: "true"
+      artifacthub.io/images: |
+        - name: biometric-api
+          image: lumenvox/biometric-api:3.4
+        - name: biometric-identity
+          image: lumenvox/biometric-identity:3.4
+        - name: biometric-active
+          image: lumenvox/biometric-active:3.4
+        - name: reporting-bio-api
+          image: lumenvox/reporting-bio-api:3.4
+        - name: cloud-init-tools
+          image: lumenvox/cloud-init-tools:3.4
+    apiVersion: v2
+    appVersion: 3.4.1
+    created: "2022-10-27T21:54:32.362940751Z"
+    description: LumenVox Voice Biometrics Helm chart for Kubernetes
+    digest: b8c69e6d169f36124eb3adba81739844ddcb30273646d4ead99509a82bb0e168
+    home: https://lumenvox.com
+    name: lumenvox-vb
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-vb-3.4.1/lumenvox-vb-3.4.1.tgz
+    version: 3.4.1
   - apiVersion: v2
     appVersion: 3.4.0
     created: "2022-10-06T20:53:02.889685302Z"
