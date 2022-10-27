@@ -1,6 +1,35 @@
 apiVersion: v1
 entries:
   lumenvox:
+  - annotations:
+      artifacthub.io/containsSecurityUpdates: "true"
+      artifacthub.io/images: |
+        - name: cloud-init-tools
+          image: lumenvox/cloud-init-tools:3.4
+    apiVersion: v2
+    appVersion: 3.4.1
+    created: "2022-10-27T21:58:29.473955067Z"
+    dependencies:
+    - condition: global.enabled.lumenvoxVb
+      name: lumenvox-vb
+      repository: https://lumenvox.github.io/helm-charts
+      version: 3.4.1
+    - condition: global.enabled.lumenvoxCommon
+      name: lumenvox-common
+      repository: https://lumenvox.github.io/helm-charts
+      version: 3.4.1
+    - condition: global.enabled.lumenvoxSpeech
+      name: lumenvox-speech
+      repository: https://lumenvox.github.io/helm-charts
+      version: 3.4.1
+    description: LumenVox Helm chart for Kubernetes
+    digest: 50bd28549ac355068349e31307f8b5db5eb137766e58dc5c77ce642f3974a55a
+    home: https://lumenvox.com
+    name: lumenvox
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-3.4.1/lumenvox-3.4.1.tgz
+    version: 3.4.1
   - apiVersion: v2
     appVersion: 3.4.0
     created: "2022-10-06T20:55:37.815270293Z"
