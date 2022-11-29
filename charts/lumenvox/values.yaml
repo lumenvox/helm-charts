@@ -84,6 +84,11 @@ global:
       url: "lumenvox-postgresql.lumenvox"
       port: 5432
       user: "lvuser"
+      ssl:
+        # mode: disable or verify-ca
+        mode: "disable"
+        # base64-encoded certificate to verify postgres server certificate
+        caCertificate: ""
     commandTimeoutSeconds: 100
     runMigrations: 'true'
     exitAfterMigrations: 'false'

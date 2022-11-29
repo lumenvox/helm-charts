@@ -69,11 +69,13 @@ The installation expects an existing secret, `mongodb-existing-secret`. This sec
 `mongodb-root-password`, which contains the MongoDB root password.
 
 ### PostgreSQL Configuration
-| Parameter                           | Description                  | Default                          |
-|-------------------------------------|------------------------------|----------------------------------|
-|  `global.postgresql.connection.url` | URL for Postgres connection  | `"lumenvox-postgresql.lumenvox"` | 
-| `global.postgresql.connection.port` | Port for Postgres connection | `5432`                           |
-| `global.postgresql.connection.user` | User for RabbitMQ connection | `"lvuser"`                       |
+| Parameter                                        | Description                               | Default                          |
+|--------------------------------------------------|-------------------------------------------|----------------------------------|
+| `global.postgresql.connection.url`               | URL for Postgres connection               | `"lumenvox-postgresql.lumenvox"` | 
+| `global.postgresql.connection.port`              | Port for Postgres connection              | `5432`                           |
+| `global.postgresql.connection.user`              | User for RabbitMQ connection              | `"lvuser"`                       |
+| `global.postgresql.connection.ssl.mode`          | SSL Connection Mode: disable or verify-ca | `"disable"`                      |
+| `global.postgresql.connection.ssl.caCertificate` | CA certificate to verify server           | `""`                             |
 
 By default, the chart will create a Postgres instance. To switch to using an external instance, you must set
 `lumenvox-common.postgresql.enabled` to `false` and then update the relevant values under
