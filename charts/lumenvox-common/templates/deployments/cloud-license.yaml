@@ -82,7 +82,11 @@ spec:
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
               value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: DB_SETTINGS__POSTGRES_CONNECTION_STRING
-              value: 'postgres://{{ .Values.global.postgresql.connection.user }}:$(postgresql-password)@{{ .Values.global.postgresql.connection.url }}:{{ .Values.global.postgresql.connection.port }}/?sslmode=disable'
+              value: 'postgres://{{ .Values.global.postgresql.connection.user }}:$(postgresql-password)@{{ .Values.global.postgresql.connection.url }}:{{ .Values.global.postgresql.connection.port }}/?sslmode={{ .Values.global.postgresql.connection.ssl.mode }}{{ if .Values.global.postgresql.connection.ssl.caCertificate }}&sslrootcert=ServerRoot.crt{{ end }}'
+            {{- if .Values.global.postgresql.connection.ssl.caCertificate }}
+            - name: POSTGRES_ROOT_CERTIFICATE
+              value: "{{ .Values.global.postgresql.connection.ssl.caCertificate }}"
+            {{- end }}
             - name: LICENSE_SETTINGS__CLUSTER_GUID
               value: '{{ .Values.licensing.clusterGuid }}'
             - name: LICENSE_SETTINGS__REPORT_FREQUENCY_MINS

@@ -98,7 +98,11 @@ spec:
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
               value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: DB_SETTINGS__POSTGRES_CONNECTION_STRING
-              value: 'postgres://{{ .Values.global.postgresql.connection.user }}:$(postgresql-password)@{{ .Values.global.postgresql.connection.url }}:{{ .Values.global.postgresql.connection.port }}/?sslmode=disable'
+              value: 'postgres://{{ .Values.global.postgresql.connection.user }}:$(postgresql-password)@{{ .Values.global.postgresql.connection.url }}:{{ .Values.global.postgresql.connection.port }}/?sslmode={{ .Values.global.postgresql.connection.ssl.mode | replace "-" "" }}{{ if .Values.global.postgresql.connection.ssl.caCertificate }}&sslrootcert=ServerRoot.crt{{ end }}'
+            {{- if .Values.global.postgresql.connection.ssl.caCertificate }}
+            - name: POSTGRES_ROOT_CERTIFICATE
+              value: "{{ .Values.global.postgresql.connection.ssl.caCertificate }}"
+            {{- end }}
             - name: DB_SETTINGS__COMMAND_TIMEOUT_SECONDS
               value: '{{ .Values.global.postgresql.commandTimeoutSeconds }}'
             - name: DB_MIGRATION__RUN_DATABASE_MIGRATIONS
