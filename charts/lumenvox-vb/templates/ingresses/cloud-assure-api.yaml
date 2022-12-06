@@ -18,3 +18,7 @@ spec:
                 name: biometric-api-service
                 port:
                   number: 80
+  tls:
+    - secretName: speech-tls-secret
+      hosts:
+        - biometric-api.{{ .Values.global.hostnameSuffix }}
