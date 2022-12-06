@@ -85,6 +85,15 @@ The installation expects an existing secret, `postgres-existing-secret`. This se
 `postgresql-password` (the password for the database user) and `postgresql-postgres-password` (the password for the root
 user).
 
+To enable TLS, set `global.postgresql.connection.ssl.mode` to `verify-ca`. This will cause the client to verify the
+certificate returned by the Postgres server.
+
+If you would like to verify against a self-signed certificate, you should base64-encode the signing certificate and
+store it in `global.postgresql.connection.ssl.caCertificate`. To encode it, the following command should work:
+```shell
+base64 -w 0 ca.crt
+```
+
 ### Product Selection
 | Parameter                       | Description                                 | Default |
 |---------------------------------|---------------------------------------------|---------|
@@ -176,17 +185,17 @@ location.
 To set the master encryption key, create a secret `encryption-secret` with 1 field, `master-encryption-key`.
 
 ## TLS
-For ingress into the Speech API, the cluster expects a pre-existing secret `speech-tls-secret`. For a temporary testing
-example, run the following commands:
+For ingress into the Speech API or Biometric APIs, the cluster expects a pre-existing secret `speech-tls-secret`. For a
+temporary testing example, run the following commands to generate one:
 ```shell
 openssl genrsa -out server.key 2048
-openssl req -new -x509 -sha256 -key server.key -out server.crt -days 3650 -addext "subjectAltName = DNS:speech-api.testmachine.com"
+openssl req -new -x509 -sha256 -key server.key -out server.crt -days 3650 -addext "subjectAltName = DNS:speech-api.testmachine.com, DNS:biometric-api.testmachine.com"
 kubectl create secret tls speech-tls-secret --key server.key --cert server.crt
 ```
 The second command will prompt you for some information; all fields can be left blank, as the necessary information is
 contained in the SAN. You should replace `testmachine.com` with whatever you have specified in `global.hostnameSuffix`.
 
-Any clients making requests to the Speech API should be written to trust the certificate in the secret.
+Any clients making requests to the Speech or Biometrics APIs should be written to trust the certificate in the secret.
 
 ## Linkerd Service Mesh
 
