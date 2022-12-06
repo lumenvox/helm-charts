@@ -909,6 +909,30 @@ entries:
         - name: cloud-init-tools
           image: lumenvox/cloud-init-tools:3.4
     apiVersion: v2
+    appVersion: 3.4.2
+    created: "2022-12-06T21:15:38.533146221Z"
+    description: LumenVox Voice Biometrics Helm chart for Kubernetes
+    digest: e6c0bdf58a1e5a8d248c14b9377b8ce6bbe34e494df08e75de1cfa8f4e315e75
+    home: https://lumenvox.com
+    name: lumenvox-vb
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-vb-3.4.2/lumenvox-vb-3.4.2.tgz
+    version: 3.4.2
+  - annotations:
+      artifacthub.io/containsSecurityUpdates: "true"
+      artifacthub.io/images: |
+        - name: biometric-api
+          image: lumenvox/biometric-api:3.4
+        - name: biometric-identity
+          image: lumenvox/biometric-identity:3.4
+        - name: biometric-active
+          image: lumenvox/biometric-active:3.4
+        - name: reporting-bio-api
+          image: lumenvox/reporting-bio-api:3.4
+        - name: cloud-init-tools
+          image: lumenvox/cloud-init-tools:3.4
+    apiVersion: v2
     appVersion: 3.4.1
     created: "2022-10-27T21:54:32.362940751Z"
     description: LumenVox Voice Biometrics Helm chart for Kubernetes
