@@ -5,6 +5,7 @@ metadata:
   namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
   annotations:
     nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/server-snippet: |
       grpc_read_timeout 120s;
