@@ -200,7 +200,7 @@ Any clients making requests to the Speech or Biometrics APIs should be written t
 ## Linkerd Service Mesh
 
 A service mesh is required to provide load-balancing functionality across services, and the default LumenVox
-configuration requires [linkerd](https://linkerd.io/2.11/getting-started/), which must be installed and configured
+configuration requires [linkerd](https://linkerd.io/2.12/getting-started/), which must be installed and configured
 manually by the Kubernetes administrator.
 
 > Note that linkerd may require certificates in order to operate

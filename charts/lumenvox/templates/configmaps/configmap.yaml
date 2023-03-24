@@ -17,9 +17,3 @@ data:
   HTTPS_SETTINGS__USE_SELF_SIGNED_CERTIFICATE: '{{ .Values.https.useSelfSignedCert }}'
   LOCAL_SETTINGS__ENABLE_ELASTICSEARCH: '{{ .Values.logging.enableElasticsearch }}'
   LOCAL_SETTINGS__ENABLE_AUDIT_LOG: '{{ .Values.global.lumenvox.enableAudit }}'
-  {{- if .Values.global.mockData.enabled }}
-  MOCK_TEST_DATA: '{{ .Values.global.mockData.testDataString }}'
-  MockDataSettings__MasterKeysJson: '{{ .Values.global.mockData.jsonKeys.master }}'
-  MockDataSettings__CustomerKeysJson: '{{ .Values.global.mockData.jsonKeys.customer }}'
-  MockDataSettings__EmergencyPublicKeysJson: '{{ .Values.global.mockData.jsonKeys.emergencyPublic }}'
-  {{- end }}

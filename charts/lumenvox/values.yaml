@@ -26,16 +26,6 @@ https:
   certificatePassword: ""
   useSelfSignedCert: false
 
-lumenvox-common:
-  rabbitmq:
-    enabled: true
-  redis:
-    enabled: true
-  mongodb:
-    enabled: true
-  postgresql:
-    enabled: true
-
 image: {}
 
 global:
@@ -61,27 +51,38 @@ global:
   image:
     repository: "lumenvox"
     pullPolicy: IfNotPresent
-    tag: ":3.4"
+    tag: ":4.1"
   imagePullSecrets: []
   rabbitmq:
     enableTLS: false
+    auth:
+      existingPasswordSecret: "rabbitmq-existing-secret"
     connection:
-      url: "lumenvox-rabbitmq.lumenvox"
+      url: "external-services-rabbitmq.lumenvox"
       port: 5672
       user: "lvuser"
+    init:
+      checkManagementEndpoint: true
   redis:
     enableTLS: false
+    auth:
+      existingSecret: redis-existing-secret
     connection:
-      url: "lumenvox-redis-master.lumenvox"
+      url: "external-services-redis-master.lumenvox"
       port: 6379
   mongodb:
+    auth:
+      rootUser: 'lvuser'
+      existingSecret: mongodb-existing-secret
     connection:
-      url: "lumenvox-mongodb.lumenvox"
+      url: "external-services-mongodb.lumenvox"
       port: 27017
     atlas: false
   postgresql:
+    auth:
+      existingSecret: postgres-existing-secret
     connection:
-      url: "lumenvox-postgresql.lumenvox"
+      url: "external-services-postgresql.lumenvox"
       port: 5432
       user: "lvuser"
       ssl:
@@ -94,14 +95,6 @@ global:
     exitAfterMigrations: 'false'
   linkerd:
     enabled: true
-  mockData:
-    enabled: false
-    testDataString: ""
-    deploymentId: []
-    jsonKeys:
-      master: ""
-      customer: ""
-      emergencyPublic: ""
   enabled:
     lumenvoxSpeech: false
     lumenvoxVb: false
