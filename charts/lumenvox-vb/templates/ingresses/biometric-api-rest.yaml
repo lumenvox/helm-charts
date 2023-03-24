@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: biometric-api-ingress
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+spec:
+  {{- if .Values.global.lumenvox.ingress.className }}
+  ingressClassName: {{ .Values.global.lumenvox.ingress.className }}
+  {{- end }}
+  rules:
+    - host: biometric-api.{{ .Values.global.hostnameSuffix }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: biometric-api-service
+                port:
+                  name: rest
+  tls:
+    - secretName: speech-tls-secret
+      hosts:
+        - biometric-api.{{ .Values.global.hostnameSuffix }}

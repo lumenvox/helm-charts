@@ -1,49 +1,59 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: deployment-portal
+  name: configuration
   namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
   labels:
-    app: deployment-portal
+    app: configuration
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: deployment-portal
+      app: configuration
   template:
     metadata:
       labels:
-        app: deployment-portal
+        app: configuration
       annotations:
         prometheus.io/scrape: 'true'
-        prometheus.io/port: '5110'
+        prometheus.io/port: '90'
         {{- if .Values.global.linkerd.enabled }}
         linkerd.io/inject: enabled
         {{- end }}
     spec:
+      # Assign this pod a higher priority than others, but lower than deployment, since others are dependent on both
+      priorityClassName: high-priority-nonpreempting
       containers:
-        - name: deployment-portal
-          image: {{ .Values.image.repository | default .Values.global.image.repository }}/deployment-portal{{ .Values.image.tag | default .Values.global.image.tag }}
+        - name: configuration
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/configuration{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           ports:
-            - name: portal
-              containerPort: 3101
+            - name: grpc
+              containerPort: 80
             - name: http
-              containerPort: 5110
+              containerPort: 90
           readinessProbe:
             httpGet:
               path: /health
               port: http
             initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
+          {{- if .Values.global.lumenvox.service.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
+            periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
+          {{- end }}
           resources:
             requests:
-              cpu: 5m
-              memory: 30Mi
+              cpu: 10m
+              memory: 200Mi
             {{- if .Values.global.lumenvox.enforceLimits }}
             limits:
               cpu: 100m
-              memory: 50Mi
+              memory: 450Mi
             {{- end }}
           envFrom:
             - configMapRef:
@@ -61,28 +71,6 @@ spec:
             {{- end }}
             - name: GLOBAL_SETTINGS__RABBITMQ_EASY_CONNECTION_STRING
               value: 'host={{ .Values.global.rabbitmq.connection.url }};port={{ .Values.global.rabbitmq.connection.port }};username={{ .Values.global.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10{{ if .Values.global.rabbitmq.enableTLS }};tls=true{{ end }}'
-            - name: SERVICE_ADDRESSES__REPORTING_API
-              value: 'http://reporting-api-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:8090'
-            - name: SERVICE_ADDRESSES__MANAGEMENT_API
-              value: 'http://management-api-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
-            - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
-              value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
-            - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
-              value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
-            - name: SERVICE_ADDRESSES__LUMENVOX_API
-              value: 'http://lumenvox-api-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:8280'
-            - name: SERVICE_ADDRESSES__DEPLOYMENT_PORTAL
-              value: 'http://deployment-portal-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:3101'
-            - name: SERVICE_EXTERNAL_ADDRESSES__REPORTING_API
-              value: 'https://reporting-api.{{ .Values.global.hostnameSuffix }}'
-            - name: SERVICE_EXTERNAL_ADDRESSES__MANAGEMENT_API
-              value: 'https://management-api.{{ .Values.global.hostnameSuffix }}'
-            - name: SERVICE_EXTERNAL_ADDRESSES__LUMENVOX_API
-              value: 'https://lumenvox-api.{{ .Values.global.hostnameSuffix }}'
-            - name: SERVICE_EXTERNAL_ADDRESSES__DEPLOYMENT_PORTAL
-              value: 'https://deployment-portal.{{ .Values.global.hostnameSuffix }}'
-            - name: SERVICE_EXTERNAL_ADDRESSES__ADMIN_PORTAL
-              value: 'https://admin-portal.{{ .Values.global.hostnameSuffix }}'
             {{- if .Values.global.enabled.lumenvoxSpeech }}
             {{- if .Values.global.asrLanguages }}
             - name: CLUSTER_LANGUAGES__ASR_LANGUAGES
@@ -99,6 +87,26 @@ spec:
             - name: CLUSTER_LANGUAGES__VB_ACTIVE
               value: '{{ template "lumenvox-vb.CLUSTER_LANGUAGES__VB_ACTIVE" . }}'
             {{- end }}
+            - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
+              value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+            - name: DB_SETTINGS__DEPLOYMENT_RECONNECTION_TIMEOUT_SEC
+              value: '{{ .Values.global.lumenvox.deploymentReconnectionTimeoutSec }}'
+            - name: DB_MIGRATION__RUN_DATABASE_MIGRATIONS
+              value: '{{ .Values.global.postgresql.runMigrations }}'
+            - name: DB_MIGRATION__EXIT_AFTER_DATABASE_MIGRATIONS
+              value: '{{ .Values.global.postgresql.exitAfterMigrations }}'
+            - name: DB_MIGRATION__DB_COMMAND_TIMEOUT_SECONDS
+              value: '{{ .Values.global.postgresql.commandTimeoutSeconds }}'
+            - name: LOCAL_SETTINGS__ENABLE_AUDIT_LOG
+              value: '{{ .Values.global.lumenvox.enableAudit }}'
+            - name: LOCAL_SETTINGS__SERVICE_START_DELAY_SECONDS
+              value: '5'
+            - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
+              value: 'ignore'
+          volumeMounts:
+            - mountPath: /etc/lumenvox/Lang/vb-active
+              name: vb-active
+
       {{- if .Values.global.imagePullSecrets }}
       imagePullSecrets:
       {{- range .Values.global.imagePullSecrets }}
@@ -111,3 +119,20 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           command: ["curl2"]
           args: ["http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:90/health", "Deployment Service"]
+        - name: wait-for-rabbitmq-service
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          command: ["nslookup2"]
+          args: ["{{ .Values.global.rabbitmq.connection.url }}", "RabbitMQ Service"]
+        {{- if .Values.global.rabbitmq.init.checkManagementEndpoint }}
+        - name: wait-for-rabbitmq-management-endpoint
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          command: ["curl2"]
+          args: ["http{{ if .Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ .Values.global.rabbitmq.connection.url }}{{ if not .Values.global.rabbitmq.enableTLS }}:15672{{ end }}", "RabbitMQ Management Page"]
+        {{- end }}
+      volumes:
+        - name: vb-active
+          persistentVolumeClaim:
+            claimName: vb-active-claim
+            readOnly: false

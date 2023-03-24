@@ -7,7 +7,9 @@ spec:
   selector:
     app: deployment-portal
   ports:
+    - name: portal
+      port: 82
+      targetPort: portal
     - name: http
-      protocol: TCP
-      port: 80
-      targetPort: 3101
+      port: 90
+      targetPort: http

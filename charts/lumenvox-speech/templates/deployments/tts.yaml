@@ -1,0 +1,154 @@
+{{- range .Values.global.ttsLanguages }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tts-{{ .name | replace "_" "-" }}
+  namespace: {{ default $.Release.Namespace $.Values.global.defaultNamespace }}
+  labels:
+    app: tts-{{ .name | replace "_" "-" }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tts-{{ .name | replace "_" "-" }}
+  template:
+    metadata:
+      labels:
+        app: tts-{{ .name | replace "_" "-" }}
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '5110'
+        {{- if $.Values.global.linkerd.enabled }}
+        linkerd.io/inject: enabled
+        {{- end }}
+    spec:
+      containers:
+        - name: tts
+          image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/tts{{ $.Values.image.tag | default $.Values.global.image.tag }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy | default $.Values.global.image.pullPolicy }}
+          ports:
+            - name: grpc
+              containerPort: 5010
+            - name: http
+              containerPort: 5110
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ $.Values.global.lumenvox.service.startDelaySeconds }}
+            periodSeconds: {{ $.Values.global.lumenvox.probes.periodSeconds }}
+          {{- if $.Values.global.lumenvox.service.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ $.Values.global.lumenvox.service.startDelaySeconds }}
+            periodSeconds: {{ $.Values.global.lumenvox.probes.periodSeconds }}
+          {{- end }}
+          resources:
+            requests:
+              cpu: 5m
+              memory: 30Mi
+            {{- if $.Values.global.lumenvox.enforceLimits }}
+            limits:
+              cpu: 100m
+              memory: 50Mi
+            {{- end }}
+          envFrom:
+            - configMapRef:
+                name: timezone-configmap
+            {{- if $.Values.global.rabbitmq.auth.existingPasswordSecret }}
+            - secretRef:
+                name: {{ $.Values.global.rabbitmq.auth.existingPasswordSecret }}
+            {{- end }}
+            {{- if $.Values.global.redis.auth.existingSecret }}
+            - secretRef:
+                name: {{ $.Values.global.redis.auth.existingSecret }}
+            {{- end }}
+          env:
+            {{- if not $.Values.global.rabbitmq.auth.existingPasswordSecret }}
+            - name: rabbitmq-password
+              value: '{{ $.Values.global.rabbitmq.auth.password }}'
+            {{- end }}
+            {{- if not $.Values.global.redis.auth.existingSecret }}
+            - name: redis-password
+              value: '{{ $.Values.global.redis.auth.password }}'
+            {{- end }}
+            - name: GLOBAL_SETTINGS__RABBITMQ_CONNECTION_STRING
+              value: 'amqp{{ if $.Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ $.Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ $.Values.global.rabbitmq.connection.url }}:{{ $.Values.global.rabbitmq.connection.port }}'
+            - name: GLOBAL_SETTINGS__REDIS_CONNECTION_STRING
+              value: '{{ $.Values.global.redis.connection.url }}:{{ $.Values.global.redis.connection.port }},password=$(redis-password){{ if $.Values.global.redis.enableTLS }},ssl=true{{ end }}'
+            - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
+              value: 'http://configuration-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}'
+            - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
+              value: 'http://deployment-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}'
+            - name: TTS_SETTINGS__SERVICE_LANGUAGE
+              value: '{{ .name }}'
+            - name: TTS_SETTINGS__SERVICE_VOICES
+              value: '{{ template "lumenvox-speech.TTS_SETTINGS__SERVICE_VOICES" . }}'
+            - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
+              value: 'ignore'
+            - name: ENABLE_FAKE_RESULT
+              value: '{{ $.Values.tts.useFakeResult }}'
+          volumeMounts:
+            - mountPath: /etc/lumenvox/Lang/tts/staging
+              name: tts
+            - mountPath: /var/log/lumenvox/ttsserver
+              name: logs
+        - name: tts-application-log
+          image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/cloud-logging-sidecar{{ $.Values.image.tag | default $.Values.global.image.tag }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy | default $.Values.global.image.pullPolicy }}
+          env:
+            - name: LOG_FILE_PATH
+              value: "/var/log/tts_server_app.txt"
+          volumeMounts:
+            - mountPath: /var/log
+              name: logs
+        - name: tts-restart-log
+          image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/cloud-logging-sidecar{{ $.Values.image.tag | default $.Values.global.image.tag }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy | default $.Values.global.image.pullPolicy }}
+          env:
+            - name: LOG_FILE_PATH
+              value: "/var/log/tts_server_restart.txt"
+          volumeMounts:
+            - mountPath: /var/log
+              name: logs
+        - name: tts-exceptions-log
+          image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/cloud-logging-sidecar{{ $.Values.image.tag | default $.Values.global.image.tag }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy | default $.Values.global.image.pullPolicy }}
+          env:
+            - name: LOG_FILE_PATH
+              value: "/var/log/Exceptions_lv_tts_server.txt"
+          volumeMounts:
+            - mountPath: /var/log
+              name: logs
+        - name: tts-process-log
+          image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/cloud-logging-sidecar{{ $.Values.image.tag | default $.Values.global.image.tag }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy | default $.Values.global.image.pullPolicy }}
+          env:
+            - name: LOG_FILE_PATH
+              value: "/var/log/client_tts.txt"
+          volumeMounts:
+            - mountPath: /var/log
+              name: logs
+      {{- if $.Values.global.imagePullSecrets }}
+      imagePullSecrets:
+      {{- range $.Values.global.imagePullSecrets }}
+        - name: {{ . }}
+      {{- end }}
+      {{- end }}
+      initContainers:
+        - name: wait-for-deployment-service
+          image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/cloud-init-tools{{ $.Values.image.tag | default $.Values.global.image.tag }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy | default $.Values.global.image.pullPolicy }}
+          command: ["curl2"]
+          args: ["http://deployment-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}:90/health", "Deployment Service"]
+      volumes:
+        - name: tts
+          persistentVolumeClaim:
+            claimName: tts1-claim
+            readOnly: false
+        - name: logs
+          emptyDir: {}
+{{- end }}

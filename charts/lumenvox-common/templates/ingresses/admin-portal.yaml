@@ -17,4 +17,38 @@ spec:
               service:
                 name: admin-portal-service
                 port:
-                  number: 80
+                  name: portal
+          {{- if .Values.global.lumenvox.metrics.enableEndpoints }}
+          - path: /metrics
+            pathType: Prefix
+            backend:
+              service:
+                name: admin-portal-service
+                port:
+                  name: http
+          - path: /health  # Note this will override the admin portal native /health page
+            pathType: Prefix
+            backend:
+              service:
+                name: admin-portal-service
+                port:
+                  name: http
+          - path: /alive
+            pathType: Prefix
+            backend:
+              service:
+                name: admin-portal-service
+                port:
+                  name: http
+          - path: /ready
+            pathType: Prefix
+            backend:
+              service:
+                name: admin-portal-service
+                port:
+                  name: http
+          {{- end }}
+  tls:
+    - secretName: speech-tls-secret
+      hosts:
+        - admin-portal.{{ .Values.global.hostnameSuffix }}

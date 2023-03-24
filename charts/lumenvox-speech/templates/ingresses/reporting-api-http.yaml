@@ -1,0 +1,40 @@
+{{- if .Values.global.lumenvox.metrics.enableEndpoints }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: reporting-api-ingress-http
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+spec:
+  {{- if .Values.global.lumenvox.ingress.className }}
+  ingressClassName: {{ .Values.global.lumenvox.ingress.className }}
+  {{- end }}
+  rules:
+    - host: reporting-api.{{ .Values.global.hostnameSuffix }}
+      http:
+        paths:
+          - path: /metrics
+            pathType: Prefix
+            backend:
+              service:
+                name: reporting-api-service
+                port:
+                  name: http
+          - path: /health
+            pathType: Prefix
+            backend:
+              service:
+                name: reporting-api-service
+                port:
+                  name: http
+          - path: /ready
+            pathType: Prefix
+            backend:
+              service:
+                name: reporting-api-service
+                port:
+                  name: http
+  tls:
+    - secretName: speech-tls-secret
+      hosts:
+        - reporting-api.{{ .Values.global.hostnameSuffix }}
+{{- end }}

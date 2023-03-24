@@ -1,12 +1,18 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: reporting-bio-api-service
+  name: reporting-api-service
   namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
 spec:
   selector:
-    app: reporting-bio-api
+    app: reporting-api
   ports:
+    - name: grpc
+      port: 80
+      targetPort: grpc
     - name: rest
       port: 81
       targetPort: rest
+    - name: http
+      port: 90
+      targetPort: http

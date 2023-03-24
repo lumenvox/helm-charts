@@ -3,7 +3,3 @@
 # Declare variables to be passed into your templates.
 
 image: {}
-
-rabbitmq:
-  auth:
-    existingPasswordSecret: "rabbitmq-existing-secret"

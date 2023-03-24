@@ -1,0 +1,184 @@
+{{- range .Values.global.asrLanguages }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: asr-{{ .name }}
+  namespace: {{ default $.Release.Namespace $.Values.global.defaultNamespace }}
+  labels:
+    app: asr-{{ .name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: asr-{{ .name }}
+  template:
+    metadata:
+      labels:
+        app: asr-{{ .name }}
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '5110'
+        {{- if $.Values.global.linkerd.enabled }}
+        linkerd.io/inject: enabled
+        {{- end }}
+    spec:
+      containers:
+        - name: asr
+          image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/asr{{ $.Values.image.tag | default $.Values.global.image.tag }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy | default $.Values.global.image.pullPolicy }}
+          ports:
+            - name: grpc
+              containerPort: 5010
+            - name: http
+              containerPort: 5110
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ $.Values.global.lumenvox.service.startDelaySeconds }}
+            periodSeconds: {{ $.Values.global.lumenvox.probes.periodSeconds }}
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            failureThreshold: 12
+            periodSeconds: {{ $.Values.global.lumenvox.probes.periodSeconds }}
+          {{- if $.Values.global.lumenvox.service.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ $.Values.global.lumenvox.service.startDelaySeconds }}
+            periodSeconds: {{ $.Values.global.lumenvox.probes.periodSeconds }}
+          {{- end }}
+          resources:
+            requests:
+              cpu: 5m
+              memory: 30Mi
+            {{- if $.Values.global.lumenvox.enforceLimits }}
+            limits:
+              cpu: 100m
+              memory: 50Mi
+            {{- end }}
+          envFrom:
+            - configMapRef:
+                name: timezone-configmap
+            {{- if $.Values.global.rabbitmq.auth.existingPasswordSecret }}
+            - secretRef:
+                name: {{ $.Values.global.rabbitmq.auth.existingPasswordSecret }}
+            {{- end }}
+            {{- if $.Values.global.redis.auth.existingSecret }}
+            - secretRef:
+                name: {{ $.Values.global.redis.auth.existingSecret }}
+            {{- end }}
+          env:
+            {{- if not $.Values.global.rabbitmq.auth.existingPasswordSecret }}
+            - name: rabbitmq-password
+              value: '{{ $.Values.global.rabbitmq.auth.password }}'
+            {{- end }}
+            {{- if not $.Values.global.redis.auth.existingSecret }}
+            - name: redis-password
+              value: '{{ $.Values.global.redis.auth.password }}'
+            {{- end }}
+            - name: GLOBAL_SETTINGS__RABBITMQ_CONNECTION_STRING
+              value: 'amqp{{ if $.Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ $.Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ $.Values.global.rabbitmq.connection.url }}:{{ $.Values.global.rabbitmq.connection.port }}'
+            - name: GLOBAL_SETTINGS__REDIS_CONNECTION_STRING
+              value: '{{ $.Values.global.redis.connection.url }}:{{ $.Values.global.redis.connection.port }},password=$(redis-password){{ if $.Values.global.redis.enableTLS }},ssl=true{{ end }}'
+            - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
+              value: 'http://configuration-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}'
+            - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
+              value: 'http://deployment-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}'
+            - name: ASR_SETTINGS__SERVICE_LANGUAGE
+              value: '{{ .name }}'
+            - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
+              value: 'ignore'
+            - name: ENABLE_FAKE_RESULT
+              value: '{{ $.Values.asr.useFakeResult }}'
+          volumeMounts:
+            - mountPath: /etc/lumenvox/Lang/Dict
+              name: dict
+            - mountPath: /etc/lumenvox/Lang/AsrModels
+              name: asrmodels
+            - mountPath: /var/lumenvox/grammar_cache
+              name: asr
+            - mountPath: /var/lumenvox/cached_client_grammars
+              name: cache
+            - mountPath: /usr/lib64/lumenvox_backends
+              name: backends
+            - mountPath: /var/log/lumenvox/sre
+              name: logs
+        - name: asr-application-log
+          image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/cloud-logging-sidecar{{ $.Values.image.tag | default $.Values.global.image.tag }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy | default $.Values.global.image.pullPolicy }}
+          env:
+            - name: LOG_FILE_PATH
+              value: "/var/log/asr_server_app.txt"
+        - name: asr-restart-log
+          image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/cloud-logging-sidecar{{ $.Values.image.tag | default $.Values.global.image.tag }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy | default $.Values.global.image.pullPolicy }}
+          env:
+            - name: LOG_FILE_PATH
+              value: "/var/log/asr_server_restart.txt"
+          volumeMounts:
+            - mountPath: /var/log
+              name: logs
+        - name: asr-exceptions-log
+          image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/cloud-logging-sidecar{{ $.Values.image.tag | default $.Values.global.image.tag }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy | default $.Values.global.image.pullPolicy }}
+          env:
+            - name: LOG_FILE_PATH
+              value: "/var/log/Exceptions_LV_ENGINE_SERVER.txt"
+          volumeMounts:
+            - mountPath: /var/log
+              name: logs
+        - name: asr-grammar-log
+          image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/cloud-logging-sidecar{{ $.Values.image.tag | default $.Values.global.image.tag }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy | default $.Values.global.image.pullPolicy }}
+          env:
+            - name: LOG_FILE_PATH
+              value: "/var/log/asr_server_grammar.txt"
+          volumeMounts:
+            - mountPath: /var/log
+              name: logs
+      {{- if $.Values.global.imagePullSecrets }}
+      imagePullSecrets:
+      {{- range $.Values.global.imagePullSecrets }}
+        - name: {{ . }}
+      {{- end }}
+      {{- end }}
+      initContainers:
+        - name: wait-for-deployment-service
+          image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/cloud-init-tools{{ $.Values.image.tag | default $.Values.global.image.tag }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy | default $.Values.global.image.pullPolicy }}
+          command: ["curl2"]
+          args: ["http://deployment-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}:90/health", "Deployment Service"]
+        - name: wait-for-resource-manager
+          image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/cloud-init-tools{{ $.Values.image.tag | default $.Values.global.image.tag }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy | default $.Values.global.image.pullPolicy }}
+          command: ["curl2"]
+          args: ["http://resource-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}:90/health", "Resource Manager Service"]
+      volumes:
+        - name: dict
+          persistentVolumeClaim:
+            claimName: dict-claim
+            readOnly: false
+        - name: asrmodels
+          persistentVolumeClaim:
+            claimName: asr-models-claim
+            readOnly: false
+        - name: asr
+          persistentVolumeClaim:
+            claimName: asr-grammar-cache-claim
+            readOnly: false
+        - name: cache
+          persistentVolumeClaim:
+            claimName: cached-client-grammars-claim
+            readOnly: false
+        - name: backends
+          persistentVolumeClaim:
+            claimName: backends-claim
+            readOnly: false
+        - name: logs
+          emptyDir: {}
+{{- end }}

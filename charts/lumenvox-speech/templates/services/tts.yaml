@@ -1,0 +1,18 @@
+{{- range .Values.global.ttsLanguages }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tts-{{ .name | replace "_" "-" }}-service
+  namespace: {{ default $.Release.Namespace $.Values.global.defaultNamespace }}
+spec:
+  selector:
+    app: tts-{{ .name| replace "_" "-" }}
+  ports:
+    - name: grpc
+      port: 80
+      targetPort: grpc
+    - name: http
+      port: 90
+      targetPort: http
+{{- end }}

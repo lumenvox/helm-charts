@@ -1,0 +1,159 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+  labels:
+    app: deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: deployment
+  template:
+    metadata:
+      labels:
+        app: deployment
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '90'
+        {{- if .Values.global.linkerd.enabled }}
+        linkerd.io/inject: enabled
+        {{- end }}
+    spec:
+      # Assign this pod a higher priority than others, since others depend on this one to be running first
+      priorityClassName: high-priority
+      containers:
+        - name: deployment
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/deployment{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          ports:
+            - name: grpc
+              containerPort: 80
+            - name: http
+              containerPort: 90
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.lumenvox.deploymentStartDelaySeconds }}
+            periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
+          {{- if .Values.global.lumenvox.service.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.lumenvox.deploymentStartDelaySeconds }}
+            periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
+          {{- end }}
+          resources:
+            requests:
+              cpu: 10m
+              memory: 150Mi
+            {{- if .Values.global.lumenvox.enforceLimits }}
+            limits:
+              cpu: 100m
+              memory: 500Mi
+            {{- end }}
+          envFrom:
+            - configMapRef:
+                name: lumenvox-configmap
+            - configMapRef:
+                name: timezone-configmap
+            {{- if .Values.global.mongodb.auth.existingSecret }}
+            - secretRef:
+                name: {{ .Values.global.mongodb.auth.existingSecret }}
+            {{- end }}
+            {{- if .Values.global.postgresql.auth.existingSecret }}
+            - secretRef:
+                name: {{ .Values.global.postgresql.auth.existingSecret }}
+            {{- end }}
+            {{- if .Values.global.rabbitmq.auth.existingPasswordSecret }}
+            - secretRef:
+                name: {{ .Values.global.rabbitmq.auth.existingPasswordSecret }}
+            {{- end }}
+            {{- if .Values.global.redis.auth.existingSecret }}
+            - secretRef:
+                name: {{ .Values.global.redis.auth.existingSecret }}
+            {{- end }}
+          env:
+            {{- if not .Values.global.mongodb.auth.existingSecret }}
+            - name: mongodb-root-password
+              value: '{{ .Values.global.mongodb.auth.rootPassword }}'
+            {{- end }}
+            {{- if not .Values.global.postgresql.auth.existingSecret }}
+            - name: postgresql-password
+              value: "{{ .Values.global.postgresql.auth.password }}"
+            {{- end }}
+            {{- if not .Values.global.rabbitmq.auth.existingPasswordSecret }}
+            - name: rabbitmq-password
+              value: '{{ .Values.global.rabbitmq.auth.password }}'
+            {{- end }}
+            {{- if not .Values.global.redis.auth.existingSecret }}
+            - name: redis-password
+              value: '{{ .Values.global.redis.auth.password }}'
+            {{- end }}
+            - name: GLOBAL_SETTINGS__RABBITMQ_EASY_CONNECTION_STRING
+              value: 'host={{ .Values.global.rabbitmq.connection.url }};port={{ .Values.global.rabbitmq.connection.port }};username={{ .Values.global.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10{{ if .Values.global.rabbitmq.enableTLS }};tls=true{{ end }}'
+            - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
+              value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+            - name: DB_SETTINGS__POSTGRES_CONNECTION_STRING
+              value: 'postgres://{{ .Values.global.postgresql.connection.user }}:$(postgresql-password)@{{ .Values.global.postgresql.connection.url }}:{{ .Values.global.postgresql.connection.port }}/?sslmode={{ .Values.global.postgresql.connection.ssl.mode | replace "-" "" }}{{ if .Values.global.postgresql.connection.ssl.caCertificate }}&sslrootcert=ServerRoot.crt{{ end }}'
+            {{- if .Values.global.postgresql.connection.ssl.caCertificate }}
+            - name: POSTGRES_ROOT_CERTIFICATE
+              value: "{{ .Values.global.postgresql.connection.ssl.caCertificate }}"
+            {{- end }}
+            - name: DB_SETTINGS__COMMAND_TIMEOUT_SECONDS
+              value: '{{ .Values.global.postgresql.commandTimeoutSeconds }}'
+            - name: DB_MIGRATION__RUN_DATABASE_MIGRATIONS
+              value: '{{ .Values.global.postgresql.runMigrations }}'
+            - name: DB_MIGRATION__EXIT_AFTER_DATABASE_MIGRATIONS
+              value: '{{ .Values.global.postgresql.exitAfterMigrations }}'
+            - name: DB_MIGRATION__DB_COMMAND_TIMEOUT_SECONDS
+              value: '{{ .Values.global.postgresql.commandTimeoutSeconds }}'
+            - name: LICENSE_SETTINGS__CLUSTER_GUID
+              value: '{{ .Values.licensing.clusterGuid }}'
+            - name: LOCAL_SETTINGS__ENABLE_AUDIT_LOG
+              value: '{{ .Values.global.lumenvox.enableAudit }}'
+            - name: LOCAL_SETTINGS__SERVICE_START_DELAY_SECONDS
+              value: '{{ .Values.lumenvox.deploymentStartDelaySeconds }}'
+
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.global.imagePullSecrets }}
+        - name: {{ . }}
+      {{- end }}
+      {{- end }}
+      initContainers:
+        - name: init-postgres
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          command: ["nslookup2"]
+          args: ["{{ .Values.global.postgresql.connection.url }}", "Postgres"]
+        - name: init-mongodb
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          {{- if .Values.global.mongodb.atlas }}
+          command: ["nslookupsrv2"]
+          args: ["mongodb", "{{ .Values.global.mongodb.connection.url }}", "MongoDB Atlas"]
+          {{- else }}
+          command: ["nslookup2"]
+          args: ["{{ .Values.global.mongodb.connection.url }}", "MongoDB"]
+          {{- end }}
+        - name: init-redis
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          command: ["nslookup2"]
+          args: ["{{ .Values.global.redis.connection.url }}", "Redis"]
+        - name: wait-for-rabbitmq-service
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          command: ["nslookup2"]
+          args: ["{{ .Values.global.rabbitmq.connection.url }}", "RabbitMQ Service"]
+        {{- if .Values.global.rabbitmq.init.checkManagementEndpoint }}
+        - name: wait-for-rabbitmq-management-endpoint
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          command: ["curl2"]
+          args: ["http{{ if .Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ .Values.global.rabbitmq.connection.url }}{{ if not .Values.global.rabbitmq.enableTLS }}:15672{{ end }}", "RabbitMQ Management Page"]
+        {{- end }}

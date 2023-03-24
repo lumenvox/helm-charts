@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: reporting-bio-api-service
+  name: archive-service
   namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
 spec:
   selector:
-    app: reporting-bio-api
+    app: archive
   ports:
-    - name: rest
-      port: 81
-      targetPort: rest
+    - name: http
+      port: 90
+      targetPort: http

@@ -1,0 +1,133 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: license
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+  labels:
+    app: license
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: license
+  template:
+    metadata:
+      labels:
+        app: license
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '5110'
+        {{- if .Values.global.linkerd.enabled }}
+        linkerd.io/inject: enabled
+        {{- end }}
+    spec:
+      containers:
+        - name: license
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/license{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          ports:
+            - name: grpc
+              containerPort: 5010
+            - name: http
+              containerPort: 5110
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
+            periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
+          {{- if .Values.global.lumenvox.service.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
+            periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
+          {{- end }}
+          resources:
+            requests:
+              cpu: 5m
+              memory: 30Mi
+            {{- if .Values.global.lumenvox.enforceLimits }}
+            limits:
+              cpu: 100m
+              memory: 50Mi
+            {{- end }}
+          envFrom:
+            - configMapRef:
+                name: lumenvox-configmap
+            - configMapRef:
+                name: timezone-configmap
+            {{- if .Values.global.rabbitmq.auth.existingPasswordSecret }}
+            - secretRef:
+                name: {{ .Values.global.rabbitmq.auth.existingPasswordSecret }}
+            {{- end }}
+            {{- if .Values.global.postgresql.auth.existingSecret }}
+            - secretRef:
+                name: {{ .Values.global.postgresql.auth.existingSecret }}
+            {{- end }}
+          env:
+            {{- if not .Values.global.rabbitmq.auth.existingPasswordSecret }}
+            - name: rabbitmq-password
+              value: '{{ .Values.global.rabbitmq.auth.password }}'
+            {{- end }}
+            {{- if not .Values.global.postgresql.auth.existingSecret }}
+            - name: postgresql-password
+              value: "{{ .Values.global.postgresql.auth.password }}"
+            {{- end }}
+            - name: GLOBAL_SETTINGS__RABBITMQ_CONNECTION_STRING
+              value: 'amqp{{ if .Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ .Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ .Values.global.rabbitmq.connection.url }}:{{ .Values.global.rabbitmq.connection.port }}'
+            - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
+              value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+            - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
+              value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+            - name: DB_SETTINGS__POSTGRES_CONNECTION_STRING
+              value: 'postgres://{{ .Values.global.postgresql.connection.user }}:$(postgresql-password)@{{ .Values.global.postgresql.connection.url }}:{{ .Values.global.postgresql.connection.port }}/?sslmode={{ .Values.global.postgresql.connection.ssl.mode }}{{ if .Values.global.postgresql.connection.ssl.caCertificate }}&sslrootcert=ServerRoot.crt{{ end }}'
+            {{- if .Values.global.postgresql.connection.ssl.caCertificate }}
+            - name: POSTGRES_ROOT_CERTIFICATE
+              value: "{{ .Values.global.postgresql.connection.ssl.caCertificate }}"
+            {{- end }}
+            - name: LICENSE_SETTINGS__CLUSTER_GUID
+              value: '{{ .Values.licensing.clusterGuid }}'
+            - name: LICENSE_SETTINGS__REPORT_FREQUENCY_MINS
+              value: '{{ .Values.licensing.reportFreqMins }}'
+            - name: LICENSE_SETTINGS__REPORT_SYNC_HOUR
+              value: '{{ .Values.licensing.reportSyncHour }}'
+            - name: LICENSE_SETTINGS__REPORT_SYNC_MIN
+              value: '{{ .Values.licensing.reportSyncMin }}'
+            {{- if .Values.licensing.reportEndpoint }}
+            - name: LICENSE_SETTINGS__REPORT_ENDPOINT
+              value: '{{ .Values.licensing.reportEndpoint }}'
+            {{- end }}
+            {{ if .Values.licensing.showDebugOutput }}
+            - name: LICENSE_SETTINGS__SHOW_DEBUG_OUTPUT
+              value: '{{ .Values.licensing.showDebugOutput }}'
+            {{- end }}
+            - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
+              value: 'ignore'
+            - name: LOCAL_SETTINGS__LICENSE_USAGE_COUNTERS_POLLING_INTERVAL_MIN
+              value: "60"
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.global.imagePullSecrets }}
+        - name: {{ . }}
+      {{- end }}
+      {{- end }}
+      initContainers:
+        - name: wait-for-deployment-service
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          command: ["curl2"]
+          args: ["http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:90/health", "Deployment Service"]
+        - name: wait-for-rabbitmq-service
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          command: ["nslookup2"]
+          args: ["{{ .Values.global.rabbitmq.connection.url }}", "RabbitMQ Service"]
+        {{- if .Values.global.rabbitmq.init.checkManagementEndpoint }}
+        - name: wait-for-rabbitmq-management-endpoint
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          command: ["curl2"]
+          args: ["http{{ if .Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ .Values.global.rabbitmq.connection.url }}{{ if not .Values.global.rabbitmq.enableTLS }}:15672{{ end }}", "RabbitMQ Management Page"]
+        {{- end }}

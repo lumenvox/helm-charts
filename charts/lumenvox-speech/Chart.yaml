@@ -2,25 +2,25 @@ apiVersion: v2
 name: lumenvox-speech
 description: LumenVox Speech Helm chart for Kubernetes
 type: application
-version: 3.4.2
-appVersion: "3.4.2"
+version: 4.1.0
+appVersion: "4.1.0"
 home: https://lumenvox.com
 annotations:
   artifacthub.io/containsSecurityUpdates: true
   artifacthub.io/images: |
     - name: vad
-      image: lumenvox/vad:3.4
+      image: lumenvox/vad:4.1
     - name: asr
-      image: lumenvox/asr:3.4
+      image: lumenvox/asr:4.1
     - name: tts
-      image: lumenvox/tts:3.4
+      image: lumenvox/tts:4.1
     - name: session
-      image: lumenvox/session:3.4
+      image: lumenvox/session:4.1
     - name: speech-api
-      image: lumenvox/speech-api:3.4
+      image: lumenvox/lumenvox-api:4.1
     - name: reporting-api
-      image: lumenvox/reporting-api:3.4
+      image: lumenvox/reporting-api:4.1
     - name: cloud-logging-sidecar
-      image: lumenvox/cloud-logging-sidecar:3.4
+      image: lumenvox/cloud-logging-sidecar:4.1
     - name: cloud-init-tools
-      image: lumenvox/cloud-init-tools:3.4
+      image: lumenvox/cloud-init-tools:4.1

@@ -28,12 +28,14 @@ spec:
           ports:
             - name: portal
               containerPort: 3001
-{{/*          readinessProbe:*/}}
-{{/*            httpGet:*/}}
-{{/*              path: /health*/}}
-{{/*              port: 5110*/}}
-{{/*            initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}*/}}
-{{/*            periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}*/}}
+            - name: http
+              containerPort: 5110
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
+            periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
           resources:
             requests:
               cpu: 5m
@@ -48,39 +50,39 @@ spec:
                 name: lumenvox-configmap
             - configMapRef:
                 name: timezone-configmap
-            {{- if .Values.rabbitmq.auth.existingPasswordSecret }}
+            {{- if .Values.global.rabbitmq.auth.existingPasswordSecret }}
             - secretRef:
-                name: {{ .Values.rabbitmq.auth.existingPasswordSecret }}
+                name: {{ .Values.global.rabbitmq.auth.existingPasswordSecret }}
             {{- end }}
           env:
-            {{- if not .Values.rabbitmq.auth.existingPasswordSecret }}
+            {{- if not .Values.global.rabbitmq.auth.existingPasswordSecret }}
             - name: rabbitmq-password
-              value: '{{ .Values.rabbitmq.auth.password }}'
+              value: '{{ .Values.global.rabbitmq.auth.password }}'
             {{- end }}
             - name: GLOBAL_SETTINGS__RABBITMQ_EASY_CONNECTION_STRING
               value: 'host={{ .Values.global.rabbitmq.connection.url }};port={{ .Values.global.rabbitmq.connection.port }};username={{ .Values.global.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10{{ if .Values.global.rabbitmq.enableTLS }};tls=true{{ end }}'
             - name: SERVICE_ADDRESSES__REPORTING_API
-              value: 'http://reporting-api-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+              value: 'http://reporting-api-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:8090'
             - name: SERVICE_ADDRESSES__MANAGEMENT_API
               value: 'http://management-api-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
               value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
               value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
-            - name: SERVICE_ADDRESSES__SPEECH_API
-              value: 'http://speech-api-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:80'
+            - name: SERVICE_ADDRESSES__LUMENVOX_API
+              value: 'http://lumenvox-api-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:8280'
             - name: SERVICE_ADDRESSES__ADMIN_PORTAL
               value: 'http://admin-portal-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: SERVICE_EXTERNAL_ADDRESSES__REPORTING_API
-              value: 'http://reporting-api.{{ .Values.global.hostnameSuffix }}'
+              value: 'https://reporting-api.{{ .Values.global.hostnameSuffix }}'
             - name: SERVICE_EXTERNAL_ADDRESSES__MANAGEMENT_API
-              value: 'http://management-api.{{ .Values.global.hostnameSuffix }}'
-            - name: SERVICE_EXTERNAL_ADDRESSES__SPEECH_API
-              value: 'http://speech-api.{{ .Values.global.hostnameSuffix }}'
+              value: 'https://management-api.{{ .Values.global.hostnameSuffix }}'
+            - name: SERVICE_EXTERNAL_ADDRESSES__LUMENVOX_API
+              value: 'https://lumenvox-api.{{ .Values.global.hostnameSuffix }}'
             - name: SERVICE_EXTERNAL_ADDRESSES__DEPLOYMENT_PORTAL
-              value: 'http://deployment-portal.{{ .Values.global.hostnameSuffix }}'
+              value: 'https://deployment-portal.{{ .Values.global.hostnameSuffix }}'
             - name: SERVICE_EXTERNAL_ADDRESSES__ADMIN_PORTAL
-              value: 'http://admin-portal.{{ .Values.global.hostnameSuffix }}'
+              value: 'https://admin-portal.{{ .Values.global.hostnameSuffix }}'
             {{- if .Values.global.enabled.lumenvoxSpeech }}
             {{- if .Values.global.asrLanguages }}
             - name: CLUSTER_LANGUAGES__ASR_LANGUAGES

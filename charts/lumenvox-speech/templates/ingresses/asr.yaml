@@ -1,0 +1,25 @@
+{{- if .Values.global.lumenvox.metrics.enableEndpoints }}
+{{- range .Values.global.asrLanguages }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: asr-{{ .name }}-ingress
+  namespace: {{ default $.Release.Namespace $.Values.global.defaultNamespace }}
+spec:
+  {{- if $.Values.global.lumenvox.ingress.className }}
+  ingressClassName: {{ $.Values.global.lumenvox.ingress.className }}
+  {{- end }}
+  rules:
+    - host: asr-{{ .name }}.{{ $.Values.global.hostnameSuffix }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: asr-{{ .name }}-service
+                port:
+                  name: http
+{{- end }}
+{{- end }}

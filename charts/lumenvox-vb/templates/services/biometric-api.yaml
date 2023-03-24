@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: reporting-bio-api-service
+  name: biometric-api-service
   namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
 spec:
   selector:
-    app: reporting-bio-api
+    app: biometric-api
   ports:
     - name: rest
       port: 81

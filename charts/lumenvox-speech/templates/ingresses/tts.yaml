@@ -1,0 +1,25 @@
+{{- if .Values.global.lumenvox.metrics.enableEndpoints }}
+{{- range .Values.global.ttsLanguages }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: tts-{{ .name | replace "_" "-" }}-ingress
+  namespace: {{ default $.Release.Namespace $.Values.global.defaultNamespace }}
+spec:
+  {{- if $.Values.global.lumenvox.ingress.className }}
+  ingressClassName: {{ $.Values.global.lumenvox.ingress.className }}
+  {{- end }}
+  rules:
+    - host: tts-{{ .name | replace "_" "-" }}.{{ $.Values.global.hostnameSuffix }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: tts-{{ .name | replace "_" "-" }}-service
+                port:
+                  name: http
+{{- end }}
+{{- end }}

@@ -1,0 +1,130 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: resource
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+  labels:
+    app: resource
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: resource
+  template:
+    metadata:
+      labels:
+        app: resource
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '5110'
+        {{- if .Values.global.linkerd.enabled }}
+        linkerd.io/inject: enabled
+        {{- end }}
+    spec:
+      containers:
+        - name: resource
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/resource{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          ports:
+            - name: grpc
+              containerPort: 8080
+            - name: http
+              containerPort: 5110
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+{{/*            allow 1 hour for startup*/}}
+            failureThreshold: 360
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
+            periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
+          {{- if .Values.global.lumenvox.service.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
+            periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
+          {{- end }}
+          resources:
+            requests:
+              cpu: 5m
+              memory: 30Mi
+            {{- if .Values.global.lumenvox.enforceLimits }}
+            limits:
+              cpu: 100m
+              memory: 50Mi
+            {{- end }}
+          envFrom:
+            - configMapRef:
+                name: timezone-configmap
+            {{- if .Values.global.postgresql.auth.existingSecret }}
+            - secretRef:
+                name: {{ .Values.global.postgresql.auth.existingSecret }}
+            {{- end }}
+          env:
+            {{- if not .Values.global.postgresql.auth.existingSecret }}
+            - name: postgresql-password
+              value: "{{ .Values.global.postgresql.auth.password }}"
+            {{- end }}
+            {{- if .Values.global.enabled.lumenvoxSpeech }}
+            {{- if .Values.global.asrLanguages }}
+            - name: CLUSTER_LANGUAGES__ASR_LANGUAGES
+              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__ASR_LANGUAGES_VERSION" . }}'
+            {{- end }}
+            {{- if .Values.global.ttsLanguages }}
+            - name: CLUSTER_LANGUAGES__TTS_LANGUAGES
+              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__TTS_LANGUAGES" . }}'
+            - name: CLUSTER_LANGUAGES__TTS_VOICES
+              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__TTS_VOICES_VERSION" . }}'
+            {{- end }}
+            {{- end }}
+            {{- if .Values.global.enabled.lumenvoxVb }}
+            - name: CLUSTER_LANGUAGES__VB_ACTIVE
+              value: '{{ template "lumenvox-vb.CLUSTER_LANGUAGES__VB_ACTIVE" . }}'
+            {{- end }}
+            - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
+              value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+            - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
+              value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+            - name: RESOURCE_SETTINGS__MAX_CONCURRENT_DOWNLOADS
+              value: '4'
+            - name: RESOURCE_SETTINGS__DOWNLOAD_ATTEMPT_COUNTER
+              value: '4'
+            - name: RESOURCE_SETTINGS__DOWNLOAD_ATTEMPT_DELAY_IN_MS
+              value: '1500'
+            - name: RESOURCE_SETTINGS__GRPC_API_PORT
+              value: '8080'
+            - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
+              value: 'ignore'
+          volumeMounts:
+            - mountPath: /etc/lumenvox/Lang
+              name: lang
+            - mountPath: /usr/lib64/lumenvox_backends
+              name: backends
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.global.imagePullSecrets }}
+        - name: {{ . }}
+      {{- end }}
+      {{- end }}
+      initContainers:
+        - name: wait-for-deployment-service
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          command: ["curl2"]
+          args: ["http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:90/health", "Deployment Service"]
+      volumes:
+        - name: lang
+          persistentVolumeClaim:
+            claimName: lang-claim
+            readOnly: false
+        - name: backends
+          persistentVolumeClaim:
+            claimName: backends-claim
+            readOnly: false

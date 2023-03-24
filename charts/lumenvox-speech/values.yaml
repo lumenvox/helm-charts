@@ -8,14 +8,6 @@ global:
   asrLanguages: []
   ttsLanguages: []
 
-redis:
-  auth:
-    existingSecret: redis-existing-secret
-
-rabbitmq:
-  auth:
-    existingPasswordSecret: "rabbitmq-existing-secret"
-
 asr:
   useFakeResult: "false"
 

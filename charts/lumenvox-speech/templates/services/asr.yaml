@@ -1,0 +1,18 @@
+{{- range .Values.global.asrLanguages }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: asr-{{ .name }}-service
+  namespace: {{ default $.Release.Namespace $.Values.global.defaultNamespace }}
+spec:
+  selector:
+    app: asr-{{ .name }}
+  ports:
+    - name: grpc
+      port: 80
+      targetPort: grpc
+    - name: http
+      port: 90
+      targetPort: http
+{{- end }}

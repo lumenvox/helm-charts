@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lumenvox-api
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+  labels:
+    app: lumenvox-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lumenvox-api
+  template:
+    metadata:
+      labels:
+        app: lumenvox-api
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '5110'      
+        {{- if .Values.global.linkerd.enabled }}
+        linkerd.io/inject: enabled
+        {{- end }}
+    spec:
+      containers:
+        - name: lumenvox-api
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/lumenvox-api{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          ports:
+            - name: grpc  # Main API (gRPC)
+              containerPort: 8280
+            - name: http  # Prometheus=/metrics, Health=/health, /ready
+              containerPort: 5110
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
+          resources:
+            requests:
+              cpu: 50m
+              memory: 100Mi
+            {{- if .Values.global.lumenvox.enforceLimits }}
+            limits:
+              cpu: 60m
+              memory: 120Mi
+            {{- end }}
+          envFrom:
+            - configMapRef:
+                name: timezone-configmap
+            {{- if .Values.global.rabbitmq.auth.existingPasswordSecret }}
+            - secretRef:
+                name: {{ .Values.global.rabbitmq.auth.existingPasswordSecret }}
+            {{- end }}
+            {{- if .Values.global.redis.auth.existingSecret }}
+            - secretRef:
+                name: {{ .Values.global.redis.auth.existingSecret }}
+            {{- end }}
+          env:
+            {{- if not .Values.global.rabbitmq.auth.existingPasswordSecret }}
+            - name: rabbitmq-password
+              value: '{{ .Values.global.rabbitmq.auth.password }}'
+            {{- end }}
+            {{- if not .Values.global.redis.auth.existingSecret }}
+            - name: redis-password
+              value: '{{ .Values.global.redis.auth.password }}'
+            {{- end }}
+            - name: GLOBAL_SETTINGS__RABBITMQ_CONNECTION_STRING
+              value: 'amqp{{ if .Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ .Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ .Values.global.rabbitmq.connection.url }}:{{ .Values.global.rabbitmq.connection.port }}'
+            - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
+              value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+            - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
+              value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+            - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
+              value: 'ignore'
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.global.imagePullSecrets }}
+        - name: {{ . }}
+      {{- end }}
+      {{- end }}
+      initContainers:
+        - name: wait-for-deployment-service
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          command: ["curl2"]
+          args: ["http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:90/health", "Deployment Service"]

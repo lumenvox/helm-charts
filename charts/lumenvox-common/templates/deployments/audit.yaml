@@ -1,53 +1,57 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: reporting-bio-api
+  name: audit
   namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
   labels:
-    app: reporting-bio-api
+    app: audit
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: reporting-bio-api
+      app: audit
   template:
     metadata:
       labels:
-        app: reporting-bio-api
+        app: audit
       annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '90'
         {{- if .Values.global.linkerd.enabled }}
         linkerd.io/inject: enabled
         {{- end }}
     spec:
       containers:
-        - name: reporting-bio-api
-          image: {{ .Values.image.repository | default .Values.global.image.repository }}/reporting-bio-api{{ .Values.image.tag | default .Values.global.image.tag }}
+        - name: audit
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/audit{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           ports:
-            - name: rest
+            - name: grpc
               containerPort: 80
+            - name: http
+              containerPort: 90
           readinessProbe:
             httpGet:
               path: /health
-              port: rest
-            initialDelaySeconds: 12
+              port: http
+            initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
           {{- if .Values.global.lumenvox.service.livenessProbe.enabled }}
           livenessProbe:
             httpGet:
               path: /health
-              port: rest
-            initialDelaySeconds: 12
+              port: http
+            initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
           {{- end }}
           resources:
             requests:
-              cpu: 10m
-              memory: 100Mi
+              cpu: 250m
+              memory: 400Mi
             {{- if .Values.global.lumenvox.enforceLimits }}
             limits:
-              cpu: 100m
-              memory: 250Mi
+              cpu: 400m
+              memory: 500Mi
             {{- end }}
           envFrom:
             - configMapRef:
@@ -65,20 +69,20 @@ spec:
             {{- end }}
             - name: GLOBAL_SETTINGS__RABBITMQ_EASY_CONNECTION_STRING
               value: 'host={{ .Values.global.rabbitmq.connection.url }};port={{ .Values.global.rabbitmq.connection.port }};username={{ .Values.global.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10{{ if .Values.global.rabbitmq.enableTLS }};tls=true{{ end }}'
-            - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
-              value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
               value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
-            - name: SERVICE_ADDRESSES__BINARY_STORAGE_SERVICE
-              value: 'http://binary-storage-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
-            - name: SERVICE_ADDRESSES__REPORTING_SERVICE
-              value: 'http://reporting-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+            - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
+              value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: DB_SETTINGS__DEPLOYMENT_RECONNECTION_TIMEOUT_SEC
               value: '{{ .Values.global.lumenvox.deploymentReconnectionTimeoutSec }}'
-            - name: LOCAL_SETTINGS__ENABLE_AUDIT_LOG
-              value: '{{ .Values.global.lumenvox.enableAudit }}'
+            - name: DB_MIGRATION__RUN_DATABASE_MIGRATIONS
+              value: '{{ .Values.global.postgresql.runMigrations }}'
+            - name: DB_MIGRATION__EXIT_AFTER_DATABASE_MIGRATIONS
+              value: '{{ .Values.global.postgresql.exitAfterMigrations }}'
+            - name: DB_MIGRATION__DB_COMMAND_TIMEOUT_SECONDS
+              value: '{{ .Values.global.postgresql.commandTimeoutSeconds }}'
             - name: LOCAL_SETTINGS__SERVICE_START_DELAY_SECONDS
-              value: '6'
+              value: '5'
       {{- if .Values.global.imagePullSecrets }}
       imagePullSecrets:
       {{- range .Values.global.imagePullSecrets }}
@@ -86,8 +90,20 @@ spec:
       {{- end }}
       {{- end }}
       initContainers:
-        - name: wait-for-reporting-service
+        - name: wait-for-deployment-service
           image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           command: ["curl2"]
-          args: ["http://reporting-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:90/health", "Reporting Service"]
+          args: ["http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:90/health", "Deployment Service"]
+        - name: wait-for-rabbitmq-service
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          command: ["nslookup2"]
+          args: ["{{ .Values.global.rabbitmq.connection.url }}", "RabbitMQ Service"]
+        {{- if .Values.global.rabbitmq.init.checkManagementEndpoint }}
+        - name: wait-for-rabbitmq-management-endpoint
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          command: ["curl2"]
+          args: ["http{{ if .Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ .Values.global.rabbitmq.connection.url }}{{ if not .Values.global.rabbitmq.enableTLS }}:15672{{ end }}", "RabbitMQ Management Page"]
+        {{- end }}
