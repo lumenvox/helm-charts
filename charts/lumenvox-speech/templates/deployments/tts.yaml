@@ -75,6 +75,8 @@ spec:
             - name: redis-password
               value: '{{ $.Values.global.redis.auth.password }}'
             {{- end }}
+            - name: GLOBAL_SETTINGS__CLUSTER_LOG_VERBOSITY
+              value: '{{ $.Values.global.lumenvox.loggingVerbosity }}'
             - name: GLOBAL_SETTINGS__RABBITMQ_CONNECTION_STRING
               value: 'amqp{{ if $.Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ $.Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ $.Values.global.rabbitmq.connection.url }}:{{ $.Values.global.rabbitmq.connection.port }}'
             - name: GLOBAL_SETTINGS__REDIS_CONNECTION_STRING

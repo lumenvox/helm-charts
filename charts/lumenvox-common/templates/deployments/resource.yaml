@@ -88,6 +88,8 @@ spec:
             - name: CLUSTER_LANGUAGES__VB_ACTIVE
               value: '{{ template "lumenvox-vb.CLUSTER_LANGUAGES__VB_ACTIVE" . }}'
             {{- end }}
+            - name: GLOBAL_SETTINGS__CLUSTER_LOG_VERBOSITY
+              value: '{{ .Values.global.lumenvox.loggingVerbosity }}'
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
               value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
