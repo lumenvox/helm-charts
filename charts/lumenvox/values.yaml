@@ -48,6 +48,8 @@ global:
       livenessProbe:
         enabled: true
     enforceLimits: false
+    # Cluster-level logging verbosity. Options: debug, info, warn, error, dpanic, panic, fatal
+    loggingVerbosity: "info"
   image:
     repository: "lumenvox"
     pullPolicy: IfNotPresent
