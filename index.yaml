@@ -566,6 +566,46 @@ entries:
         - name: cloud-init-tools
           image: lumenvox/cloud-init-tools:4.1
     apiVersion: v2
+    appVersion: 4.1.2
+    created: "2023-04-11T16:19:52.370752023Z"
+    description: LumenVox Common Components Helm chart for Kubernetes
+    digest: 517fc17a49a833669ac7ef80b33af67150efa5bd24e3a8f40a800ea5643c57be
+    home: https://lumenvox.com
+    name: lumenvox-common
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-common-4.1.2/lumenvox-common-4.1.2.tgz
+    version: 4.1.2
+  - annotations:
+      artifacthub.io/containsSecurityUpdates: "true"
+      artifacthub.io/images: |
+        - name: admin-portal
+          image: lumenvox/admin-portal:4.1
+        - name: deployment-portal
+          image: lumenvox/deployment-portal:4.1
+        - name: archive
+          image: lumenvox/archive:4.1
+        - name: audit
+          image: lumenvox/audit:4.1
+        - name: binary-storage
+          image: lumenvox/binary-storage:4.1
+        - name: configuration
+          image: lumenvox/configuration:4.1
+        - name: deployment
+          image: lumenvox/deployment:4.1
+        - name: license
+          image: lumenvox/license:4.1
+        - name: management-api
+          image: lumenvox/management-api:4.1
+        - name: reporting
+          image: lumenvox/reporting:4.1
+        - name: resource
+          image: lumenvox/resource:4.1
+        - name: transaction
+          image: lumenvox/transaction:4.1
+        - name: cloud-init-tools
+          image: lumenvox/cloud-init-tools:4.1
+    apiVersion: v2
     appVersion: 4.1.1
     created: "2023-03-31T00:02:18.786281141Z"
     description: LumenVox Common Components Helm chart for Kubernetes
