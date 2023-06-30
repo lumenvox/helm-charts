@@ -50,10 +50,12 @@ global:
     enforceLimits: false
     # Cluster-level logging verbosity. Options: debug, info, warn, error, dpanic, panic, fatal
     loggingVerbosity: "info"
+    # download link for resource service to download models and manifests. Default is the LumenVox S3 location.
+    resourceDownloadEndpoint: "https://lumenvox-public-assets.s3.us-east-1.amazonaws.com/"
   image:
     repository: "lumenvox"
     pullPolicy: IfNotPresent
-    tag: ":4.1"
+    tag: ":4.2"
   imagePullSecrets: []
   rabbitmq:
     enableTLS: false
@@ -87,6 +89,8 @@ global:
       url: "external-services-postgresql.lumenvox"
       port: 5432
       user: "lvuser"
+      # default database name for Postgres
+      databaseName: "lumenvox_db"
       ssl:
         # mode: disable or verify-ca
         mode: "disable"
@@ -101,6 +105,7 @@ global:
     lumenvoxSpeech: false
     lumenvoxVb: false
     lumenvoxCommon: true
-  asrDefaultVersion: "2.2"
+  enableItn: false
+  asrDefaultVersion: "4.1.0"
   ttsDefaultVersion: "1.0"
-  vbDefaultVersion: "2.1.13"
+  vbDefaultVersion: "2.1.15"

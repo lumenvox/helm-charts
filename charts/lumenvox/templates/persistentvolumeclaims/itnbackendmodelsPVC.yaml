@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: asr-grammar-cache-claim
+  name: itnbackendmodels-claim
   namespace: {{ default $.Release.Namespace $.Values.global.defaultNamespace }}
 spec:
   accessModes:
@@ -10,7 +10,7 @@ spec:
   {{- else if eq .Values.platform "cloud" }}
     - ReadWriteMany
   {{- end }}
-  volumeName: asr-grammar-cache
+  volumeName: itnbackendmodels
   storageClassName: ""
   resources:
     requests:

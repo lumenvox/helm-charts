@@ -1,7 +1,8 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: cached-client-grammars-claim
+  name: europa-cache-claim
+  namespace: {{ default $.Release.Namespace $.Values.global.defaultNamespace }}
 spec:
   accessModes:
   {{- if eq .Values.platform "minikube" }}
@@ -9,7 +10,7 @@ spec:
   {{- else if eq .Values.platform "cloud" }}
     - ReadWriteMany
   {{- end }}
-  volumeName: cached-client-grammars
+  volumeName: europa-cache
   storageClassName: ""
   resources:
     requests:
