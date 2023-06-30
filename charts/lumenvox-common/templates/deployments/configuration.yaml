@@ -21,8 +21,6 @@ spec:
         linkerd.io/inject: enabled
         {{- end }}
     spec:
-      # Assign this pod a higher priority than others, but lower than deployment, since others are dependent on both
-      priorityClassName: high-priority-nonpreempting
       containers:
         - name: configuration
           image: {{ .Values.image.repository | default .Values.global.image.repository }}/configuration{{ .Values.image.tag | default .Values.global.image.tag }}

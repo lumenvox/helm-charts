@@ -77,8 +77,6 @@ spec:
               value: '{{ .Values.global.lumenvox.loggingVerbosity }}'
             - name: GLOBAL_SETTINGS__RABBITMQ_CONNECTION_STRING
               value: 'amqp{{ if .Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ .Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ .Values.global.rabbitmq.connection.url }}:{{ .Values.global.rabbitmq.connection.port }}'
-            - name: GLOBAL_SETTINGS__REDIS_CONNECTION_STRING
-              value: '{{ .Values.global.redis.connection.url }}:{{ .Values.global.redis.connection.port }},password=$(redis-password){{ if .Values.global.redis.enableTLS }},ssl=true{{ end }}'
             - name: CLUSTER_LANGUAGES__ASR_LANGUAGES
               value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__ASR_LANGUAGES" . }}'
             - name: CLUSTER_LANGUAGES__TTS_LANGUAGES
@@ -87,6 +85,12 @@ spec:
               value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
               value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+            - name: SETTINGS__USE_GRAMMAR_MANAGER
+              value: 'true'
+            - name: SETTINGS__GRAMMAR_MANAGER_TO_SESSION_MANAGER_QUEUE
+              value: 'grammar_to_session_manager'
+            - name: SETTINGS__GRAMMAR_MANAGER_QUEUE
+              value: 'session_to_grammar_manager'
             - name: SESSION_SETTINGS__API_EXCHANGE
               value: 'BroadcastExchange'
             - name: LOCAL_SETTINGS__ENV

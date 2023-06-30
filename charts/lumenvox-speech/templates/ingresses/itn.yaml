@@ -1,0 +1,27 @@
+{{- if .Values.global.enableItn }}
+{{- if .Values.global.lumenvox.metrics.enableEndpoints }}
+{{- range .Values.global.asrLanguages }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: itn-{{ .name }}-ingress
+  namespace: {{ default $.Release.Namespace $.Values.global.defaultNamespace }}
+spec:
+  {{- if $.Values.global.lumenvox.ingress.className }}
+  ingressClassName: {{ $.Values.global.lumenvox.ingress.className }}
+  {{- end }}
+  rules:
+    - host: itn-{{ .name }}.{{ $.Values.global.hostnameSuffix }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: itn-{{ .name }}-service
+                port:
+                  name: http
+{{- end }}
+{{- end }}
+{{- end }}

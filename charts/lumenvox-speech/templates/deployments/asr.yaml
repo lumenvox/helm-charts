@@ -85,8 +85,6 @@ spec:
               value: '{{ $.Values.global.lumenvox.loggingVerbosity }}'
             - name: GLOBAL_SETTINGS__RABBITMQ_CONNECTION_STRING
               value: 'amqp{{ if $.Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ $.Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ $.Values.global.rabbitmq.connection.url }}:{{ $.Values.global.rabbitmq.connection.port }}'
-            - name: GLOBAL_SETTINGS__REDIS_CONNECTION_STRING
-              value: '{{ $.Values.global.redis.connection.url }}:{{ $.Values.global.redis.connection.port }},password=$(redis-password){{ if $.Values.global.redis.enableTLS }},ssl=true{{ end }}'
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
               value: 'http://configuration-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
@@ -95,54 +93,15 @@ spec:
               value: '{{ .name }}'
             - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
               value: 'ignore'
-            - name: ENABLE_FAKE_RESULT
-              value: '{{ $.Values.asr.useFakeResult }}'
           volumeMounts:
-            - mountPath: /etc/lumenvox/Lang/Dict
-              name: dict
-            - mountPath: /etc/lumenvox/Lang/AsrModels
-              name: asrmodels
-            - mountPath: /var/lumenvox/grammar_cache
-              name: asr
-            - mountPath: /var/lumenvox/cached_client_grammars
-              name: cache
-            - mountPath: /usr/lib64/lumenvox_backends
-              name: backends
-            - mountPath: /var/log/lumenvox/sre
-              name: logs
-        - name: asr-application-log
-          image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/cloud-logging-sidecar{{ $.Values.image.tag | default $.Values.global.image.tag }}
-          imagePullPolicy: {{ $.Values.image.pullPolicy | default $.Values.global.image.pullPolicy }}
-          env:
-            - name: LOG_FILE_PATH
-              value: "/var/log/asr_server_app.txt"
-        - name: asr-restart-log
-          image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/cloud-logging-sidecar{{ $.Values.image.tag | default $.Values.global.image.tag }}
-          imagePullPolicy: {{ $.Values.image.pullPolicy | default $.Values.global.image.pullPolicy }}
-          env:
-            - name: LOG_FILE_PATH
-              value: "/var/log/asr_server_restart.txt"
-          volumeMounts:
-            - mountPath: /var/log
-              name: logs
-        - name: asr-exceptions-log
-          image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/cloud-logging-sidecar{{ $.Values.image.tag | default $.Values.global.image.tag }}
-          imagePullPolicy: {{ $.Values.image.pullPolicy | default $.Values.global.image.pullPolicy }}
-          env:
-            - name: LOG_FILE_PATH
-              value: "/var/log/Exceptions_LV_ENGINE_SERVER.txt"
-          volumeMounts:
-            - mountPath: /var/log
-              name: logs
-        - name: asr-grammar-log
-          image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/cloud-logging-sidecar{{ $.Values.image.tag | default $.Values.global.image.tag }}
-          imagePullPolicy: {{ $.Values.image.pullPolicy | default $.Values.global.image.pullPolicy }}
-          env:
-            - name: LOG_FILE_PATH
-              value: "/var/log/asr_server_grammar.txt"
-          volumeMounts:
-            - mountPath: /var/log
-              name: logs
+            - mountPath: /usr/local/lib/python3.8/dist-packages
+              name: dist-packages
+            - mountPath: /EuropaAsrModels
+              name: europamodels
+            - mountPath: /var/lumenvox/cache
+              name: europa-cache
+            - mountPath: /BackendModels
+              name: backendmodels
       {{- if $.Values.global.imagePullSecrets }}
       imagePullSecrets:
       {{- range $.Values.global.imagePullSecrets }}
@@ -161,26 +120,20 @@ spec:
           command: ["curl2"]
           args: ["http://resource-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}:90/health", "Resource Manager Service"]
       volumes:
-        - name: dict
+        - name: dist-packages
           persistentVolumeClaim:
-            claimName: dict-claim
+            claimName: dist-packages-claim
             readOnly: false
-        - name: asrmodels
+        - name: europamodels
           persistentVolumeClaim:
-            claimName: asr-models-claim
+            claimName: europamodels-claim
             readOnly: false
-        - name: asr
+        - name: backendmodels
           persistentVolumeClaim:
-            claimName: asr-grammar-cache-claim
+            claimName: backendmodels-claim
             readOnly: false
-        - name: cache
+        - name: europa-cache
           persistentVolumeClaim:
-            claimName: cached-client-grammars-claim
+            claimName: europa-cache-claim
             readOnly: false
-        - name: backends
-          persistentVolumeClaim:
-            claimName: backends-claim
-            readOnly: false
-        - name: logs
-          emptyDir: {}
 {{- end }}

@@ -1,0 +1,20 @@
+{{- if .Values.global.enableItn }}
+{{- range .Values.global.asrLanguages }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: itn-{{ .name }}-service
+  namespace: {{ default $.Release.Namespace $.Values.global.defaultNamespace }}
+spec:
+  selector:
+    app: itn-{{ .name }}
+  ports:
+    - name: grpc
+      port: 80
+      targetPort: grpc
+    - name: http
+      port: 90
+      targetPort: http
+{{- end }}
+{{- end }}

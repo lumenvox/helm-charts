@@ -76,6 +76,12 @@ spec:
             {{- if .Values.global.asrLanguages }}
             - name: CLUSTER_LANGUAGES__ASR_LANGUAGES
               value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__ASR_LANGUAGES_VERSION" . }}'
+            - name: CLUSTER_LANGUAGES__DNN_MODULES
+              value: 'backend_dnn_model_p;dist_package_model_en'
+            {{- if .Values.global.enableItn }}
+            - name: CLUSTER_LANGUAGES__ITN_LANGUAGES
+              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__ASR_LANGUAGES" . }}'
+            {{- end }}
             {{- end }}
             {{- if .Values.global.ttsLanguages }}
             - name: CLUSTER_LANGUAGES__TTS_LANGUAGES
@@ -94,6 +100,8 @@ spec:
               value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
               value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+            - name: RESOURCE_SETTINGS__RESOURCE_DOWNLOAD_ENDPOINT
+              value: '{{ .Values.global.lumenvox.resourceDownloadendpoint }}'
             - name: RESOURCE_SETTINGS__MAX_CONCURRENT_DOWNLOADS
               value: '4'
             - name: RESOURCE_SETTINGS__DOWNLOAD_ATTEMPT_COUNTER

@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: vad
+  name: grammar
   namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
   labels:
-    app: vad
+    app: grammar
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: vad
+      app: grammar
   template:
     metadata:
       labels:
-        app: vad
+        app: grammar
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '5110'
@@ -22,12 +22,10 @@ spec:
         {{- end }}
     spec:
       containers:
-        - name: vad
-          image: {{ .Values.image.repository | default .Values.global.image.repository }}/vad{{ .Values.image.tag | default .Values.global.image.tag }}
+        - name: grammar
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/grammar{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           ports:
-            - name: grpc
-              containerPort: 5010
             - name: http
               containerPort: 5110
           readinessProbe:
@@ -76,13 +74,24 @@ spec:
             - name: GLOBAL_SETTINGS__CLUSTER_LOG_VERBOSITY
               value: '{{ .Values.global.lumenvox.loggingVerbosity }}'
             - name: GLOBAL_SETTINGS__RABBITMQ_CONNECTION_STRING
-              value: 'amqp{{ if .Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ $.Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ $.Values.global.rabbitmq.connection.url }}:{{ $.Values.global.rabbitmq.connection.port }}'
+              value: 'amqp{{ if .Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ .Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ .Values.global.rabbitmq.connection.url }}:{{ .Values.global.rabbitmq.connection.port }}'
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
               value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
               value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+            - name: GRAMMAR_SETTINGS__SERVICE_QUEUE
+              value: 'session_to_grammar_manager'
             - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
-              value: 'ignore'
+              value: 'ignore'  
+          volumeMounts:
+            - mountPath: /etc/lumenvox/Lang/Dict
+              name: dict
+            - mountPath: /etc/lumenvox/Lang/AsrModels
+              name: asrmodels 
+            - mountPath: /var/lumenvox/cache
+              name: europa-cache
+            - mountPath: /var/log/lumenvox/sre
+              name: grammarlog    
       {{- if .Values.global.imagePullSecrets }}
       imagePullSecrets:
       {{- range .Values.global.imagePullSecrets }}
@@ -95,3 +104,26 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           command: ["curl2"]
           args: ["http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:90/health", "Deployment Service"]
+        - name: wait-for-resource-manager
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy | default $.Values.global.image.pullPolicy }}
+          command: ["curl2"]
+          args: ["http://resource-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:90/health", "Resource Manager Service"]    
+      volumes:
+        - name: dict
+          persistentVolumeClaim:
+            claimName: dict-claim
+            readOnly: false
+        - name: asrmodels
+          persistentVolumeClaim:
+            claimName: asr-models-claim
+            readOnly: false
+        - name: europa-cache
+          persistentVolumeClaim:
+            claimName: europa-cache-claim
+            readOnly: false
+        - name: grammarlog
+          persistentVolumeClaim:
+            claimName: grammarlogs-claim
+            readOnly: false   
+          

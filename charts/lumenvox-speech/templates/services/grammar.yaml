@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: grammar-service
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+spec:
+  selector:
+    app: grammar
+  ports:
+    - name: grpc
+      port: 80
+      targetPort: grpc
+    - name: http
+      port: 90
+      targetPort: http
