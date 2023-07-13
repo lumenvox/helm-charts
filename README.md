@@ -12,7 +12,7 @@ to Helm's [documentation](https://helm.sh/docs/) to get started
 
 ## Prerequisites
 
-* Kubernetes 1.19+
+* Kubernetes 1.26.4 (and below)
 * Helm 3+
 
 ## Get Repo Info
