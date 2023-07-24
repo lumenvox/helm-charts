@@ -1141,6 +1141,36 @@ entries:
         - name: cloud-init-tools
           image: lumenvox/cloud-init-tools:4.2
     apiVersion: v2
+    appVersion: 4.2.1
+    created: "2023-07-24T15:24:23.634212931Z"
+    description: LumenVox Speech Helm chart for Kubernetes
+    digest: af1b4d8ec6ebefc8811e96b6cefdb69547d0f412b5598d5f9c09227214f5cc99
+    home: https://lumenvox.com
+    name: lumenvox-speech
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-speech-4.2.1/lumenvox-speech-4.2.1.tgz
+    version: 4.2.1
+  - annotations:
+      artifacthub.io/containsSecurityUpdates: "true"
+      artifacthub.io/images: |
+        - name: vad
+          image: lumenvox/vad:4.2
+        - name: asr
+          image: lumenvox/asr:4.2
+        - name: tts
+          image: lumenvox/tts:4.2
+        - name: session
+          image: lumenvox/session:4.2
+        - name: speech-api
+          image: lumenvox/lumenvox-api:4.2
+        - name: reporting-api
+          image: lumenvox/reporting-api:4.2
+        - name: cloud-logging-sidecar
+          image: lumenvox/cloud-logging-sidecar:4.2
+        - name: cloud-init-tools
+          image: lumenvox/cloud-init-tools:4.2
+    apiVersion: v2
     appVersion: 4.2.0
     created: "2023-06-30T16:19:10.057072549Z"
     description: LumenVox Speech Helm chart for Kubernetes
