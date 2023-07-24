@@ -95,7 +95,7 @@ spec:
               value: 'ignore'
           volumeMounts:
             - mountPath: /usr/local/lib/python3.8/dist-packages
-              name: dist-packages
+              name: asr-dist-packages
             - mountPath: /EuropaAsrModels
               name: europamodels
             - mountPath: /var/lumenvox/cache
@@ -120,9 +120,9 @@ spec:
           command: ["curl2"]
           args: ["http://resource-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}:90/health", "Resource Manager Service"]
       volumes:
-        - name: dist-packages
+        - name: asr-dist-packages
           persistentVolumeClaim:
-            claimName: dist-packages-claim
+            claimName: asr-dist-packages-claim
             readOnly: false
         - name: europamodels
           persistentVolumeClaim:
