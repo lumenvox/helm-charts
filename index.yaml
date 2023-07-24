@@ -7,6 +7,35 @@ entries:
         - name: cloud-init-tools
           image: lumenvox/cloud-init-tools:4.2
     apiVersion: v2
+    appVersion: 4.2.1
+    created: "2023-07-24T15:26:28.254709177Z"
+    dependencies:
+    - condition: global.enabled.lumenvoxVb
+      name: lumenvox-vb
+      repository: https://lumenvox.github.io/helm-charts
+      version: 4.2.0
+    - condition: global.enabled.lumenvoxCommon
+      name: lumenvox-common
+      repository: https://lumenvox.github.io/helm-charts
+      version: 4.2.0
+    - condition: global.enabled.lumenvoxSpeech
+      name: lumenvox-speech
+      repository: https://lumenvox.github.io/helm-charts
+      version: 4.2.1
+    description: LumenVox Helm chart for Kubernetes
+    digest: a27b4defafba569c9d569dfac51e15dbd4fa1735cdaf165757a53adbd9d3b993
+    home: https://lumenvox.com
+    name: lumenvox
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-4.2.1/lumenvox-4.2.1.tgz
+    version: 4.2.1
+  - annotations:
+      artifacthub.io/containsSecurityUpdates: "true"
+      artifacthub.io/images: |
+        - name: cloud-init-tools
+          image: lumenvox/cloud-init-tools:4.2
+    apiVersion: v2
     appVersion: 4.2.0
     created: "2023-06-30T16:22:04.38683617Z"
     dependencies:
