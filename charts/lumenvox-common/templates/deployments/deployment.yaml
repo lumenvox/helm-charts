@@ -98,7 +98,7 @@ spec:
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
               value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: DB_SETTINGS__POSTGRES_CONNECTION_STRING
-              value: 'postgres://{{ .Values.global.postgresql.connection.user }}:$(postgresql-password)@{{ .Values.global.postgresql.connection.url }}:{{ .Values.global.postgresql.connection.port }}/{{ .Values.global.postgresql.connection.databaseName }}?sslmode={{ .Values.global.postgresql.connection.ssl.mode }}{{ if .Values.global.postgresql.connection.ssl.caCertificate }}&sslrootcert=ServerRoot.crt{{ end }}'
+              value: 'postgres://{{ .Values.global.postgresql.connection.user }}:$(postgresql-password)@{{ .Values.global.postgresql.connection.url }}:{{ .Values.global.postgresql.connection.port }}/{{ .Values.global.postgresql.connection.databaseName }}?sslmode={{ .Values.global.postgresql.connection.ssl.mode }}{{ if .Values.global.postgresql.connection.ssl.caCertificate }}&sslrootcert=ServerRoot.crt{{ end }}&search_path={{ .Values.global.postgresql.connection.databaseSchema }}'
             {{- if .Values.global.postgresql.connection.ssl.caCertificate }}
             - name: POSTGRES_ROOT_CERTIFICATE
               value: "{{ .Values.global.postgresql.connection.ssl.caCertificate }}"
