@@ -91,6 +91,8 @@ global:
       user: "lvuser"
       # default database name for Postgres
       databaseName: "lumenvox_db"
+      # default schema name for Postgres database
+      databaseSchema: "public"
       ssl:
         # mode: disable or verify-ca
         mode: "disable"
