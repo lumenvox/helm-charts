@@ -111,3 +111,4 @@ global:
   asrDefaultVersion: "4.1.0"
   ttsDefaultVersion: "1.0"
   vbDefaultVersion: "2.1.15"
+  extraRootCaCerts: false

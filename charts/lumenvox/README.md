@@ -94,6 +94,36 @@ store it in `global.postgresql.connection.ssl.caCertificate`. To encode it, the 
 base64 -w 0 ca.crt
 ```
 
+### Trusted Root CA Configuration
+| Parameter                  | Description                                 | Default |
+|----------------------------|---------------------------------------------|---------|
+| `global.extraRootCaCerts`  | If `true`, read extra root CAs from secret  | `false` |
+
+When receiving a grammar referenced via URL, the grammar manager will fetch from the specified
+URL. To support fetching from servers signed with custom certificate authorities, you may add
+a set of extra root CAs to trust.
+
+To use this feature, start with a file containing the set of root CA certificates, `extra_cas.pem`:
+```text
+-----BEGIN CERTIFICATE-----
+...
+...
+...
+-----END CERTIFICATE-----
+-----BEGIN CERTIFICATE-----
+...
+...
+...
+-----END CERTIFICATE-----
+```
+
+This file should be added as a secret `extra-root-ca-secret` with the field `extra-root-ca-certs`:
+```shell
+kubectl create secret generic extra-root-ca-secret -n lumenvox --from-file=extra-root-ca-certs=./extra_cas.pem
+```
+
+Once the secret has been created, set `global.extraRootCaCerts` to true.
+
 ### Product Selection
 | Parameter                       | Description                                 | Default |
 |---------------------------------|---------------------------------------------|---------|
