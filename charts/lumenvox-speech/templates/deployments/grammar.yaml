@@ -62,6 +62,10 @@ spec:
             - secretRef:
                 name: {{ .Values.global.redis.auth.existingSecret }}
             {{- end }}
+            {{- if .Values.global.extraRootCaCerts }}
+            - secretRef:
+                name: extra-root-ca-secret
+            {{- end }}
           env:
             {{- if not .Values.global.rabbitmq.auth.existingPasswordSecret }}
             - name: rabbitmq-password
