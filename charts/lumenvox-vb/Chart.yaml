@@ -2,19 +2,19 @@ apiVersion: v2
 name: lumenvox-vb
 description: LumenVox Voice Biometrics Helm chart for Kubernetes
 type: application
-version: 4.2.0
-appVersion: "4.2.0"
+version: 4.3.0
+appVersion: "4.3.0"
 home: https://lumenvox.com
 annotations:
   artifacthub.io/containsSecurityUpdates: true
   artifacthub.io/images: |
-    - name: biometric-api
-      image: lumenvox/biometric-api:4.2
-    - name: biometric-identity
-      image: lumenvox/biometric-identity:4.2
     - name: biometric-active
-      image: lumenvox/biometric-active:4.2
-    - name: reporting-bio-api
-      image: lumenvox/reporting-bio-api:4.2
+      image: lumenvox/biometric-active:4.3
+    - name: biometric-api
+      image: lumenvox/biometric-api:4.3
+    - name: biometric-identity
+      image: lumenvox/biometric-identity:4.3
     - name: cloud-init-tools
-      image: lumenvox/cloud-init-tools:4.2
+      image: lumenvox/cloud-init-tools:4.3
+    - name: reporting-bio-api
+      image: lumenvox/reporting-bio-api:4.3

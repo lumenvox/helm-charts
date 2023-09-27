@@ -71,6 +71,8 @@ spec:
               value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
               value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+            - name: SERVICE_ADDRESSES__LUMENVOX_API
+              value: 'http://lumenvox-api-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:80'
             - name: SESSION_SETTINGS__API_EXCHANGE
               value: 'BroadcastExchange'
             - name: LOCAL_SETTINGS__ENV

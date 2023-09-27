@@ -91,6 +91,10 @@ spec:
               value: 'http://deployment-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}'
             - name: ASR_SETTINGS__SERVICE_LANGUAGE
               value: '{{ .name }}'
+            - name: ASR_SETTINGS__CACHE_MAX_ENTRIES
+              value: '{{ $.Values.asr.cacheMaxEntries }}'
+            - name: ASR_SETTINGS__CACHE_MAX_SIZE_MB
+              value: '{{ $.Values.asr.cacheMaxSizeMb }}'
             - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
               value: 'ignore'
           volumeMounts:

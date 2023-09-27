@@ -10,6 +10,8 @@ global:
 
 asr:
   useFakeResult: "false"
+  cacheMaxEntries: "1000"
+  cacheMaxSizeMb: "500"
 
 tts:
   useFakeResult: "false"
