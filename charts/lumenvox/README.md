@@ -148,6 +148,16 @@ global:
     - name: "es"
 ```
 
+### ASR Cache Configuration
+| Parameter                           | Description                            | Default |
+|-------------------------------------|----------------------------------------|---------|
+| lumenvox-speech.asr.cacheMaxEntries | Maximum number of entries in the cache | `500`   |
+| lumenvox-speech.asr.cacheMaxSizeMb  | Maximum size of the cache in MB        | `1000`  |
+
+The ASR utilizes a cache to speed up processing of frequently used grammars. To configure the
+maximum size of the cache, both in number of entries and in size (MB), the above values may
+be utilized.
+
 ### TTS Language Configuration
 | Parameter                  | Description                   | Default |
 |----------------------------|-------------------------------|---------|
