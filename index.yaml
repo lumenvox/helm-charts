@@ -714,6 +714,46 @@ entries:
       artifacthub.io/containsSecurityUpdates: "true"
       artifacthub.io/images: |
         - name: admin-portal
+          image: lumenvox/admin-portal:4.4
+        - name: archive
+          image: lumenvox/archive:4.4
+        - name: audit
+          image: lumenvox/audit:4.4
+        - name: binary-storage
+          image: lumenvox/binary-storage:4.4
+        - name: cloud-init-tools
+          image: lumenvox/cloud-init-tools:4.4
+        - name: configuration
+          image: lumenvox/configuration:4.4
+        - name: deployment
+          image: lumenvox/deployment:4.4
+        - name: deployment-portal
+          image: lumenvox/deployment-portal:4.4
+        - name: license
+          image: lumenvox/license:4.4
+        - name: management-api
+          image: lumenvox/management-api:4.4
+        - name: reporting
+          image: lumenvox/reporting:4.4
+        - name: resource
+          image: lumenvox/resource:4.4
+        - name: transaction
+          image: lumenvox/transaction:4.4
+    apiVersion: v2
+    appVersion: 4.4.0
+    created: "2023-10-31T21:05:03.366139878Z"
+    description: LumenVox Common Components Helm chart for Kubernetes
+    digest: fce718c0b7c434bdbeb75db8cbe6896afd202b4bec75108265a810c113cc674a
+    home: https://lumenvox.com
+    name: lumenvox-common
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-common-4.4.0/lumenvox-common-4.4.0.tgz
+    version: 4.4.0
+  - annotations:
+      artifacthub.io/containsSecurityUpdates: "true"
+      artifacthub.io/images: |
+        - name: admin-portal
           image: lumenvox/admin-portal:4.3
         - name: archive
           image: lumenvox/archive:4.3
@@ -1321,6 +1361,40 @@ entries:
       artifacthub.io/containsSecurityUpdates: "true"
       artifacthub.io/images: |
         - name: asr
+          image: lumenvox/asr:4.4
+        - name: cloud-init-tools
+          image: lumenvox/cloud-init-tools:4.4
+        - name: cloud-logging-sidecar
+          image: lumenvox/cloud-logging-sidecar:4.4
+        - name: grammar
+          image: lumenvox/grammar:4.4
+        - name: itn
+          image: lumenvox/itn:4.4
+        - name: lumenvox-api
+          image: lumenvox/lumenvox-api:4.4
+        - name: reporting-api
+          image: lumenvox/reporting-api:4.4
+        - name: session
+          image: lumenvox/session:4.4
+        - name: tts
+          image: lumenvox/tts:4.4
+        - name: vad
+          image: lumenvox/vad:4.4
+    apiVersion: v2
+    appVersion: 4.4.0
+    created: "2023-10-31T21:05:03.515481692Z"
+    description: LumenVox Speech Helm chart for Kubernetes
+    digest: 4df93d6e84a72188a400c94b353417d7b81adb1e0d7fe8c27d6ec82f462b21ca
+    home: https://lumenvox.com
+    name: lumenvox-speech
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-speech-4.4.0/lumenvox-speech-4.4.0.tgz
+    version: 4.4.0
+  - annotations:
+      artifacthub.io/containsSecurityUpdates: "true"
+      artifacthub.io/images: |
+        - name: asr
           image: lumenvox/asr:4.3
         - name: cloud-init-tools
           image: lumenvox/cloud-init-tools:4.3
@@ -1639,6 +1713,30 @@ entries:
     - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-speech-3.0.0/lumenvox-speech-3.0.0.tgz
     version: 3.0.0
   lumenvox-vb:
+  - annotations:
+      artifacthub.io/containsSecurityUpdates: "true"
+      artifacthub.io/images: |
+        - name: biometric-active
+          image: lumenvox/biometric-active:4.4
+        - name: biometric-api
+          image: lumenvox/biometric-api:4.4
+        - name: biometric-identity
+          image: lumenvox/biometric-identity:4.4
+        - name: cloud-init-tools
+          image: lumenvox/cloud-init-tools:4.4
+        - name: reporting-bio-api
+          image: lumenvox/reporting-bio-api:4.4
+    apiVersion: v2
+    appVersion: 4.4.0
+    created: "2023-10-31T21:05:03.66665469Z"
+    description: LumenVox Voice Biometrics Helm chart for Kubernetes
+    digest: 2239efb93262831a00fb1849853477f5294e5e2fa3f236823604baf6cbe3fb5b
+    home: https://lumenvox.com
+    name: lumenvox-vb
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-vb-4.4.0/lumenvox-vb-4.4.0.tgz
+    version: 4.4.0
   - annotations:
       artifacthub.io/containsSecurityUpdates: "true"
       artifacthub.io/images: |
