@@ -43,11 +43,12 @@ The installation expects an existing secret, `rabbitmq-existing-secret`. This se
 `rabbitmq-password`, the password for the instance.
 
 ### Redis Configuration
-| Parameter                      | Description               | Default                            |
-|--------------------------------|---------------------------|------------------------------------|
-| `global.redis.enableTLS`       | Connect to Redis with TLS | `false`                            |
-| `global.redis.connection.url`  | URL for Redis connection  | `"lumenvox-redis-master.lumenvox"` |
-| `global.redis.connection.port` | Port for Redis connection | `6379`                             |
+| Parameter                      | Description                               | Default                            |
+|--------------------------------|-------------------------------------------|------------------------------------|
+| `global.redis.enableTLS`       | Connect to Redis with TLS                 | `false`                            |
+| `global.redis.connection.url`  | URL for Redis connection                  | `"lumenvox-redis-master.lumenvox"` |
+| `global.redis.connection.port` | Port for Redis connection                 | `6379`                             |
+| `global.lumenvox.redisTtl`     | Time to live for certain objects in Redis | `3h`                               |
 
 By default, the chart will create a Redis instance. To switch to using an external instance, you must set
 `lumenvox-common.redis.enabled` to `false` and then update the relevant values under `global.redis.connection`.

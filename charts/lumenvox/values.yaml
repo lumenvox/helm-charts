@@ -50,12 +50,15 @@ global:
     enforceLimits: false
     # Cluster-level logging verbosity. Options: debug, info, warn, error, dpanic, panic, fatal
     loggingVerbosity: "info"
+    # Default TTL for Redis Keys, 3 hours
+    # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h", "d", "w", "y" Examples: "300ms", "-1.5h" or "2h45m"
+    redisTtl: 3h
     # download link for resource service to download models and manifests. Default is the LumenVox S3 location.
     resourceDownloadEndpoint: "https://lumenvox-public-assets.s3.us-east-1.amazonaws.com/"
   image:
     repository: "lumenvox"
     pullPolicy: IfNotPresent
-    tag: ":4.3"
+    tag: ":4.4"
   imagePullSecrets: []
   rabbitmq:
     enableTLS: false
