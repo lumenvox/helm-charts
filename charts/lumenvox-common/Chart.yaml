@@ -2,35 +2,35 @@ apiVersion: v2
 name: lumenvox-common
 description: LumenVox Common Components Helm chart for Kubernetes
 type: application
-version: 4.4.0
-appVersion: "4.4.0"
+version: 4.5.0
+appVersion: "4.5.0"
 home: https://lumenvox.com
 annotations:
   artifacthub.io/containsSecurityUpdates: true
   artifacthub.io/images: |
     - name: admin-portal
-      image: lumenvox/admin-portal:4.4
+      image: lumenvox/admin-portal:4.5
     - name: archive
-      image: lumenvox/archive:4.4
+      image: lumenvox/archive:4.5
     - name: audit
-      image: lumenvox/audit:4.4
+      image: lumenvox/audit:4.5
     - name: binary-storage
-      image: lumenvox/binary-storage:4.4
+      image: lumenvox/binary-storage:4.5
     - name: cloud-init-tools
-      image: lumenvox/cloud-init-tools:4.4
+      image: lumenvox/cloud-init-tools:4.5
     - name: configuration
-      image: lumenvox/configuration:4.4
+      image: lumenvox/configuration:4.5
     - name: deployment
-      image: lumenvox/deployment:4.4
+      image: lumenvox/deployment:4.5
     - name: deployment-portal
-      image: lumenvox/deployment-portal:4.4
+      image: lumenvox/deployment-portal:4.5
     - name: license
-      image: lumenvox/license:4.4
+      image: lumenvox/license:4.5
     - name: management-api
-      image: lumenvox/management-api:4.4
+      image: lumenvox/management-api:4.5
     - name: reporting
-      image: lumenvox/reporting:4.4
+      image: lumenvox/reporting:4.5
     - name: resource
-      image: lumenvox/resource:4.4
+      image: lumenvox/resource:4.5
     - name: transaction
-      image: lumenvox/transaction:4.4
+      image: lumenvox/transaction:4.5

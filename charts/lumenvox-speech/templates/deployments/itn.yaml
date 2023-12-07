@@ -86,6 +86,8 @@ spec:
               value: '{{ $.Values.global.lumenvox.redisTtl }}'   
             - name: GLOBAL_SETTINGS__RABBITMQ_CONNECTION_STRING
               value: 'amqp{{ if $.Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ $.Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ $.Values.global.rabbitmq.connection.url }}:{{ $.Values.global.rabbitmq.connection.port }}'
+            - name: GLOBAL_SETTINGS__RMQ_QUEUE_EXPIRE_MS
+              value: '{{ $.Values.global.lumenvox.rabbitmqQueueExpirationMs }}'
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
               value: 'http://configuration-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE

@@ -4,6 +4,10 @@
 {{- if $listStarted }};{{ end }}{{ .name }}{{ if .version }}-{{ .version }}{{ end }}
 {{- $listStarted = true }}
 {{- end }}
+{{- range .Values.global.customAsrModels }}
+{{- if $listStarted }};{{ end }}{{ .name }}{{ if .version }}-{{ .version }}{{ end }}
+{{- $listStarted = true }}
+{{- end }}
 {{- end }}
 
 {{- define "lumenvox-speech.CLUSTER_LANGUAGES__ASR_LANGUAGES" }}

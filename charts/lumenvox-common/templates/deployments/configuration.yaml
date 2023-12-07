@@ -73,6 +73,8 @@ spec:
               value: '{{ .Values.global.lumenvox.redisTtl }}'   
             - name: GLOBAL_SETTINGS__RABBITMQ_EASY_CONNECTION_STRING
               value: 'host={{ .Values.global.rabbitmq.connection.url }};port={{ .Values.global.rabbitmq.connection.port }};username={{ .Values.global.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10{{ if .Values.global.rabbitmq.enableTLS }};tls=true{{ end }}'
+            - name: GLOBAL_SETTINGS__RMQ_QUEUE_EXPIRE_MS
+              value: '{{ .Values.global.lumenvox.rabbitmqQueueExpirationMs }}'
             {{- if .Values.global.enabled.lumenvoxSpeech }}
             {{- if .Values.global.asrLanguages }}
             - name: CLUSTER_LANGUAGES__ASR_LANGUAGES
