@@ -136,6 +136,7 @@ Once the secret has been created, set `global.extraRootCaCerts` to true.
 |----------------------------|----------------------------------|---------|
 | `global.asrLanguages`      | List of ASR languages to install | `[]`    |
 | `global.asrDefaultVersion` | Default ASR model version        | `"2.2"` |
+| `global.customAsrModels`   | Custom ASR models                | `[]`    |
 
 To specify ASR languages, you must list your desired languages under `global.asrLanguages`. The list items must include
 a name; specifying a version is optional. If the version is omitted, the one specified in `global.asrDefaultVersion`
@@ -147,6 +148,14 @@ global:
     - name: "en"
       version: "1.0.0"
     - name: "es"
+```
+
+To specify custom ASR models, you must list the models under `global.customAsrModels`. The objects in the list must
+specify a name; specifying a version is optional.
+```yaml
+global:
+  customAsrModels:
+    - name: "custom1"
 ```
 
 ### ASR Cache Configuration

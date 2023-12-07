@@ -55,10 +55,12 @@ global:
     redisTtl: 3h
     # download link for resource service to download models and manifests. Default is the LumenVox S3 location.
     resourceDownloadEndpoint: "https://lumenvox-public-assets.s3.us-east-1.amazonaws.com/"
+    # Default expiration for RabbitMQ queues in milliseconds
+    rabbitmqQueueExpirationMs: 180000
   image:
     repository: "lumenvox"
     pullPolicy: IfNotPresent
-    tag: ":4.4"
+    tag: ":4.5"
   imagePullSecrets: []
   rabbitmq:
     enableTLS: false
