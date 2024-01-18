@@ -75,6 +75,8 @@ spec:
               value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
               value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+            - name: SERVICE_ADDRESSES__BINARY_STORAGE_SERVICE
+              value: 'http://binary-storage-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: SERVICE_ADDRESSES__LUMENVOX_API
               value: 'http://lumenvox-api-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:8280'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_PORTAL

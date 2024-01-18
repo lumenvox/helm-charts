@@ -76,6 +76,8 @@ spec:
               value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
               value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+            - name: SERVICE_ADDRESSES__BINARY_STORAGE_SERVICE
+              value: 'http://binary-storage-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: DB_SETTINGS__DEPLOYMENT_RECONNECTION_TIMEOUT_SEC
               value: '{{ .Values.global.lumenvox.deploymentReconnectionTimeoutSec }}'
             - name: LOCAL_SETTINGS__ENABLE_AUDIT_LOG
