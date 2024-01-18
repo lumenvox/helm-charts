@@ -60,7 +60,7 @@ global:
   image:
     repository: "lumenvox"
     pullPolicy: IfNotPresent
-    tag: ":4.5"
+    tag: ":4.6"
   imagePullSecrets: []
   rabbitmq:
     enableTLS: false
