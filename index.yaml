@@ -827,6 +827,46 @@ entries:
         - name: transaction
           image: lumenvox/transaction:4.6
     apiVersion: v2
+    appVersion: 4.6.1
+    created: "2024-01-18T23:00:29.036234002Z"
+    description: LumenVox Common Components Helm chart for Kubernetes
+    digest: edf775714bf076e22cea3c1c9cde8a1a8f25fa350fced43ea201d21735d8d6ea
+    home: https://lumenvox.com
+    name: lumenvox-common
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-common-4.6.1/lumenvox-common-4.6.1.tgz
+    version: 4.6.1
+  - annotations:
+      artifacthub.io/containsSecurityUpdates: "true"
+      artifacthub.io/images: |
+        - name: admin-portal
+          image: lumenvox/admin-portal:4.6
+        - name: archive
+          image: lumenvox/archive:4.6
+        - name: audit
+          image: lumenvox/audit:4.6
+        - name: binary-storage
+          image: lumenvox/storage:4.6
+        - name: cloud-init-tools
+          image: lumenvox/cloud-init-tools:4.6
+        - name: configuration
+          image: lumenvox/configuration:4.6
+        - name: deployment
+          image: lumenvox/deployment:4.6
+        - name: deployment-portal
+          image: lumenvox/deployment-portal:4.6
+        - name: license
+          image: lumenvox/license:4.6
+        - name: management-api
+          image: lumenvox/management-api:4.6
+        - name: reporting
+          image: lumenvox/reporting:4.6
+        - name: resource
+          image: lumenvox/resource:4.6
+        - name: transaction
+          image: lumenvox/transaction:4.6
+    apiVersion: v2
     appVersion: 4.6.0
     created: "2024-01-18T21:49:12.588219968Z"
     description: LumenVox Common Components Helm chart for Kubernetes
