@@ -76,7 +76,7 @@ spec:
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
               value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
-              value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+              value: 'deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:80'
             - name: LICENSE_SETTINGS__CLUSTER_GUID
               value: '{{ .Values.licensing.clusterGuid }}'
             - name: PORT__GRPC_API
