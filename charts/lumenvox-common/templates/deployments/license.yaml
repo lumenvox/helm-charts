@@ -21,6 +21,7 @@ spec:
         linkerd.io/inject: enabled
         {{- end }}
     spec:
+      serviceAccountName: license
       containers:
         - name: license
           image: {{ .Values.image.repository | default .Values.global.image.repository }}/license{{ .Values.image.tag | default .Values.global.image.tag }}
