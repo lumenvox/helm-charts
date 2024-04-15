@@ -62,6 +62,10 @@ team before running LumenVox application in Kubernetes. This is needed
 to provide you with the necessary license configuration as well as
 overall system configuration steps
 
+### NOTE
+When making us of a custom DNS hostname suffix please be sure to enter the full suffix as pet the example below:
+.domain-name.com
+
 To see all configurable options, visit the chart's values.yaml,
 or run the following:
 
@@ -141,19 +145,19 @@ The following dependencies can optionally be installed:
 
 ```shell
   - name: "redis"
-    version: 15
+    version: 7.0.13
     repository: "https://charts.bitnami.com/bitnami"
 
   - name: "mongodb"
-    version: 10
+    version: 5.0.16
     repository: "https://charts.bitnami.com/bitnami"
 
   - name: "rabbitmq"
-    version: 8
+    version: 3.9.16
     repository: "https://charts.bitnami.com/bitnami"
 
   - name: "postgresql"
-    version: 10
+    version: 13
     repository: "https://charts.bitnami.com/bitnami"
 
   - name: "grafana"
@@ -185,8 +189,8 @@ production environments, please contact LumenVox for assistance with sizing.
 
 ### Cluster Resources
 
-* LumenVox Speech: minimum of 2 nodes with at least 8CPUs and 8GB memory each.
-* LumenVox Voice Biometrics: minimum of 1 node with at least 4CPUs and 16GB memory.
+* LumenVox Speech: minimum of 3 nodes with at least 8CPUs and 16GB memory each.
+* LumenVox Voice Biometrics: minimum of 3 node with at least 8CPUs and 16GB memory.
 
 ### External Resources
 

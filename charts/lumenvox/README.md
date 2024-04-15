@@ -4,7 +4,7 @@
 |----------------------------------------------------|-----------------------------------------------------------------|------------------------------------|
 | `timezone`                                         | Timezone for logs. Examples: UTC, America/New_York, Europe/Rome | `UTC`                              |
 | `lumenvox-common.licensing.clusterGuid`            | License GUID obtained from LumenVox account                     | `"GET-CLUSTER-GUID-FROM-LUMENVOX"` |
-| `global.hostnameSuffix`                            | Desired ingress suffix                                          | `"testmachine.com"`                |
+| `global.hostnameSuffix`                            | Desired ingress suffix                                          | `".testmachine.com"`               |
 | `global.lumenvox.ingress.className`                | Ingress class name                                              | `nginx`                            |
 | `global.lumenvox.deploymentReconnectionTimeoutSec` | Deployment database connection timeout                          | `30`                               |
 | `global.lumenvox.enableAudit`                      | Whether to enable audit logging                                 | `false`                            |
@@ -243,7 +243,7 @@ openssl req -new -x509 -sha256 -key server.key -out server.crt -days 3650 -addex
 kubectl create secret tls speech-tls-secret --key server.key --cert server.crt
 ```
 The second command will prompt you for some information; all fields can be left blank, as the necessary information is
-contained in the SAN. You should replace `testmachine.com` with whatever you have specified in `global.hostnameSuffix`.
+contained in the SAN. You should replace `.testmachine.com` with whatever you have specified in `global.hostnameSuffix`.
 
 Any clients making requests to the Speech or Biometrics APIs should be written to trust the certificate in the secret.
 

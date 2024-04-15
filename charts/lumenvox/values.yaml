@@ -30,7 +30,8 @@ image: {}
 
 global:
   defaultNamespace: "lumenvox"
-  hostnameSuffix: "testmachine.com"
+  # Note that you need to enter the complete domain name including the "." as per the example below
+  hostnameSuffix: ".testmachine.com"
   lumenvox:
     ingress:
       className: nginx
