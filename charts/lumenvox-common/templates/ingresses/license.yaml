@@ -9,7 +9,7 @@ spec:
   ingressClassName: {{ .Values.global.lumenvox.ingress.className }}
   {{- end }}
   rules:
-    - host: license.{{ .Values.global.hostnameSuffix }}
+    - host: license{{ .Values.global.hostnameSuffix }}
       http:
         paths:
           - path: /

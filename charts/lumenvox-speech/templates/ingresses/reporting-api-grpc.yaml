@@ -15,7 +15,7 @@ spec:
   ingressClassName: {{ .Values.global.lumenvox.ingress.className }}
   {{- end }}
   rules:
-    - host: reporting-api.{{ .Values.global.hostnameSuffix }}
+    - host: reporting-api{{ .Values.global.hostnameSuffix }}
       http:
         paths:
           - path: /
@@ -28,4 +28,4 @@ spec:
   tls:
     - secretName: speech-tls-secret
       hosts:
-        - reporting-api.{{ .Values.global.hostnameSuffix }}
+        - reporting-api{{ .Values.global.hostnameSuffix }}

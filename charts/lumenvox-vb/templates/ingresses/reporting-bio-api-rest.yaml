@@ -8,7 +8,7 @@ spec:
   ingressClassName: {{ .Values.global.lumenvox.ingress.className }}
   {{- end }}
   rules:
-    - host: reporting-bio-api.{{ .Values.global.hostnameSuffix }}
+    - host: reporting-bio-api{{ .Values.global.hostnameSuffix }}
       http:
         paths:
           - path: /
@@ -21,4 +21,4 @@ spec:
   tls:
     - secretName: speech-tls-secret
       hosts:
-        - reporting-bio-api.{{ .Values.global.hostnameSuffix }}
+        - reporting-bio-api{{ .Values.global.hostnameSuffix }}

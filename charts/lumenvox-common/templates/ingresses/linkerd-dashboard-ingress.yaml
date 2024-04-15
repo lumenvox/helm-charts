@@ -19,7 +19,7 @@ spec:
   ingressClassName: {{ .Values.linkerd.ingressClassName }}
   {{- end }}
   rules:
-  - host: {{ .Values.linkerd.dashboard.hostPrefix }}.{{ .Values.global.hostnameSuffix }}
+  - host: {{ .Values.linkerd.dashboard.hostPrefix }}{{ .Values.global.hostnameSuffix }}
     http:
       paths:
       - path: /

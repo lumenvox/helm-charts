@@ -80,15 +80,15 @@ spec:
             - name: SERVICE_ADDRESSES__ADMIN_PORTAL
               value: 'http://admin-portal-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: SERVICE_EXTERNAL_ADDRESSES__REPORTING_API
-              value: 'https://reporting-api.{{ .Values.global.hostnameSuffix }}'
+              value: 'https://reporting-api{{ .Values.global.hostnameSuffix }}'
             - name: SERVICE_EXTERNAL_ADDRESSES__MANAGEMENT_API
-              value: 'https://management-api.{{ .Values.global.hostnameSuffix }}'
+              value: 'https://management-api{{ .Values.global.hostnameSuffix }}'
             - name: SERVICE_EXTERNAL_ADDRESSES__LUMENVOX_API
-              value: 'https://lumenvox-api.{{ .Values.global.hostnameSuffix }}'
+              value: 'https://lumenvox-api{{ .Values.global.hostnameSuffix }}'
             - name: SERVICE_EXTERNAL_ADDRESSES__DEPLOYMENT_PORTAL
-              value: 'https://deployment-portal.{{ .Values.global.hostnameSuffix }}'
+              value: 'https://deployment-portal{{ .Values.global.hostnameSuffix }}'
             - name: SERVICE_EXTERNAL_ADDRESSES__ADMIN_PORTAL
-              value: 'https://admin-portal.{{ .Values.global.hostnameSuffix }}'
+              value: 'https://admin-portal{{ .Values.global.hostnameSuffix }}'
             {{- if .Values.global.enabled.lumenvoxSpeech }}
             {{- if .Values.global.asrLanguages }}
             - name: CLUSTER_LANGUAGES__ASR_LANGUAGES

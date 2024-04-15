@@ -12,7 +12,7 @@ spec:
   ingressClassName: {{ $.Values.global.lumenvox.ingress.className }}
   {{- end }}
   rules:
-    - host: itn-{{ .name }}.{{ $.Values.global.hostnameSuffix }}
+    - host: itn-{{ .name }}{{ $.Values.global.hostnameSuffix }}
       http:
         paths:
           - path: /

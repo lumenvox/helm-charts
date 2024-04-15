@@ -8,7 +8,7 @@ spec:
   ingressClassName: {{ .Values.global.lumenvox.ingress.className }}
   {{- end }}
   rules:
-    - host: management-api.{{ .Values.global.hostnameSuffix }}
+    - host: management-api{{ .Values.global.hostnameSuffix }}
       http:
         paths:
           - path: /
@@ -21,4 +21,4 @@ spec:
   tls:
     - secretName: speech-tls-secret
       hosts:
-        - management-api.{{ .Values.global.hostnameSuffix }}
+        - management-api{{ .Values.global.hostnameSuffix }}

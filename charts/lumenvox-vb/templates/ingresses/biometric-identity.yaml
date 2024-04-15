@@ -9,7 +9,7 @@ spec:
   ingressClassName: {{ .Values.global.lumenvox.ingress.className }}
   {{- end }}
   rules:
-    - host: biometric-identity.{{ .Values.global.hostnameSuffix }}
+    - host: biometric-identity{{ .Values.global.hostnameSuffix }}
       http:
         paths:
           - path: /

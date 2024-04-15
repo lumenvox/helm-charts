@@ -9,7 +9,7 @@ spec:
   ingressClassName: {{ .Values.global.lumenvox.ingress.className }}
   {{- end }}
   rules:
-    - host: prometheus-alertmanager.{{ .Values.global.hostnameSuffix }}
+    - host: prometheus-alertmanager{{ .Values.global.hostnameSuffix }}
       http:
         paths:
           - path: /
