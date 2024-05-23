@@ -85,6 +85,8 @@ spec:
               value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
               value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+            - name: VAD_SETTINGS__REDIS_DATA_TIMEOUT_MS
+              value: '{{ .Values.vad.redisDataTimeout }}'
             - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
               value: 'ignore'
       {{- if .Values.global.imagePullSecrets }}
