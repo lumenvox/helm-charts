@@ -1755,6 +1755,40 @@ entries:
         - name: vad
           image: lumenvox/vad:4.7
     apiVersion: v2
+    appVersion: 4.7.2
+    created: "2024-05-23T20:49:15.134669227Z"
+    description: LumenVox Speech Helm chart for Kubernetes
+    digest: 957eb4cf25e288dd1e8151635bd46cbd5cd46d004dc0ab98c1c14e91c501b2bc
+    home: https://lumenvox.com
+    name: lumenvox-speech
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-speech-4.7.2/lumenvox-speech-4.7.2.tgz
+    version: 4.7.2
+  - annotations:
+      artifacthub.io/containsSecurityUpdates: "true"
+      artifacthub.io/images: |
+        - name: asr
+          image: lumenvox/asr:4.7
+        - name: cloud-init-tools
+          image: lumenvox/cloud-init-tools:4.7
+        - name: cloud-logging-sidecar
+          image: lumenvox/cloud-logging-sidecar:4.7
+        - name: grammar
+          image: lumenvox/grammar:4.7
+        - name: itn
+          image: lumenvox/itn:4.7
+        - name: lumenvox-api
+          image: lumenvox/lumenvox-api:4.7
+        - name: reporting-api
+          image: lumenvox/reporting-api:4.7
+        - name: session
+          image: lumenvox/session:4.7
+        - name: tts
+          image: lumenvox/tts:4.7
+        - name: vad
+          image: lumenvox/vad:4.7
+    apiVersion: v2
     appVersion: 4.7.1
     created: "2024-04-15T17:28:19.07451688Z"
     description: LumenVox Speech Helm chart for Kubernetes
