@@ -4,11 +4,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: itn-{{ .name }}-service
+  name: itn-{{ .name | replace "_" "-" }}-service
   namespace: {{ default $.Release.Namespace $.Values.global.defaultNamespace }}
 spec:
   selector:
-    app: itn-{{ .name }}
+    app: itn-{{ .name | replace "_" "-" }}
   ports:
     - name: grpc
       port: 80

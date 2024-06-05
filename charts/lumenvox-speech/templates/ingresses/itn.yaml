@@ -5,21 +5,21 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: itn-{{ .name }}-ingress
+  name: itn-{{ .name | replace "_" "-" }}-ingress
   namespace: {{ default $.Release.Namespace $.Values.global.defaultNamespace }}
 spec:
   {{- if $.Values.global.lumenvox.ingress.className }}
   ingressClassName: {{ $.Values.global.lumenvox.ingress.className }}
   {{- end }}
   rules:
-    - host: itn-{{ .name }}{{ $.Values.global.hostnameSuffix }}
+    - host: itn-{{ .name | replace "_" "-" }}{{ $.Values.global.hostnameSuffix }}
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: itn-{{ .name }}-service
+                name: itn-{{ .name | replace "_" "-" }}-service
                 port:
                   name: http
 {{- end }}

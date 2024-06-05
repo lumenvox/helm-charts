@@ -4,19 +4,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: itn-{{ .name }}
+  name: itn-{{ .name | replace "_" "-" }}
   namespace: {{ default $.Release.Namespace $.Values.global.defaultNamespace }}
   labels:
-    app: itn-{{ .name }}
+    app: itn-{{ .name | replace "_" "-" }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: itn-{{ .name }}
+      app: itn-{{ .name | replace "_" "-" }}
   template:
     metadata:
       labels:
-        app: itn-{{ .name }}
+        app: itn-{{ .name | replace "_" "-" }}
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '5110'

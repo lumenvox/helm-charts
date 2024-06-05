@@ -3,19 +3,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: asr-{{ .name }}
+  name: asr-{{ .name | replace "_" "-" }}
   namespace: {{ default $.Release.Namespace $.Values.global.defaultNamespace }}
   labels:
-    app: asr-{{ .name }}
+    app: asr-{{ .name | replace "_" "-" }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: asr-{{ .name }}
+      app: asr-{{ .name | replace "_" "-" }}
   template:
     metadata:
       labels:
-        app: asr-{{ .name }}
+        app: asr-{{ .name | replace "_" "-" }}
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '5110'
