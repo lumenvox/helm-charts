@@ -1,0 +1,26 @@
+{{- if .Values.global.enableLumenvoxapiHealthcheck }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: lumenvox-api-ingress-health-check
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+spec:
+  {{- if .Values.global.lumenvox.ingress.className }}
+  ingressClassName: {{ .Values.global.lumenvox.ingress.className }}
+  {{- end }}
+  rules:
+    - host: lumenvox-api{{ .Values.global.hostnameSuffix }}
+      http:
+        paths:
+          - path: /health
+            pathType: Prefix
+            backend:
+              service:
+                name: lumenvox-api-service
+                port:
+                  name: http
+  tls:
+    - secretName: speech-tls-secret
+      hosts:
+        - lumenvox-api{{ .Values.global.hostnameSuffix }}
+{{- end }}

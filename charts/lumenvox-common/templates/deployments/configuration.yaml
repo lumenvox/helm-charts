@@ -16,7 +16,7 @@ spec:
         app: configuration
       annotations:
         prometheus.io/scrape: 'true'
-        prometheus.io/port: '90'
+        prometheus.io/port: '5110'
         {{- if .Values.global.linkerd.enabled }}
         linkerd.io/inject: enabled
         {{- end }}
@@ -27,20 +27,22 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           ports:
             - name: grpc
-              containerPort: 80
+              containerPort: 5000
             - name: http
-              containerPort: 90
+              containerPort: 5110
           readinessProbe:
-            httpGet:
-              path: /health
-              port: http
+            exec:
+              command:
+              - /usr/bin/configuration
+              - --healthcheck
             initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
           {{- if .Values.global.lumenvox.service.livenessProbe.enabled }}
           livenessProbe:
-            httpGet:
-              path: /health
-              port: http
+            exec:
+              command:
+              - /usr/bin/configuration
+              - --healthcheck
             initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
           {{- end }}
@@ -69,10 +71,12 @@ spec:
             {{- end }}
             - name: GLOBAL_SETTINGS__CLUSTER_LOG_VERBOSITY
               value: '{{ .Values.global.lumenvox.loggingVerbosity }}'
+            - name: LICENSE_SETTINGS__CLUSTER_GUID
+              value: '{{ .Values.global.licensing.clusterGuid }}'
             - name: REDIS_SETTINGS__DEFAULT_TTL
-              value: '{{ .Values.global.lumenvox.redisTtl }}'   
-            - name: GLOBAL_SETTINGS__RABBITMQ_EASY_CONNECTION_STRING
-              value: 'host={{ .Values.global.rabbitmq.connection.url }};port={{ .Values.global.rabbitmq.connection.port }};username={{ .Values.global.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10{{ if .Values.global.rabbitmq.enableTLS }};tls=true{{ end }}'
+              value: '{{ .Values.global.lumenvox.redisTtl }}'
+            - name: GLOBAL_SETTINGS__RABBITMQ_CONNECTION_STRING
+              value: 'amqp{{ if .Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ .Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ .Values.global.rabbitmq.connection.url }}:{{ .Values.global.rabbitmq.connection.port }}'
             - name: GLOBAL_SETTINGS__RMQ_QUEUE_EXPIRE_MS
               value: '{{ .Values.global.lumenvox.rabbitmqQueueExpirationMs }}'
             {{- if .Values.global.enabled.lumenvoxSpeech }}
@@ -122,7 +126,7 @@ spec:
           image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           command: ["curl2"]
-          args: ["http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:90/health", "Deployment Service"]
+          args: ["http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5110/health", "Deployment Service"]
         - name: wait-for-rabbitmq-service
           image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}

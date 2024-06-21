@@ -7,9 +7,6 @@ spec:
   selector:
     app: grammar
   ports:
-    - name: grpc
-      port: 80
-      targetPort: grpc
     - name: http
-      port: 90
+      port: 5110
       targetPort: http

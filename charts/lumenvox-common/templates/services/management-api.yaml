@@ -8,5 +8,5 @@ spec:
     app: management-api
   ports:
     - name: rest
-      port: 81
+      port: 5110
       targetPort: rest

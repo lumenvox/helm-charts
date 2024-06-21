@@ -26,21 +26,21 @@ spec:
           image: {{ .Values.image.repository | default .Values.global.image.repository }}/session{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           ports:
-            - name: grpc
-              containerPort: 5010
             - name: http
               containerPort: 5110
           readinessProbe:
-            httpGet:
-              path: /health
-              port: http
+            exec:
+              command:
+              - /usr/bin/session-manager
+              - --healthcheck
             initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
           {{- if .Values.global.lumenvox.service.livenessProbe.enabled }}
           livenessProbe:
-            httpGet:
-              path: /health
-              port: http
+            exec:
+              command:
+              - /usr/bin/session-manager
+              - --healthcheck
             initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
           {{- end }}
@@ -75,6 +75,8 @@ spec:
             {{- end }}
             - name: GLOBAL_SETTINGS__CLUSTER_LOG_VERBOSITY
               value: '{{ .Values.global.lumenvox.loggingVerbosity }}'
+            - name: LICENSE_SETTINGS__CLUSTER_GUID
+              value: '{{ .Values.global.licensing.clusterGuid }}'  
             - name: REDIS_SETTINGS__DEFAULT_TTL
               value: '{{ .Values.global.lumenvox.redisTtl }}'   
             - name: GLOBAL_SETTINGS__RABBITMQ_CONNECTION_STRING
@@ -91,10 +93,6 @@ spec:
               value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: SETTINGS__USE_GRAMMAR_MANAGER
               value: 'true'
-            - name: SETTINGS__GRAMMAR_MANAGER_TO_SESSION_MANAGER_QUEUE
-              value: 'grammar_to_session_manager'
-            - name: SETTINGS__GRAMMAR_MANAGER_QUEUE
-              value: 'session_to_grammar_manager'
             - name: SESSION_SETTINGS__API_EXCHANGE
               value: 'BroadcastExchange'
             - name: LOCAL_SETTINGS__ENV
@@ -112,4 +110,4 @@ spec:
           image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           command: ["curl2"]
-          args: ["http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:90/health", "Deployment Service"]
+          args: ["http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5110/health", "Deployment Service"]

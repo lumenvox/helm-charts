@@ -28,8 +28,6 @@ spec:
           image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/asr{{ $.Values.image.tag | default $.Values.global.image.tag }}
           imagePullPolicy: {{ $.Values.image.pullPolicy | default $.Values.global.image.pullPolicy }}
           ports:
-            - name: grpc
-              containerPort: 5010
             - name: http
               containerPort: 5110
           readinessProbe:
@@ -83,6 +81,8 @@ spec:
             {{- end }}
             - name: GLOBAL_SETTINGS__CLUSTER_LOG_VERBOSITY
               value: '{{ $.Values.global.lumenvox.loggingVerbosity }}'
+            - name: LICENSE_SETTINGS__CLUSTER_GUID
+              value: '{{ $.Values.global.licensing.clusterGuid }}'  
             - name: REDIS_SETTINGS__DEFAULT_TTL
               value: '{{ $.Values.global.lumenvox.redisTtl }}'   
             - name: GLOBAL_SETTINGS__RABBITMQ_CONNECTION_STRING
@@ -121,12 +121,12 @@ spec:
           image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/cloud-init-tools{{ $.Values.image.tag | default $.Values.global.image.tag }}
           imagePullPolicy: {{ $.Values.image.pullPolicy | default $.Values.global.image.pullPolicy }}
           command: ["curl2"]
-          args: ["http://deployment-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}:90/health", "Deployment Service"]
+          args: ["http://deployment-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}:5110/health", "Deployment Service"]
         - name: wait-for-resource-manager
           image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/cloud-init-tools{{ $.Values.image.tag | default $.Values.global.image.tag }}
           imagePullPolicy: {{ $.Values.image.pullPolicy | default $.Values.global.image.pullPolicy }}
           command: ["curl2"]
-          args: ["http://resource-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}:90/health", "Resource Manager Service"]
+          args: ["http://resource-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}:5110/health", "Resource Manager Service"]
       volumes:
         - name: asr-dist-packages
           persistentVolumeClaim:

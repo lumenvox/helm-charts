@@ -6,13 +6,6 @@ lumenvox:
   # Time to allow support services (such as databases) to become available. Typically, 0 in production
   deploymentStartDelaySeconds: 0
 
-licensing:
-  # Note: licensing (and therefore system) will not work without a valid clusterGuid value
-  clusterGuid: "GET-CLUSTER-GUID-FROM-LUMENVOX"
-  reportFreqMins: "1440"
-  reportSyncHour: "1"
-  reportSyncMin: "0"
-
 encryption:
   masterKeyProvider: "EnvVariableMasterKeyService"
   useEncryption: true

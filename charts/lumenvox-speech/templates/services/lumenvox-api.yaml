@@ -8,8 +8,8 @@ spec:
     app: lumenvox-api
   ports:
     - name: grpc
-      port: 80
+      port: 5000
       targetPort: grpc
     - name: http
-      port: 90
+      port: 5110
       targetPort: http

@@ -8,8 +8,8 @@ spec:
     app: deployment-portal
   ports:
     - name: portal
-      port: 82
+      port: 3101
       targetPort: portal
     - name: http
-      port: 90
+      port: 5110
       targetPort: http

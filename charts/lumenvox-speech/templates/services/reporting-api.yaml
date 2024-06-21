@@ -8,11 +8,11 @@ spec:
     app: reporting-api
   ports:
     - name: grpc
-      port: 80
+      port: 5000
       targetPort: grpc
     - name: rest
       port: 81
       targetPort: rest
     - name: http
-      port: 90
+      port: 5110
       targetPort: http

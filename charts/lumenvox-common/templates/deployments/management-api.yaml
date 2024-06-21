@@ -26,7 +26,7 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           ports:
             - name: rest
-              containerPort: 80
+              containerPort: 5110
           readinessProbe:
             httpGet:
               path: /health
@@ -73,11 +73,11 @@ spec:
             - name: GLOBAL_SETTINGS__RMQ_QUEUE_EXPIRE_MS
               value: '{{ .Values.global.lumenvox.rabbitmqQueueExpirationMs }}'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
-              value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+              value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
-              value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+              value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
             - name: SERVICE_ADDRESSES__BINARY_STORAGE_SERVICE
-              value: 'http://binary-storage-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+              value: 'http://binary-storage-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
             - name: DB_SETTINGS__DEPLOYMENT_RECONNECTION_TIMEOUT_SEC
               value: '{{ .Values.global.lumenvox.deploymentReconnectionTimeoutSec }}'
             - name: LOCAL_SETTINGS__ENABLE_AUDIT_LOG

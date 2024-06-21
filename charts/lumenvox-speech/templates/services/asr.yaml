@@ -9,10 +9,7 @@ spec:
   selector:
     app: asr-{{ .name | replace "_" "-" }}
   ports:
-    - name: grpc
-      port: 80
-      targetPort: grpc
     - name: http
-      port: 90
+      port: 5110
       targetPort: http
 {{- end }}

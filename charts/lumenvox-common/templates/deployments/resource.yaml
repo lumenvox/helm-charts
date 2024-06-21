@@ -26,8 +26,6 @@ spec:
           image: {{ .Values.image.repository | default .Values.global.image.repository }}/resource{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           ports:
-            - name: grpc
-              containerPort: 8080
             - name: http
               containerPort: 5110
           startupProbe:
@@ -38,16 +36,18 @@ spec:
             failureThreshold: 360
             periodSeconds: 10
           readinessProbe:
-            httpGet:
-              path: /health
-              port: http
+            exec:
+              command:
+              - /usr/bin/resource_manager
+              - --healthcheck
             initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
           {{- if .Values.global.lumenvox.service.livenessProbe.enabled }}
           livenessProbe:
-            httpGet:
-              path: /health
-              port: http
+            exec:
+              command:
+              - /usr/bin/resource_manager
+              - --healthcheck
             initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
           {{- end }}
@@ -130,7 +130,7 @@ spec:
           image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           command: ["curl2"]
-          args: ["http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:90/health", "Deployment Service"]
+          args: ["http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5110/health", "Deployment Service"]
       volumes:
         - name: lang
           persistentVolumeClaim:

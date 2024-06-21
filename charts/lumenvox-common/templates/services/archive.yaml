@@ -8,5 +8,5 @@ spec:
     app: archive
   ports:
     - name: http
-      port: 90
+      port: 5110
       targetPort: http

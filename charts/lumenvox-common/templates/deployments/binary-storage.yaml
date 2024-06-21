@@ -16,7 +16,7 @@ spec:
         app: binary-storage
       annotations:
         prometheus.io/scrape: 'true'
-        prometheus.io/port: '90'
+        prometheus.io/port: '5110'
         {{- if .Values.global.linkerd.enabled }}
         linkerd.io/inject: enabled
         {{- end }}
@@ -27,20 +27,22 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           ports:
             - name: grpc
-              containerPort: 80
+              containerPort: 5000
             - name: http
-              containerPort: 90
+              containerPort: 5110
           readinessProbe:
-            httpGet:
-              path: /health
-              port: http
+            exec:
+              command:
+              - /usr/bin/storage
+              - --healthcheck
             initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
           {{- if .Values.global.lumenvox.service.livenessProbe.enabled }}
           livenessProbe:
-            httpGet:
-              path: /health
-              port: http
+            exec:
+              command:
+              - /usr/bin/storage
+              - --healthcheck
             initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
           {{- end }}
@@ -74,15 +76,11 @@ spec:
             - name: GLOBAL_SETTINGS__RMQ_QUEUE_EXPIRE_MS
               value: '{{ .Values.global.lumenvox.rabbitmqQueueExpirationMs }}'
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
-              value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+              value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
-              value: 'deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:80'
+              value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
             - name: LICENSE_SETTINGS__CLUSTER_GUID
-              value: '{{ .Values.licensing.clusterGuid }}'
-            - name: PORT__GRPC_API
-              value: '80'
-            - name: PORT__METRICS
-              value: '90'
+              value: '{{ .Values.global.licensing.clusterGuid }}'
 
       {{- if .Values.global.imagePullSecrets }}
       imagePullSecrets:
@@ -95,4 +93,4 @@ spec:
           image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           command: ["curl2"]
-          args: ["http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:90/health", "Deployment Service"]
+          args: ["http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5110/health", "Deployment Service"]

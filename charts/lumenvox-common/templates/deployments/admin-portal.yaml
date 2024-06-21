@@ -67,18 +67,6 @@ spec:
               value: 'host={{ .Values.global.rabbitmq.connection.url }};port={{ .Values.global.rabbitmq.connection.port }};username={{ .Values.global.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10{{ if .Values.global.rabbitmq.enableTLS }};tls=true{{ end }}'
             - name: GLOBAL_SETTINGS__RMQ_QUEUE_EXPIRE_MS
               value: '{{ .Values.global.lumenvox.rabbitmqQueueExpirationMs }}'
-            - name: SERVICE_ADDRESSES__REPORTING_API
-              value: 'http://reporting-api-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:8090'
-            - name: SERVICE_ADDRESSES__MANAGEMENT_API
-              value: 'http://management-api-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
-            - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
-              value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
-            - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
-              value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
-            - name: SERVICE_ADDRESSES__LUMENVOX_API
-              value: 'http://lumenvox-api-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:8280'
-            - name: SERVICE_ADDRESSES__ADMIN_PORTAL
-              value: 'http://admin-portal-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: SERVICE_EXTERNAL_ADDRESSES__REPORTING_API
               value: 'https://reporting-api{{ .Values.global.hostnameSuffix }}'
             - name: SERVICE_EXTERNAL_ADDRESSES__MANAGEMENT_API
@@ -116,4 +104,4 @@ spec:
           image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           command: ["curl2"]
-          args: ["http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:90/health", "Deployment Service"]
+          args: ["http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5110/health", "Deployment Service"]

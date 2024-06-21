@@ -28,20 +28,22 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           ports:
             - name: grpc
-              containerPort: 5010
+              containerPort: 5000
             - name: http
               containerPort: 5110
           readinessProbe:
-            httpGet:
-              path: /health
-              port: http
+            exec:
+              command:
+              - /usr/bin/lvlicense
+              - --healthcheck
             initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
           {{- if .Values.global.lumenvox.service.livenessProbe.enabled }}
           livenessProbe:
-            httpGet:
-              path: /health
-              port: http
+            exec:
+              command:
+              - /usr/bin/lvlicense
+              - --healthcheck
             initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
           {{- end }}
@@ -95,22 +97,22 @@ spec:
               value: "{{ .Values.global.postgresql.connection.ssl.caCertificate }}"
             {{- end }}
             - name: LICENSE_SETTINGS__CLUSTER_GUID
-              value: '{{ .Values.licensing.clusterGuid }}'
+              value: '{{ .Values.global.licensing.clusterGuid }}'
             - name: LICENSE_SETTINGS__KUBERNETES_NAMESPACE
               value: '{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: LICENSE_SETTINGS__REPORT_FREQUENCY_MINS
-              value: '{{ .Values.licensing.reportFreqMins }}'
+              value: '{{ .Values.global.licensing.reportFreqMins }}'
             - name: LICENSE_SETTINGS__REPORT_SYNC_HOUR
-              value: '{{ .Values.licensing.reportSyncHour }}'
+              value: '{{ .Values.global.licensing.reportSyncHour }}'
             - name: LICENSE_SETTINGS__REPORT_SYNC_MIN
-              value: '{{ .Values.licensing.reportSyncMin }}'
-            {{- if .Values.licensing.reportEndpoint }}
+              value: '{{ .Values.global.licensing.reportSyncMin }}'
+            {{- if .Values.global.licensing.reportEndpoint }}
             - name: LICENSE_SETTINGS__REPORT_ENDPOINT
-              value: '{{ .Values.licensing.reportEndpoint }}'
+              value: '{{ .Values.global.licensing.reportEndpoint }}'
             {{- end }}
-            {{ if .Values.licensing.showDebugOutput }}
+            {{ if .Values.global.licensing.showDebugOutput }}
             - name: LICENSE_SETTINGS__SHOW_DEBUG_OUTPUT
-              value: '{{ .Values.licensing.showDebugOutput }}'
+              value: '{{ .Values.global.licensing.showDebugOutput }}'
             {{- end }}
             - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
               value: 'ignore'
@@ -127,7 +129,7 @@ spec:
           image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           command: ["curl2"]
-          args: ["http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:90/health", "Deployment Service"]
+          args: ["http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5110/health", "Deployment Service"]
         - name: wait-for-rabbitmq-service
           image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}

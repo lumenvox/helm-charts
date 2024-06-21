@@ -27,21 +27,25 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           ports:
             - name: grpc  # Main API (gRPC)
-              containerPort: 8280
+              containerPort: 5000
             - name: http  # Prometheus=/metrics, Health=/health, /ready
               containerPort: 5110
           readinessProbe:
-            httpGet:
-              path: /ready
-              port: http
-            initialDelaySeconds: 5
+            exec:
+              command:
+              - /usr/bin/lumenvox-api
+              - --healthcheck
+            initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
+          {{- if .Values.global.lumenvox.service.livenessProbe.enabled }}
           livenessProbe:
-            httpGet:
-              path: /health
-              port: http
-            initialDelaySeconds: 10
+            exec:
+              command:
+              - /usr/bin/lumenvox-api
+              - --healthcheck
+            initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
+          {{- end }}
           resources:
             requests:
               cpu: 50m
@@ -73,6 +77,8 @@ spec:
             {{- end }}
             - name: GLOBAL_SETTINGS__CLUSTER_LOG_VERBOSITY
               value: '{{ .Values.global.lumenvox.loggingVerbosity }}'
+            - name: LICENSE_SETTINGS__CLUSTER_GUID
+              value: '{{ .Values.global.licensing.clusterGuid }}'  
             - name: REDIS_SETTINGS__DEFAULT_TTL
               value: '{{ .Values.global.lumenvox.redisTtl }}'   
             - name: GLOBAL_SETTINGS__RABBITMQ_CONNECTION_STRING
@@ -96,4 +102,4 @@ spec:
           image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           command: ["curl2"]
-          args: ["http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:90/health", "Deployment Service"]
+          args: ["http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5110/health", "Deployment Service"]

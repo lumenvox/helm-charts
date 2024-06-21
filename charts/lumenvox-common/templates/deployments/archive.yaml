@@ -29,9 +29,10 @@ spec:
             - name: http
               containerPort: 5110
           readinessProbe:
-            httpGet:
-              path: /health
-              port: http
+            exec:
+              command:
+              - /usr/bin/archive-manager
+              - --healthcheck
             initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
           resources:
@@ -65,6 +66,8 @@ spec:
             {{- end }}
             - name: GLOBAL_SETTINGS__CLUSTER_LOG_VERBOSITY
               value: '{{ .Values.global.lumenvox.loggingVerbosity }}'
+            - name: LICENSE_SETTINGS__CLUSTER_GUID
+              value: '{{ .Values.global.licensing.clusterGuid }}'
             - name: REDIS_SETTINGS__DEFAULT_TTL
               value: '{{ .Values.global.lumenvox.redisTtl }}' 
             - name: GLOBAL_SETTINGS__RABBITMQ_CONNECTION_STRING
@@ -72,11 +75,11 @@ spec:
             - name: GLOBAL_SETTINGS__RMQ_QUEUE_EXPIRE_MS
               value: '{{ .Values.global.lumenvox.rabbitmqQueueExpirationMs }}'
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
-              value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+              value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
-              value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+              value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
             - name: SERVICE_ADDRESSES__LUMENVOX_API
-              value: 'http://lumenvox-api-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:80'
+              value: 'http://lumenvox-api-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
             - name: SESSION_SETTINGS__API_EXCHANGE
               value: 'BroadcastExchange'
             - name: LOCAL_SETTINGS__ENV
@@ -94,7 +97,7 @@ spec:
           image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           command: ["curl2"]
-          args: ["http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:90/health", "Deployment Service"]
+          args: ["http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5110/health", "Deployment Service"]
         - name: wait-for-rabbitmq-service
           image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
