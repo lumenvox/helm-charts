@@ -1,7 +1,7 @@
 {{- define "lumenvox-speech.CLUSTER_LANGUAGES__ASR_LANGUAGES_VERSION" }}
 {{- $listStarted := false }}
 {{- range .Values.global.asrLanguages }}
-{{- if $listStarted }};{{ end }}{{ .name }}{{ if .version }}-{{ .version }}{{ end }}
+{{- if $listStarted }};{{ end }}{{ .name }}{{ if .version }}-{{ .version }}{{ end }}{{ if .enableFineTuned }};asr_finetuned_model_{{ .name }}{{ end }}
 {{- $listStarted = true }}
 {{- end }}
 {{- range .Values.global.customAsrModels }}
@@ -16,6 +16,13 @@
 {{- if $listStarted }};{{ end }}{{ .name }}
 {{- $listStarted = true }}
 {{- end }}
+{{- end }}
+
+{{- define "lumenvox-speech.CLUSTER_LANGUAGES__DNN_MODULES" }}
+{{- $fineTunedEnabled := false }}
+{{- range .Values.global.asrLanguages }}
+{{- if .enableFineTuned }}{{ $fineTunedEnabled = true }}{{ end }}
+{{- end }}backend_dnn_model_p;dist_package_model_en{{ if $fineTunedEnabled }};dist_package_model_finetuned{{ end }}
 {{- end }}
 
 {{- define "lumenvox-speech.CLUSTER_LANGUAGES__TTS_LANGUAGES" }}

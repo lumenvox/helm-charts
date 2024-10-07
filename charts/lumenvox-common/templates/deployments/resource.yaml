@@ -77,7 +77,7 @@ spec:
             - name: CLUSTER_LANGUAGES__ASR_LANGUAGES
               value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__ASR_LANGUAGES_VERSION" . }}'
             - name: CLUSTER_LANGUAGES__DNN_MODULES
-              value: 'backend_dnn_model_p;dist_package_model_en'
+              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__DNN_MODULES" . }}'
             {{- if .Values.global.enableItn }}
             - name: CLUSTER_LANGUAGES__ITN_LANGUAGES
               value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__ASR_LANGUAGES" . }}'

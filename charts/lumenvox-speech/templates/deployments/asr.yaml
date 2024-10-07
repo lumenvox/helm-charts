@@ -54,10 +54,15 @@ spec:
             requests:
               cpu: 5m
               memory: 30Mi
-            {{- if $.Values.global.lumenvox.enforceLimits }}
+            {{- if or $.Values.global.lumenvox.enforceLimits .enableFineTuned }}
             limits:
+              {{- if $.Values.global.lumenvox.enforceLimits }}
               cpu: 100m
               memory: 50Mi
+              {{- end }}
+              {{- if .enableFineTuned }}
+              nvidia.com/gpu: "1"
+              {{- end }}
             {{- end }}
           envFrom:
             - configMapRef:
@@ -99,11 +104,19 @@ spec:
               value: '{{ $.Values.asr.cacheMaxEntries }}'
             - name: ASR_SETTINGS__CACHE_MAX_SIZE_MB
               value: '{{ $.Values.asr.cacheMaxSizeMb }}'
+            {{- if .enableFineTuned }}
+            - name: ASR_SETTINGS__ENABLE_FINE_TUNED
+              value: '1'
+            {{- end }}
             - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
               value: 'ignore'
           volumeMounts:
             - mountPath: /usr/local/lib/python3.8/dist-packages
               name: asr-dist-packages
+            {{- if .enableFineTuned }}
+            - mountPath: /finetuned/venv/lib/python3.8/site-packages
+              name: asr-site-packages
+            {{- end }}
             - mountPath: /EuropaAsrModels
               name: europamodels
             - mountPath: /var/lumenvox/cache
@@ -132,6 +145,12 @@ spec:
           persistentVolumeClaim:
             claimName: asr-dist-packages-claim
             readOnly: false
+        {{- if .enableFineTuned }}
+        - name: asr-site-packages
+          persistentVolumeClaim:
+            claimName: asr-site-packages-claim
+            readOnly: false
+        {{- end }}
         - name: europamodels
           persistentVolumeClaim:
             claimName: europamodels-claim
