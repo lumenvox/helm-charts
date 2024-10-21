@@ -2,29 +2,29 @@ apiVersion: v2
 name: lumenvox-common
 description: LumenVox Common Components Helm chart for Kubernetes
 type: application
-version: 5.2.0
-appVersion: "5.2.0"
+version: 5.3.0
+appVersion: "5.3.0"
 home: https://lumenvox.com
 annotations:
   artifacthub.io/containsSecurityUpdates: true
   artifacthub.io/images: |
     - name: admin-portal
-      image: lumenvox/admin-portal:5.2
+      image: lumenvox/admin-portal:5.3
     - name: archive
-      image: lumenvox/archive:5.2
+      image: lumenvox/archive:5.3
     - name: binary-storage
-      image: lumenvox/storage:5.2
+      image: lumenvox/storage:5.3
     - name: cloud-init-tools
-      image: lumenvox/cloud-init-tools:5.2
+      image: lumenvox/cloud-init-tools:5.3
     - name: configuration
-      image: lumenvox/configuration:5.2
+      image: lumenvox/configuration:5.3
     - name: deployment
-      image: lumenvox/deployment:5.2
+      image: lumenvox/deployment:5.3
     - name: deployment-portal
-      image: lumenvox/deployment-portal:5.2
+      image: lumenvox/deployment-portal:5.3
     - name: license
-      image: lumenvox/license:5.2
+      image: lumenvox/license:5.3
     - name: management-api
-      image: lumenvox/management-api:5.2
+      image: lumenvox/management-api:5.3
     - name: resource
-      image: lumenvox/resource:5.2
+      image: lumenvox/resource:5.3

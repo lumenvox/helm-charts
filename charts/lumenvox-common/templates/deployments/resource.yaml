@@ -88,6 +88,8 @@ spec:
               value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__TTS_LANGUAGES" . }}'
             - name: CLUSTER_LANGUAGES__TTS_VOICES
               value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__TTS_VOICES_VERSION" . }}'
+            - name: CLUSTER_LANGUAGES__NEURAL_TTS_VOICES
+              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__NEURAL_TTS_VOICES_VERSION" . }}'
             {{- end }}
             {{- end }}
             {{- if .Values.global.enabled.lumenvoxVb }}

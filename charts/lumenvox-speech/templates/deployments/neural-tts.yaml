@@ -1,22 +1,22 @@
 {{- range .Values.global.ttsLanguages }}
-{{- if .legacyEnabled }}
+{{- if not .legacyEnabled }}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: tts-{{ .name | replace "_" "-" }}
+  name: neural-tts-{{ .name | replace "_" "-" }}
   namespace: {{ default $.Release.Namespace $.Values.global.defaultNamespace }}
   labels:
-    app: tts-{{ .name | replace "_" "-" }}
+    app: neural-tts-{{ .name | replace "_" "-" }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: tts-{{ .name | replace "_" "-" }}
+      app: neural-tts-{{ .name | replace "_" "-" }}
   template:
     metadata:
       labels:
-        app: tts-{{ .name | replace "_" "-" }}
+        app: neural-tts-{{ .name | replace "_" "-" }}
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '5110'
@@ -25,8 +25,8 @@ spec:
         {{- end }}
     spec:
       containers:
-        - name: tts
-          image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/tts{{ $.Values.image.tag | default $.Values.global.image.tag }}
+        - name: neural-tts
+          image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/neural-tts{{ $.Values.image.tag | default $.Values.global.image.tag }}
           imagePullPolicy: {{ $.Values.image.pullPolicy | default $.Values.global.image.pullPolicy }}
           ports:
             - name: http
@@ -88,55 +88,25 @@ spec:
               value: 'http://configuration-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
               value: 'http://deployment-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}'
-            - name: TTS_SETTINGS__SERVICE_LANGUAGE
+            - name: TTS3_SETTINGS__SERVICE_LANGUAGE
               value: '{{ .name }}'
-            - name: TTS_SETTINGS__SERVICE_VOICES
-              value: '{{ template "lumenvox-speech.TTS_SETTINGS__SERVICE_VOICES" . }}'
+            - name: NEURAL_TTS_SETTINGS__SERVICE_VOICES
+              value: '{{ template "lumenvox-speech.NEURAL_TTS_SETTINGS__SERVICE_VOICES" . }}'
+            - name: CLUSTER_LANGUAGES__NEURAL_TTS_VOICES
+              value: '{{ template "lumenvox-speech.NEURAL_TTS_SETTINGS__SERVICE_VOICES" . }}'
             - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
               value: 'ignore'
             - name: ENABLE_FAKE_RESULT
               value: '{{ $.Values.tts.useFakeResult }}'
           volumeMounts:
-            - mountPath: /etc/lumenvox/Lang/tts/staging
-              name: tts
-            - mountPath: /var/log/lumenvox/ttsserver
-              name: logs
-        - name: tts-application-log
-          image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/cloud-logging-sidecar{{ $.Values.image.tag | default $.Values.global.image.tag }}
-          imagePullPolicy: {{ $.Values.image.pullPolicy | default $.Values.global.image.pullPolicy }}
-          env:
-            - name: LOG_FILE_PATH
-              value: "/var/log/tts_server_app.txt"
-          volumeMounts:
-            - mountPath: /var/log
-              name: logs
-        - name: tts-restart-log
-          image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/cloud-logging-sidecar{{ $.Values.image.tag | default $.Values.global.image.tag }}
-          imagePullPolicy: {{ $.Values.image.pullPolicy | default $.Values.global.image.pullPolicy }}
-          env:
-            - name: LOG_FILE_PATH
-              value: "/var/log/tts_server_restart.txt"
-          volumeMounts:
-            - mountPath: /var/log
-              name: logs
-        - name: tts-exceptions-log
-          image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/cloud-logging-sidecar{{ $.Values.image.tag | default $.Values.global.image.tag }}
-          imagePullPolicy: {{ $.Values.image.pullPolicy | default $.Values.global.image.pullPolicy }}
-          env:
-            - name: LOG_FILE_PATH
-              value: "/var/log/Exceptions_lv_tts_server.txt"
-          volumeMounts:
-            - mountPath: /var/log
-              name: logs
-        - name: tts-process-log
-          image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/cloud-logging-sidecar{{ $.Values.image.tag | default $.Values.global.image.tag }}
-          imagePullPolicy: {{ $.Values.image.pullPolicy | default $.Values.global.image.pullPolicy }}
-          env:
-            - name: LOG_FILE_PATH
-              value: "/var/log/client_tts.txt"
-          volumeMounts:
-            - mountPath: /var/log
-              name: logs
+            - mountPath: /usr/local/lib/python3.8/dist-packages
+              name: tts-dist-packages
+            - mountPath: /app/TtsModels
+              name: tts-models
+            - mountPath: /tts_cache
+              name: tts-cache
+            - mountPath: /app/BackendModels
+              name: backendmodels
       {{- if $.Values.global.imagePullSecrets }}
       imagePullSecrets:
       {{- range $.Values.global.imagePullSecrets }}
@@ -155,11 +125,21 @@ spec:
           command: ["curl2"]
           args: ["http://resource-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}:5110/health", "Resource Manager Service"]    
       volumes:
-        - name: tts
+        - name: tts-dist-packages
           persistentVolumeClaim:
-            claimName: tts1-claim
+            claimName: tts-dist-packages-claim
             readOnly: false
-        - name: logs
-          emptyDir: {}
+        - name: tts-models
+          persistentVolumeClaim:
+            claimName: tts-models-claim
+            readOnly: false
+        - name: backendmodels
+          persistentVolumeClaim:
+            claimName: backendmodels-claim
+            readOnly: false
+        - name: tts-cache
+          persistentVolumeClaim:
+            claimName: tts-cache-claim
+            readOnly: false
 {{- end }}
 {{- end }}

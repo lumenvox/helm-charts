@@ -67,3 +67,46 @@
 {{- $listStarted = true }}
 {{- end }}
 {{- end }}
+
+{{- define "lumenvox-speech.CLUSTER_LANGUAGES__NEURAL_TTS_LANGUAGES" }}
+{{- $listStarted := false }}
+{{- range .Values.global.ttsLanguages }}
+{{- if $listStarted }};{{ end }}{{ .name | replace "_" "-" }}
+{{- $listStarted = true }}
+{{- end }}
+{{- end }}
+
+{{- define "lumenvox-speech.CLUSTER_LANGUAGES__NEURAL_TTS_VOICES" }}
+{{- $listStarted := false }}
+{{- $langRegion := "" }}
+{{- range .Values.global.ttsLanguages }}
+{{- $langRegion = .name }}
+{{- range .voices }}
+{{- if $listStarted }};{{ end }}neural_tts_{{ $langRegion }}_{{ .name }}
+{{- $listStarted = true }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- define "lumenvox-speech.CLUSTER_LANGUAGES__NEURAL_TTS_VOICES_VERSION" }}
+{{- $listStarted := false }}
+{{- $langRegion := "" }}
+{{- $voiceVersion := "" }}
+{{- range .Values.global.ttsLanguages }}
+{{- $langRegion = .name }}
+{{- range .voices }}
+{{- $voiceVersion = .version | default $.Values.global.ttsDefaultVersion }}
+{{- if $listStarted }};{{ end }}neural_tts_{{ $langRegion }}_{{ .name }}{{ if $voiceVersion }}-{{ $voiceVersion }}{{ end }}
+{{- $listStarted = true }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- define "lumenvox-speech.NEURAL_TTS_SETTINGS__SERVICE_VOICES" }}
+{{- $listStarted := false }}
+{{- $langRegion := .name }}
+{{- range .voices }}
+{{- if $listStarted }};{{ end }}neural_tts_{{ $langRegion }}_{{ .name }}
+{{- $listStarted = true }}
+{{- end }}
+{{- end }}

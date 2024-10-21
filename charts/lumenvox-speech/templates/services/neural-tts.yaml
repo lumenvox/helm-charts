@@ -1,0 +1,15 @@
+{{- range .Values.global.ttsLanguages }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: neural-tts-{{ .name | replace "_" "-" }}-service
+  namespace: {{ default $.Release.Namespace $.Values.global.defaultNamespace }}
+spec:
+  selector:
+    app: neural-tts-{{ .name| replace "_" "-" }}
+  ports:
+    - name: http
+      port: 5110
+      targetPort: http
+{{- end }}
