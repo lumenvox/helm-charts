@@ -67,7 +67,7 @@ global:
   image:
     repository: "lumenvox"
     pullPolicy: IfNotPresent
-    tag: ":5.1"
+    tag: ":5.3"
   imagePullSecrets: []
   rabbitmq:
     enableTLS: false
@@ -121,6 +121,7 @@ global:
     lumenvoxCommon: true
   enableItn: false
   asrDefaultVersion: "4.1.0"
+  neuralttsDefaultVersion: "3.0"
   ttsDefaultVersion: "1.0"
   vbDefaultVersion: "2.1.15"
     # Enabling the LumenVox API Healthceck below allows external access to the HTTP healthcheck /health.

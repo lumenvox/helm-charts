@@ -10,7 +10,7 @@
 | `global.lumenvox.enableAudit`                      | Whether to enable audit logging                                 | `false`                            |
 | `global.lumenvox.enforceLimits`                    | Whether to enforce resource limits                              | `false`                            |
 | `global.image.pullPolicy`                          | Pull policy when installing cluster                             | `IfNotPresent`                     |
-| `global.image.tag`                                 | Default image tag                                               | `":4.6"`                           |
+| `global.image.tag`                                 | Default image tag                                               | `":5.3"`                           |
 
 ### Persistent Volume Configuration
 | Parameter      | Description                                                                                                                 | Default    |
@@ -187,6 +187,17 @@ global:
         - name: "chris"
         - name: "lindsey"
           version: "1.3"
+```
+
+The Neural TTS is active by default. To use the legacy TTS, you can disable the Neural TTS per language. For example,
+to run the legacy TTS for American English:
+```yaml
+global:
+  ttsLanguages:
+    - name: "en_us"
+      legacyEnabled: true
+      voices:
+        - name: "chris"
 ```
 
 ### VB Language Configuration
