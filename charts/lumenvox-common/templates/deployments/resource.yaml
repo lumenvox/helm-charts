@@ -105,7 +105,7 @@ spec:
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
               value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: RESOURCE_SETTINGS__RESOURCE_DOWNLOAD_ENDPOINT
-              value: '{{ .Values.global.lumenvox.resourceDownloadendpoint }}'
+              value: '{{ .Values.global.lumenvox.resourceDownloadEndpoint }}'
             - name: RESOURCE_SETTINGS__MAX_CONCURRENT_DOWNLOADS
               value: '4'
             - name: RESOURCE_SETTINGS__DOWNLOAD_ATTEMPT_COUNTER
