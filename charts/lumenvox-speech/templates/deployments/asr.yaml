@@ -23,6 +23,7 @@ spec:
         linkerd.io/inject: enabled
         {{- end }}
     spec:
+      {{ template "lumenvox-speech.deployments.podScheduling" .Values.global.lumenvox.deployments }}
       containers:
         - name: asr
           image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/asr{{ $.Values.image.tag | default $.Values.global.image.tag }}

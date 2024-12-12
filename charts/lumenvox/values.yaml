@@ -39,6 +39,11 @@ global:
   # Note that you need to enter the complete domain name including the "." as per the example below
   hostnameSuffix: ".testmachine.com"
   lumenvox:
+    # Pod scheduling criteria for Deployments
+    deployments:
+      nodeSelector: {}
+      affinity: {}
+      tolerations: {}
     ingress:
       className: nginx
     # Maximum amount of time allowed for deployment database connection to succeed

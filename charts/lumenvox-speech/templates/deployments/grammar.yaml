@@ -21,6 +21,7 @@ spec:
         linkerd.io/inject: enabled
         {{- end }}
     spec:
+      {{ template "lumenvox-speech.deployments.podScheduling" .Values.global.lumenvox.deployments }}
       containers:
         - name: grammar
           image: {{ .Values.image.repository | default .Values.global.image.repository }}/grammar{{ .Values.image.tag | default .Values.global.image.tag }}
