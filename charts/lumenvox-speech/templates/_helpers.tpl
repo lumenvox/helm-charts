@@ -110,3 +110,23 @@
 {{- $listStarted = true }}
 {{- end }}
 {{- end }}
+
+{{/*
+Renders pod scheduling behavior, for those behaviors that are present.
+Usage:
+{{ template "lumenvox-speech.deployments.podScheduling" $ }}
+*/}}
+{{- define "lumenvox-speech.deployments.podScheduling" }}
+{{- if .Values.global.deployments.nodeSelector }}
+{{ println "nodeSelector:" | indent 6 }}
+{{ include "common.tplvalues.render" ( dict "value" .Values.global.deployments.nodeSelector "context" $ ) | nindent 8 }}
+{{- end }}
+{{- if .Values.global.deployments.affinity }}
+{{ println "affinity:" | indent 6 }}
+{{ include "common.tplvalues.render" ( dict "value" .Values.global.deployments.affinity "context" $ ) | nindent 8 }}
+{{- end }}
+{{- if .Values.global.deployments.tolerations }}
+{{ println "tolerations:" | indent 6 }}
+{{ include "common.tplvalues.render" ( dict "value" .Values.global.deployments.tolerations "context" $ ) | nindent 8 }}
+{{- end }}
+{{- end }}
