@@ -21,6 +21,7 @@ spec:
         linkerd.io/inject: enabled
         {{- end }}
     spec:
+      {{ template "lumenvox-common.deployments.podScheduling" $ }}
       containers:
         - name: configuration
           image: {{ .Values.image.repository | default .Values.global.image.repository }}/configuration{{ .Values.image.tag | default .Values.global.image.tag }}

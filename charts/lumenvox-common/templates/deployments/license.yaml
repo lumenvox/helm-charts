@@ -21,6 +21,7 @@ spec:
         linkerd.io/inject: enabled
         {{- end }}
     spec:
+      {{ template "lumenvox-common.deployments.podScheduling" $ }}
       serviceAccountName: license
       containers:
         - name: license

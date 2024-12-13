@@ -2,6 +2,12 @@
 
 image: {}
 
+global:
+  deployments:
+    affinity: {}
+    nodeSelector: {}
+    tolerations: []
+
 lumenvox:
   # Time to allow support services (such as databases) to become available. Typically, 0 in production
   deploymentStartDelaySeconds: 0
