@@ -8,6 +8,10 @@ global:
   asrLanguages: []
   ttsLanguages: []
   customAsrModels: []
+  deployments:
+    affinity: {}
+    nodeSelector: {}
+    tolerations: []
 
 asr:
   useFakeResult: "false"
