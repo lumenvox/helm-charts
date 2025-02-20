@@ -10,7 +10,7 @@
 | `global.lumenvox.enableAudit`                      | Whether to enable audit logging                                 | `false`                            |
 | `global.lumenvox.enforceLimits`                    | Whether to enforce resource limits                              | `false`                            |
 | `global.image.pullPolicy`                          | Pull policy when installing cluster                             | `IfNotPresent`                     |
-| `global.image.tag`                                 | Default image tag                                               | `":5.3"`                           |
+| `global.image.tag`                                 | Default image tag                                               | `":5.4"`                           |
 
 ### Persistent Volume Configuration
 | Parameter      | Description                                                                                                                 | Default    |
@@ -222,6 +222,11 @@ global:
     - name: "en_US"
       version: "2.1.1"
 ```
+
+### Grammar Manager Configuration
+| Parameter                                       | Description                | Default        |
+|-------------------------------------------------|----------------------------|----------------|
+| `lumenvox-speech.grammar.maxGrammarTransitions` | Maximum grammar complexity | `0` (disabled) |
 
 # Notes
 ## Image Versioning
