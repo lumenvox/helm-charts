@@ -14,6 +14,9 @@ asr:
   cacheMaxEntries: "1000"
   cacheMaxSizeMb: "500"
 
+grammar:
+  maxGrammarTransitions: ""
+
 tts:
   useFakeResult: "false"
 
