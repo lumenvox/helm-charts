@@ -79,6 +79,10 @@ global:
       user: "lvuser"
     init:
       checkManagementEndpoint: false
+    # certificates and keys below need to be Base64 encoded certificate versions of .pem/.crt files
+    caCertificate: ""
+    clientCertificate: ""
+    clientKey: ""
   redis:
     enableTLS: false
     auth:
