@@ -78,9 +78,15 @@ spec:
             - name: GLOBAL_SETTINGS__CLUSTER_LOG_VERBOSITY
               value: '{{ .Values.global.lumenvox.loggingVerbosity }}'
             - name: LICENSE_SETTINGS__CLUSTER_GUID
-              value: '{{ .Values.global.licensing.clusterGuid }}'  
+              value: '{{ .Values.global.licensing.clusterGuid }}'
             - name: REDIS_SETTINGS__DEFAULT_TTL
-              value: '{{ .Values.global.lumenvox.redisTtl }}'   
+              value: '{{ .Values.global.lumenvox.redisTtl }}'
+            - name: RMQ_CA_CERTIFICATE
+              value: '{{ .Values.global.rabbitmq.caCertificate }}'
+            - name: RMQ_CLIENT_CERTIFICATE
+              value: '{{ .Values.global.rabbitmq.clientCertificate }}'
+            - name: RMQ_CLIENT_KEY
+              value: '{{ .Values.global.rabbitmq.clientKey }}'
             - name: GLOBAL_SETTINGS__RABBITMQ_CONNECTION_STRING
               value: 'amqp{{ if .Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ .Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ .Values.global.rabbitmq.connection.url }}:{{ .Values.global.rabbitmq.connection.port }}'
             - name: GLOBAL_SETTINGS__RMQ_QUEUE_EXPIRE_MS
@@ -92,16 +98,16 @@ spec:
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
               value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
-              value: 'ignore'  
+              value: 'ignore'
           volumeMounts:
             - mountPath: /etc/lumenvox/Lang/Dict
               name: dict
             - mountPath: /etc/lumenvox/Lang/AsrModels
-              name: asrmodels 
+              name: asrmodels
             - mountPath: /var/lumenvox/cache
               name: europa-cache
             - mountPath: /var/log/lumenvox/sre
-              name: grammarlog    
+              name: grammarlog
       {{- if .Values.global.imagePullSecrets }}
       imagePullSecrets:
       {{- range .Values.global.imagePullSecrets }}
@@ -118,7 +124,7 @@ spec:
           image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ $.Values.image.pullPolicy | default $.Values.global.image.pullPolicy }}
           command: ["curl2"]
-          args: ["http://resource-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5110/health", "Resource Manager Service"]    
+          args: ["http://resource-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5110/health", "Resource Manager Service"]
       volumes:
         - name: dict
           persistentVolumeClaim:
@@ -135,5 +141,4 @@ spec:
         - name: grammarlog
           persistentVolumeClaim:
             claimName: grammarlogs-claim
-            readOnly: false   
-          
+            readOnly: false
