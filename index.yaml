@@ -1169,6 +1169,40 @@ entries:
         - name: resource
           image: lumenvox/resource:5.4
     apiVersion: v2
+    appVersion: 5.4.1
+    created: "2025-03-17T22:25:11.852669081Z"
+    description: LumenVox Common Components Helm chart for Kubernetes
+    digest: f3893d2aab5d432d1f413bb413d9d1f531460f8be70b18af8ee18c7addb30b5f
+    home: https://lumenvox.com
+    name: lumenvox-common
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-common-5.4.1/lumenvox-common-5.4.1.tgz
+    version: 5.4.1
+  - annotations:
+      artifacthub.io/containsSecurityUpdates: "true"
+      artifacthub.io/images: |
+        - name: admin-portal
+          image: lumenvox/admin-portal:5.4
+        - name: archive
+          image: lumenvox/archive:5.4
+        - name: binary-storage
+          image: lumenvox/storage:5.4
+        - name: cloud-init-tools
+          image: lumenvox/cloud-init-tools:5.4
+        - name: configuration
+          image: lumenvox/configuration:5.4
+        - name: deployment
+          image: lumenvox/deployment:5.4
+        - name: deployment-portal
+          image: lumenvox/deployment-portal:5.4
+        - name: license
+          image: lumenvox/license:5.4
+        - name: management-api
+          image: lumenvox/management-api:5.4
+        - name: resource
+          image: lumenvox/resource:5.4
+    apiVersion: v2
     appVersion: 5.4.0
     created: "2025-02-20T00:48:02.688147557Z"
     description: LumenVox Common Components Helm chart for Kubernetes
@@ -2230,6 +2264,40 @@ entries:
     - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-common-3.0.0/lumenvox-common-3.0.0.tgz
     version: 3.0.0
   lumenvox-speech:
+  - annotations:
+      artifacthub.io/containsSecurityUpdates: "true"
+      artifacthub.io/images: |
+        - name: asr
+          image: lumenvox/asr:5.4
+        - name: cloud-init-tools
+          image: lumenvox/cloud-init-tools:5.4
+        - name: cloud-logging-sidecar
+          image: lumenvox/cloud-logging-sidecar:5.4
+        - name: grammar
+          image: lumenvox/grammar:5.4
+        - name: itn
+          image: lumenvox/itn:5.4
+        - name: lumenvox-api
+          image: lumenvox/lumenvox-api:5.4
+        - name: reporting-api
+          image: lumenvox/reporting-api:5.4
+        - name: session
+          image: lumenvox/session:5.4
+        - name: tts
+          image: lumenvox/tts:5.4
+        - name: vad
+          image: lumenvox/vad:5.4
+    apiVersion: v2
+    appVersion: 5.4.1
+    created: "2025-03-17T22:25:11.996764203Z"
+    description: LumenVox Speech Helm chart for Kubernetes
+    digest: d0bd0a5f820aef204fdcc731ce8035e6fefd8e9982050ce8c93cf9edb54d6c61
+    home: https://lumenvox.com
+    name: lumenvox-speech
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-speech-5.4.1/lumenvox-speech-5.4.1.tgz
+    version: 5.4.1
   - annotations:
       artifacthub.io/containsSecurityUpdates: "true"
       artifacthub.io/images: |
