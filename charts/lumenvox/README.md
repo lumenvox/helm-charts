@@ -10,7 +10,7 @@
 | `global.lumenvox.enableAudit`                      | Whether to enable audit logging                                 | `false`                            |
 | `global.lumenvox.enforceLimits`                    | Whether to enforce resource limits                              | `false`                            |
 | `global.image.pullPolicy`                          | Pull policy when installing cluster                             | `IfNotPresent`                     |
-| `global.image.tag`                                 | Default image tag                                               | `":5.4"`                           |
+| `global.image.tag`                                 | Default image tag                                               | `":6.0"`                           |
 
 ### Persistent Volume Configuration
 | Parameter      | Description                                                                                                                 | Default    |

@@ -2,7 +2,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: asr-dist-packages-claim
-  namespace: {{ default $.Release.Namespace $.Values.global.defaultNamespace }}
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
 spec:
   accessModes:
   {{- if eq .Values.platform "minikube" }}

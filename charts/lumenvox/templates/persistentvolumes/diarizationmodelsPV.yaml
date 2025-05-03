@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: diarizationmodels
+spec:
+  accessModes:
+  {{- if eq .Values.platform "minikube" }}
+    - ReadWriteOnce
+  {{- else if eq .Values.platform "cloud" }}
+    - ReadWriteMany
+  {{- end }}
+  capacity:
+    storage: 10Gi
+  {{- if eq .Values.platform "minikube" }}
+  hostPath:
+  {{- else if eq .Values.platform "cloud" }}
+  nfs:
+    server: {{ .Values.volumeServer }}
+  {{- end }}
+    path: {{ .Values.volumeRoot }}/lang/vb-active/vba_mvimp_en_US-2.1.15

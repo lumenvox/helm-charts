@@ -41,6 +41,19 @@ global:
   lumenvox:
     ingress:
       className: nginx
+      commonAnnotations:
+        - name: "nginx.ingress.kubernetes.io/ssl-redirect"
+          value: "true"
+        - name: "nginx.ingress.kubernetes.io/proxy-body-size"
+          value: "0"
+        - name: "nginx.ingress.kubernetes.io/proxy-read-timeout"
+          value: "350"
+      grpcAnnotations:
+        - name: "nginx.ingress.kubernetes.io/backend-protocol"
+          value: "GRPC"
+      httpAnnotations:
+        - name: "nginx.ingress.kubernetes.io/backend-protocol"
+          value: "HTTP"
     # Maximum amount of time allowed for deployment database connection to succeed
     deploymentReconnectionTimeoutSec: 30
     probes:
@@ -61,13 +74,13 @@ global:
     # Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h", "d", "w", "y" Examples: "300ms", "-1.5h" or "2h45m"
     redisTtl: 3h
     # download link for resource service to download models and manifests. Default is the LumenVox S3 location.
-    resourceDownloadEndpoint: "https://lumenvox-public-assets.s3.us-east-1.amazonaws.com/"
+    resourceDownloadEndpoint: "https://assets.lumenvox.com/"
     # Default expiration for RabbitMQ queues in milliseconds
     rabbitmqQueueExpirationMs: 180000
   image:
     repository: "lumenvox"
     pullPolicy: IfNotPresent
-    tag: ":5.4"
+    tag: ":6.0"
   imagePullSecrets: []
   rabbitmq:
     enableTLS: false
@@ -123,11 +136,21 @@ global:
     lumenvoxSpeech: false
     lumenvoxVb: false
     lumenvoxCommon: true
+  # enabling ITN allows for the ITN service to be installed and allows for ITN post-processing to be called via the API.
   enableItn: false
+  # enabling NLU allows for the NLU service to be installed and allows for NLU interactions to be called via the API.
+  enableNlu: false
+  # enabling Diarization allows for the Diarization service to be installed and allows for Diarization interactions to be called via the API.
+  enableDiarization: false
+  # enabling LID allows for the LID service to be installed and allows for LID interactions to be called via the API.
+  enableLanguageId: false
+  # setting the minimalInstall value to true will result in only CPA interactions bing possible. The ASR and TTS services will not be installed.
+  minimalInstall: false
   asrDefaultVersion: "4.1.0"
   neuralttsDefaultVersion: "3.0"
   ttsDefaultVersion: "1.0"
   vbDefaultVersion: "2.1.15"
-    # Enabling the LumenVox API Healthceck below allows external access to the HTTP healthcheck /health.
+  lidVersion: "2.0.0"
+  # Enabling the LumenVox API Healthceck below allows external access to the HTTP healthcheck /health.
   enableLumenvoxapiHealthcheck: false
   extraRootCaCerts: false
