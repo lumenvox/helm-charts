@@ -13,7 +13,7 @@ encryption:
 linkerd:
   dashboard:
     # Applies ingress for linkerd dashboard when enabled (true)
-    enabled: true
+    enabled: false
     # Namespace used by linkerd dashboard
     namespace: linkerd-viz
     # Hostname prefix to use for ingress
@@ -23,3 +23,12 @@ linkerd:
   ingressClassName: ""
 
 prometheus: {}
+
+global:
+  lumenvox:
+    ingress:
+      disableTls: false
+      commonAnnotations: []
+      grpcAnnotations: []
+      httpAnnotations: []
+  lidVersion: "2.0.0"

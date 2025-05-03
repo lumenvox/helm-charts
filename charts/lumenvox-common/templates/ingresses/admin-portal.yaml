@@ -3,6 +3,15 @@ kind: Ingress
 metadata:
   name: admin-portal-ingress
   namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+  {{- if or .Values.global.lumenvox.ingress.commonAnnotations .Values.global.lumenvox.ingress.httpAnnotations }}
+  annotations:
+    {{- range .Values.global.lumenvox.ingress.commonAnnotations }}
+      {{ .name }}: "{{ .value }}"
+    {{- end }}
+    {{- range .Values.global.lumenvox.ingress.httpAnnotations }}
+      {{ .name }}: "{{ .value }}"
+    {{- end }}
+  {{- end }}
 spec:
   {{- if .Values.global.lumenvox.ingress.className }}
   ingressClassName: {{ .Values.global.lumenvox.ingress.className }}
@@ -48,7 +57,9 @@ spec:
                 port:
                   name: http
           {{- end }}
+  {{- if not .Values.global.lumenvox.ingress.disableTls }}
   tls:
     - secretName: speech-tls-secret
       hosts:
         - admin-portal{{ .Values.global.hostnameSuffix }}
+  {{- end }}

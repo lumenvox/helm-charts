@@ -20,9 +20,12 @@
 
 {{- define "lumenvox-speech.CLUSTER_LANGUAGES__DNN_MODULES" }}
 {{- $fineTunedEnabled := false }}
+{{- $nluEnabled := false }}
+{{- if .Values.global.enableNlu }}{{ $nluEnabled = true }}{{ end }}
 {{- range .Values.global.asrLanguages }}
 {{- if .enableFineTuned }}{{ $fineTunedEnabled = true }}{{ end }}
 {{- end }}backend_dnn_model_p;dist_package_model_en{{ if $fineTunedEnabled }};dist_package_model_finetuned{{ end }}
+{{- if $nluEnabled }};dist_package_model_nlu{{ end }}
 {{- end }}
 
 {{- define "lumenvox-speech.CLUSTER_LANGUAGES__TTS_LANGUAGES" }}
@@ -107,6 +110,15 @@
 {{- $langRegion := .name }}
 {{- range .voices }}
 {{- if $listStarted }};{{ end }}neural_tts_{{ $langRegion }}_{{ .name }}
+{{- $listStarted = true }}
+{{- end }}
+{{- end }}
+
+{{- define "lumenvox-vb.CLUSTER_LANGUAGES__VB_ACTIVE" }}
+{{- $listStarted := false }}
+{{- range .Values.global.vbLanguages }}
+{{- $vbVersion := .version | default $.Values.global.vbDefaultVersion }}
+{{- if $listStarted }};{{ end }}vba_mvimp_{{ .name }}-{{ $vbVersion }}
 {{- $listStarted = true }}
 {{- end }}
 {{- end }}

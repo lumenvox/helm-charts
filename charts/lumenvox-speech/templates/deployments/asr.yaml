@@ -1,3 +1,4 @@
+{{- if not .Values.global.minimalInstall }}
 {{- range .Values.global.asrLanguages }}
 ---
 apiVersion: apps/v1
@@ -169,4 +170,5 @@ spec:
           persistentVolumeClaim:
             claimName: europa-cache-claim
             readOnly: false
+{{- end }}
 {{- end }}

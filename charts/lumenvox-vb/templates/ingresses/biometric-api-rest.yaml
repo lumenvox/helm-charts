@@ -18,7 +18,9 @@ spec:
                 name: biometric-api-service
                 port:
                   name: rest
+  {{- if not .Values.global.lumenvox.ingress.disableTls }}
   tls:
     - secretName: speech-tls-secret
       hosts:
         - biometric-api{{ .Values.global.hostnameSuffix }}
+  {{- end }}

@@ -33,8 +33,10 @@ spec:
                 name: lumenvox-api-service
                 port:
                   name: http
+  {{- if not .Values.global.lumenvox.ingress.disableTls }}
   tls:
     - secretName: speech-tls-secret
       hosts:
         - lumenvox-api{{ .Values.global.hostnameSuffix }}
+  {{- end }}
 {{- end }}

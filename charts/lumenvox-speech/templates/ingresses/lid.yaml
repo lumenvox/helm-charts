@@ -1,26 +1,25 @@
+{{- if .Values.global.enableLanguageId }}
+{{- if .Values.global.lumenvox.metrics.enableEndpoints }}
+---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: reporting-bio-api-ingress
+  name: lid-ingress
   namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
 spec:
   {{- if .Values.global.lumenvox.ingress.className }}
   ingressClassName: {{ .Values.global.lumenvox.ingress.className }}
   {{- end }}
   rules:
-    - host: reporting-bio-api{{ .Values.global.hostnameSuffix }}
+    - host: lid{{ .Values.global.hostnameSuffix }}
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: reporting-bio-api-service
+                name: lid-service
                 port:
-                  name: rest
-  {{- if not .Values.global.lumenvox.ingress.disableTls }}
-  tls:
-    - secretName: speech-tls-secret
-      hosts:
-        - reporting-bio-api{{ .Values.global.hostnameSuffix }}
-  {{- end }}
+                  name: http
+{{- end }}
+{{- end }}

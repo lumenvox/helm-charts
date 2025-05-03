@@ -33,8 +33,10 @@ spec:
                 name: reporting-api-service
                 port:
                   name: http
+  {{- if not .Values.global.lumenvox.ingress.disableTls }}
   tls:
     - secretName: speech-tls-secret
       hosts:
         - reporting-api{{ .Values.global.hostnameSuffix }}
+  {{- end }}
 {{- end }}

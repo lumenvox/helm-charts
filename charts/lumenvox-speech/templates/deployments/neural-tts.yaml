@@ -1,3 +1,4 @@
+{{- if not .Values.global.minimalInstall }}
 {{- range .Values.global.ttsLanguages }}
 {{- if not .legacyEnabled }}
 ---
@@ -147,5 +148,6 @@ spec:
           persistentVolumeClaim:
             claimName: tts-cache-claim
             readOnly: false
+{{- end }}
 {{- end }}
 {{- end }}

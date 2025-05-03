@@ -1,19 +1,21 @@
+{{- if .Values.global.enableNlu }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: session
+  name: nlu
   namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
   labels:
-    app: session
+    app: nlu
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: session
+      app: nlu
   template:
     metadata:
       labels:
-        app: session
+        app: nlu
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '5110'
@@ -22,25 +24,29 @@ spec:
         {{- end }}
     spec:
       containers:
-        - name: session
-          image: {{ .Values.image.repository | default .Values.global.image.repository }}/session{{ .Values.image.tag | default .Values.global.image.tag }}
+        - name: nlu
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/nlu{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           ports:
             - name: http
               containerPort: 5110
           readinessProbe:
-            exec:
-              command:
-              - /usr/bin/session
-              - --healthcheck
+            httpGet:
+              path: /health
+              port: http
             initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
+            periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            failureThreshold: 12
             periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
           {{- if .Values.global.lumenvox.service.livenessProbe.enabled }}
           livenessProbe:
-            exec:
-              command:
-              - /usr/bin/session
-              - --healthcheck
+            httpGet:
+              path: /health
+              port: http
             initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
           {{- end }}
@@ -48,10 +54,15 @@ spec:
             requests:
               cpu: 5m
               memory: 30Mi
-            {{- if .Values.global.lumenvox.enforceLimits }}
+            {{- if or .Values.global.lumenvox.enforceLimits .Values.global.enableNlu }}
             limits:
+              {{- if .Values.global.lumenvox.enforceLimits }}
               cpu: 100m
               memory: 50Mi
+              {{- end }}
+              {{- if .Values.global.enableNlu }}
+              nvidia.com/gpu: "1"
+              {{- end }}
             {{- end }}
           envFrom:
             - configMapRef:
@@ -76,7 +87,7 @@ spec:
             - name: GLOBAL_SETTINGS__CLUSTER_LOG_VERBOSITY
               value: '{{ .Values.global.lumenvox.loggingVerbosity }}'
             - name: LICENSE_SETTINGS__CLUSTER_GUID
-              value: '{{ .Values.global.licensing.clusterGuid }}'  
+              value: '{{ .Values.global.licensing.clusterGuid }}'
             - name: REDIS_SETTINGS__DEFAULT_TTL
               value: '{{ .Values.global.lumenvox.redisTtl }}'
             - name: RMQ_CA_CERTIFICATE
@@ -89,47 +100,48 @@ spec:
               value: 'amqp{{ if .Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ .Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ .Values.global.rabbitmq.connection.url }}:{{ .Values.global.rabbitmq.connection.port }}'
             - name: GLOBAL_SETTINGS__RMQ_QUEUE_EXPIRE_MS
               value: '{{ .Values.global.lumenvox.rabbitmqQueueExpirationMs }}'
-            - name: CLUSTER_LANGUAGES__ASR_LANGUAGES
-              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__ASR_LANGUAGES" . }}'
-            - name: CLUSTER_LANGUAGES__TTS_LANGUAGES
-              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__TTS_LANGUAGES" . }}'
-            {{- if .Values.global.enableItn }}
-            - name: CLUSTER_LANGUAGES__ITN_LANGUAGES
-              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__ASR_LANGUAGES" . }}'
-            {{- end }}
-            {{- if .Values.global.enableNlu }}
-            - name: CLUSTER_LANGUAGES__NLU_LANGUAGES
-              value: 'en'
-            {{- end }}
-            {{- if .Values.global.enableDiarization }}
-            - name: CLUSTER_LANGUAGES__DIARIZATION_LANGUAGES
-              value: 'en'
-            {{- end }}
-            {{- if .Values.global.minimalInstall }}
-            - name: SETTINGS__ENABLE_ASR_PROCESSING
-              value: 'false'
-            {{- end }}
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
               value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
               value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
-            - name: SETTINGS__USE_GRAMMAR_MANAGER
-              value: 'true'
-            - name: SESSION_SETTINGS__API_EXCHANGE
-              value: 'BroadcastExchange'
-            - name: LOCAL_SETTINGS__ENV
-              value: 'dev'
             - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
               value: 'ignore'
+            - name: NLU_SETTINGS__SERVICE_LANGUAGE
+              value: 'en'
+          volumeMounts:
+            - mountPath: /app/venv/lib/python3.10/site-packages
+              name: nlu-site-packages
+            - mountPath: /app/models
+              name: nlumodels
       {{- if .Values.global.imagePullSecrets }}
       imagePullSecrets:
       {{- range .Values.global.imagePullSecrets }}
         - name: {{ . }}
       {{- end }}
       {{- end }}
+      tolerations:
+        - effect: NoSchedule
+          key: gpu
+          operator: Exists
       initContainers:
         - name: wait-for-deployment-service
           image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           command: ["curl2"]
           args: ["http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5110/health", "Deployment Service"]
+        - name: wait-for-resource-manager
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          command: ["curl2"]
+          args: ["http://resource-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5110/health", "Resource Manager Service"]
+      volumes:
+        - name: nlu-site-packages
+          persistentVolumeClaim:
+            claimName: nlu-site-packages-claim
+            readOnly: false
+        - name: nlumodels
+          persistentVolumeClaim:
+            claimName: nlumodels-claim
+            readOnly: false
+{{- end }}     
+

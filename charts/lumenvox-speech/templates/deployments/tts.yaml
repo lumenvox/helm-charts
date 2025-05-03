@@ -1,3 +1,4 @@
+{{- if not .Values.global.minimalInstall }}
 {{- range .Values.global.ttsLanguages }}
 {{- if .legacyEnabled }}
 ---
@@ -167,5 +168,6 @@ spec:
             readOnly: false
         - name: logs
           emptyDir: {}
+{{- end }}
 {{- end }}
 {{- end }}

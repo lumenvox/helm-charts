@@ -1,0 +1,15 @@
+{{- if .Values.global.enableLanguageId }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lid-service
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+spec:
+  selector:
+    app: lid
+  ports:
+    - name: http
+      port: 5110
+      targetPort: http
+{{- end }}

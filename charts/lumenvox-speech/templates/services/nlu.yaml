@@ -1,0 +1,15 @@
+{{- if .Values.global.enableNlu }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nlu-service
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+spec:
+  selector:
+    app: nlu
+  ports:
+    - name: http
+      port: 5110
+      targetPort: http
+{{- end }}

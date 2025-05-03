@@ -8,6 +8,13 @@ global:
   asrLanguages: []
   ttsLanguages: []
   customAsrModels: []
+  lidLanguages: []
+  lumenvox:
+    ingress:
+      disableTls: false
+      commonAnnotations: []
+      grpcAnnotations: []
+      httpAnnotations: []
 
 asr:
   useFakeResult: "false"

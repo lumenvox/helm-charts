@@ -1,0 +1,15 @@
+{{- if .Values.global.enableDiarization }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: diarization-service
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+spec:
+  selector:
+    app: diarization
+  ports:
+    - name: http
+      port: 5110
+      targetPort: http
+{{- end }}

@@ -67,9 +67,9 @@ spec:
             - name: GLOBAL_SETTINGS__CLUSTER_LOG_VERBOSITY
               value: '{{ .Values.global.lumenvox.loggingVerbosity }}'
             - name: REDIS_SETTINGS__DEFAULT_TTL
-              value: '{{ .Values.global.lumenvox.redisTtl }}'   
-            - name: GLOBAL_SETTINGS__RABBITMQ_EASY_CONNECTION_STRING
-              value: 'host={{ .Values.global.rabbitmq.connection.url }};port={{ .Values.global.rabbitmq.connection.port }};username={{ .Values.global.rabbitmq.connection.user }};password=$(rabbitmq-password);requestedHeartbeat=10{{ if .Values.global.rabbitmq.enableTLS }};tls=true{{ end }}'
+              value: '{{ .Values.global.lumenvox.redisTtl }}'
+            - name: GLOBAL_SETTINGS__RABBITMQ_CONNECTION_STRING
+              value: 'amqp{{ if .Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ .Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ .Values.global.rabbitmq.connection.url }}:{{ .Values.global.rabbitmq.connection.port }}'
             - name: GLOBAL_SETTINGS__RMQ_QUEUE_EXPIRE_MS
               value: '{{ .Values.global.lumenvox.rabbitmqQueueExpirationMs }}'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
@@ -78,12 +78,10 @@ spec:
               value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
             - name: SERVICE_ADDRESSES__BINARY_STORAGE_SERVICE
               value: 'http://binary-storage-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
-            - name: DB_SETTINGS__DEPLOYMENT_RECONNECTION_TIMEOUT_SEC
-              value: '{{ .Values.global.lumenvox.deploymentReconnectionTimeoutSec }}'
+            - name: LICENSE_SETTINGS__CLUSTER_GUID
+              value: '{{ .Values.global.licensing.clusterGuid }}'
             - name: LOCAL_SETTINGS__ENABLE_AUDIT_LOG
               value: '{{ .Values.global.lumenvox.enableAudit }}'
-            - name: LOCAL_SETTINGS__SERVICE_START_DELAY_SECONDS
-              value: '6'
       {{- if .Values.global.imagePullSecrets }}
       imagePullSecrets:
       {{- range .Values.global.imagePullSecrets }}

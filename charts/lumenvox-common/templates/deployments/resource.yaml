@@ -82,6 +82,10 @@ spec:
             - name: CLUSTER_LANGUAGES__ITN_LANGUAGES
               value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__ASR_LANGUAGES" . }}'
             {{- end }}
+            {{- if .Values.global.enableNlu }}
+            - name: CLUSTER_LANGUAGES__NLU_LANGUAGES
+              value: 'en'
+            {{- end }}
             {{- end }}
             {{- if .Values.global.ttsLanguages }}
             - name: CLUSTER_LANGUAGES__TTS_LANGUAGES
@@ -92,9 +96,13 @@ spec:
               value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__NEURAL_TTS_VOICES_VERSION" . }}'
             {{- end }}
             {{- end }}
-            {{- if .Values.global.enabled.lumenvoxVb }}
+            {{- if or .Values.global.enableDiarization .Values.global.enabled.lumenvoxVb }}
             - name: CLUSTER_LANGUAGES__VB_ACTIVE
               value: '{{ template "lumenvox-vb.CLUSTER_LANGUAGES__VB_ACTIVE" . }}'
+            {{- end }}
+            {{- if .Values.global.enableLanguageId }}
+            - name: CLUSTER_LANGUAGES__LID
+              value: "vba_all_LID_LID-{{ .Values.global.lidVersion}}"
             {{- end }}
             - name: GLOBAL_SETTINGS__CLUSTER_LOG_VERBOSITY
               value: '{{ .Values.global.lumenvox.loggingVerbosity }}'
