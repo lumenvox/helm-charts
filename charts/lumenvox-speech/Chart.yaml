@@ -2,29 +2,29 @@ apiVersion: v2
 name: lumenvox-speech
 description: LumenVox Speech Helm chart for Kubernetes
 type: application
-version: 6.0.0
-appVersion: "6.0.0"
+version: 6.1.0
+appVersion: "6.1.0"
 home: https://lumenvox.com
 annotations:
   artifacthub.io/containsSecurityUpdates: true
   artifacthub.io/images: |
     - name: asr
-      image: lumenvox/asr:6.0
+      image: lumenvox/asr:6.1
     - name: cloud-init-tools
-      image: lumenvox/cloud-init-tools:6.0
+      image: lumenvox/cloud-init-tools:6.1
     - name: cloud-logging-sidecar
-      image: lumenvox/cloud-logging-sidecar:6.0
+      image: lumenvox/cloud-logging-sidecar:6.1
     - name: grammar
-      image: lumenvox/grammar:6.0
+      image: lumenvox/grammar:6.1
     - name: itn
-      image: lumenvox/itn:6.0
+      image: lumenvox/itn:6.1
     - name: lumenvox-api
-      image: lumenvox/lumenvox-api:6.0
+      image: lumenvox/lumenvox-api:6.1
     - name: reporting-api
-      image: lumenvox/reporting-api:6.0
+      image: lumenvox/reporting-api:6.1
     - name: session
-      image: lumenvox/session:6.0
+      image: lumenvox/session:6.1
     - name: tts
-      image: lumenvox/tts:6.0
+      image: lumenvox/tts:6.1
     - name: vad
-      image: lumenvox/vad:6.0
+      image: lumenvox/vad:6.1
