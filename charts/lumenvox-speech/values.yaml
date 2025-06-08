@@ -15,6 +15,7 @@ global:
       commonAnnotations: []
       grpcAnnotations: []
       httpAnnotations: []
+    schedulerName: ""
 
 asr:
   useFakeResult: "false"

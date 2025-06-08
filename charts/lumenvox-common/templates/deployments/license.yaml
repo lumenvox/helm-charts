@@ -148,3 +148,6 @@ spec:
           command: ["curl2"]
           args: ["http{{ if .Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ .Values.global.rabbitmq.connection.url }}{{ if not .Values.global.rabbitmq.enableTLS }}:15672{{ end }}", "RabbitMQ Management Page"]
         {{- end }}
+      {{- if .Values.global.lumenvox.schedulerName }}
+      schedulerName: {{ .Values.global.lumenvox.schedulerName }}
+      {{- end }}

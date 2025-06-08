@@ -170,5 +170,8 @@ spec:
           persistentVolumeClaim:
             claimName: europa-cache-claim
             readOnly: false
+      {{- if $.Values.global.lumenvox.schedulerName }}
+      schedulerName: {{ $.Values.global.lumenvox.schedulerName }}
+      {{- end }}
 {{- end }}
 {{- end }}

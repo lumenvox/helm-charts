@@ -31,4 +31,5 @@ global:
       commonAnnotations: []
       grpcAnnotations: []
       httpAnnotations: []
+    schedulerName: ""
   lidVersion: "2.0.0"

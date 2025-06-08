@@ -168,6 +168,9 @@ spec:
             readOnly: false
         - name: logs
           emptyDir: {}
+      {{- if $.Values.global.lumenvox.schedulerName }}
+      schedulerName: {{ $.Values.global.lumenvox.schedulerName }}
+      {{- end }}
 {{- end }}
 {{- end }}
 {{- end }}

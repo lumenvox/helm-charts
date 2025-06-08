@@ -141,5 +141,8 @@ spec:
           persistentVolumeClaim:
             claimName: itnbackendmodels-claim
             readOnly: false    
-{{- end }}     
+      {{- if $.Values.global.lumenvox.schedulerName }}
+      schedulerName: {{ $.Values.global.lumenvox.schedulerName }}
+      {{- end }}
+{{- end }}
 {{- end }}       

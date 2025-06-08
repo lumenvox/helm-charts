@@ -102,3 +102,6 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           command: ["curl2"]
           args: ["http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:90/health", "Deployment Service"]
+      {{- if .Values.global.lumenvox.schedulerName }}
+      schedulerName: {{ .Values.global.lumenvox.schedulerName }}
+      {{- end }}

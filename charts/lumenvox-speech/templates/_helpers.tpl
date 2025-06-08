@@ -98,7 +98,7 @@
 {{- range .Values.global.ttsLanguages }}
 {{- $langRegion = .name }}
 {{- range .voices }}
-{{- $voiceVersion = .version | default $.Values.global.ttsDefaultVersion }}
+{{- $voiceVersion = .version | default $.Values.global.neuralttsDefaultVersion }}
 {{- if $listStarted }};{{ end }}neural_tts_{{ $langRegion }}_{{ .name }}{{ if $voiceVersion }}-{{ $voiceVersion }}{{ end }}
 {{- $listStarted = true }}
 {{- end }}
