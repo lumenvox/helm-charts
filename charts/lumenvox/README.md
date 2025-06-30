@@ -10,7 +10,7 @@
 | `global.lumenvox.enableAudit`                      | Whether to enable audit logging                                 | `false`                            |
 | `global.lumenvox.enforceLimits`                    | Whether to enforce resource limits                              | `false`                            |
 | `global.image.pullPolicy`                          | Pull policy when installing cluster                             | `IfNotPresent`                     |
-| `global.image.tag`                                 | Default image tag                                               | `":6.1"`                           |
+| `global.image.tag`                                 | Default image tag                                               | `":6.2"`                           |
 
 ### Persistent Volume Configuration
 | Parameter      | Description                                                                                                                 | Default    |
@@ -132,11 +132,11 @@ Once the secret has been created, set `global.extraRootCaCerts` to true.
 | `global.enabled.lumenvoxVb`     | If `true`, enable LumenVox Voice Biometrics | `false` |
 
 ### ASR Language Configuration
-| Parameter                  | Description                      | Default |
-|----------------------------|----------------------------------|---------|
-| `global.asrLanguages`      | List of ASR languages to install | `[]`    |
-| `global.asrDefaultVersion` | Default ASR model version        | `"2.2"` |
-| `global.customAsrModels`   | Custom ASR models                | `[]`    |
+| Parameter                  | Description                      | Default   |
+|----------------------------|----------------------------------|-----------|
+| `global.asrLanguages`      | List of ASR languages to install | `[]`      |
+| `global.asrDefaultVersion` | Default ASR model version        | `"4.1.0"` |
+| `global.customAsrModels`   | Custom ASR models                | `[]`      |
 
 To specify ASR languages, you must list your desired languages under `global.asrLanguages`. The list items must include
 a name; specifying a version is optional. If the version is omitted, the one specified in `global.asrDefaultVersion`
@@ -167,6 +167,19 @@ global:
 The ASR utilizes a cache to speed up processing of frequently used grammars. To configure the
 maximum size of the cache, both in number of entries and in size (MB), the above values may
 be utilized.
+
+### ITN Language Configuration
+| Parameter                  | Description                      | Default |
+|----------------------------|----------------------------------|---------|
+| `global.itnLanguages`      | List of ITN languages to install | `[]`    |
+
+To specify ITN languages, you must list your desired languages under `global.itnLanguages`. For example:
+```yaml
+global:
+  itnLanguages:
+    - name: "en"
+    - name: "es"
+```
 
 ### TTS Language Configuration
 | Parameter                  | Description                   | Default |

@@ -81,7 +81,7 @@ global:
   image:
     repository: "lumenvox"
     pullPolicy: IfNotPresent
-    tag: ":6.1"
+    tag: ":6.2"
   imagePullSecrets: []
   rabbitmq:
     enableTLS: false
@@ -137,8 +137,6 @@ global:
     lumenvoxSpeech: false
     lumenvoxVb: false
     lumenvoxCommon: true
-  # enabling ITN allows for the ITN service to be installed and allows for ITN post-processing to be called via the API.
-  enableItn: false
   # enabling NLU allows for the NLU service to be installed and allows for NLU interactions to be called via the API.
   enableNlu: false
   # enabling Diarization allows for the Diarization service to be installed and allows for Diarization interactions to be called via the API.
