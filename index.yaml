@@ -1236,6 +1236,40 @@ entries:
       artifacthub.io/containsSecurityUpdates: "true"
       artifacthub.io/images: |
         - name: admin-portal
+          image: lumenvox/admin-portal:6.2
+        - name: archive
+          image: lumenvox/archive:6.2
+        - name: binary-storage
+          image: lumenvox/storage:6.2
+        - name: cloud-init-tools
+          image: lumenvox/cloud-init-tools:6.2
+        - name: configuration
+          image: lumenvox/configuration:6.2
+        - name: deployment
+          image: lumenvox/deployment:6.2
+        - name: deployment-portal
+          image: lumenvox/deployment-portal:6.2
+        - name: license
+          image: lumenvox/license:6.2
+        - name: management-api
+          image: lumenvox/management-api:6.2
+        - name: resource
+          image: lumenvox/resource:6.2
+    apiVersion: v2
+    appVersion: 6.2.0
+    created: "2025-06-30T22:36:13.795515562Z"
+    description: LumenVox Common Components Helm chart for Kubernetes
+    digest: 6b44a891d1895751333ef264b61a68e6ae4ba70831f2e281b6f853e83c88b570
+    home: https://lumenvox.com
+    name: lumenvox-common
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-common-6.2.0/lumenvox-common-6.2.0.tgz
+    version: 6.2.0
+  - annotations:
+      artifacthub.io/containsSecurityUpdates: "true"
+      artifacthub.io/images: |
+        - name: admin-portal
           image: lumenvox/admin-portal:6.1
         - name: archive
           image: lumenvox/archive:6.1
@@ -2423,6 +2457,48 @@ entries:
       artifacthub.io/containsSecurityUpdates: "true"
       artifacthub.io/images: |
         - name: asr
+          image: lumenvox/asr:6.2
+        - name: diarization
+          image: lumenvox/diarization:6.2
+        - name: cloud-init-tools
+          image: lumenvox/cloud-init-tools:6.2
+        - name: cloud-logging-sidecar
+          image: lumenvox/cloud-logging-sidecar:6.2
+        - name: grammar
+          image: lumenvox/grammar:6.2
+        - name: itn
+          image: lumenvox/itn:6.2
+        - name: lid
+          image: lumenvox/lid:6.2
+        - name: lumenvox-api
+          image: lumenvox/lumenvox-api:6.2
+        - name: neural-tts
+          image: lumenvox/neural-tts:6.2
+        - name: nlu
+          image: lumenvox/nlu:6.2
+        - name: reporting-api
+          image: lumenvox/reporting-api:6.2
+        - name: session
+          image: lumenvox/session:6.2
+        - name: tts
+          image: lumenvox/tts:6.2
+        - name: vad
+          image: lumenvox/vad:6.2
+    apiVersion: v2
+    appVersion: 6.2.0
+    created: "2025-06-30T22:36:14.018781689Z"
+    description: LumenVox Speech Helm chart for Kubernetes
+    digest: 247bffaaacfbbef35aabc203ef246f86273062e8d47c3e893356e050ef5847c1
+    home: https://lumenvox.com
+    name: lumenvox-speech
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-speech-6.2.0/lumenvox-speech-6.2.0.tgz
+    version: 6.2.0
+  - annotations:
+      artifacthub.io/containsSecurityUpdates: "true"
+      artifacthub.io/images: |
+        - name: asr
           image: lumenvox/asr:6.1
         - name: cloud-init-tools
           image: lumenvox/cloud-init-tools:6.1
@@ -3251,6 +3327,36 @@ entries:
     - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-speech-3.0.0/lumenvox-speech-3.0.0.tgz
     version: 3.0.0
   lumenvox-vb:
+  - annotations:
+      artifacthub.io/containsSecurityUpdates: "true"
+      artifacthub.io/images: |
+        - name: audit
+          image: lumenvox/audit:6.2
+        - name: biometric-active
+          image: lumenvox/biometric-active:6.2
+        - name: biometric-api
+          image: lumenvox/biometric-api:6.2
+        - name: biometric-identity
+          image: lumenvox/biometric-identity:6.2
+        - name: cloud-init-tools
+          image: lumenvox/cloud-init-tools:6.2
+        - name: reporting-bio-api
+          image: lumenvox/reporting-bio-api:6.2
+        - name: reporting
+          image: lumenvox/reporting:6.2
+        - name: transaction
+          image: lumenvox/transaction:6.2
+    apiVersion: v2
+    appVersion: 6.2.0
+    created: "2025-06-30T22:36:14.229011039Z"
+    description: LumenVox Voice Biometrics Helm chart for Kubernetes
+    digest: 76bef814fb96b0693366a936285442054e8f478e1df9c3c3d7043debbbcdb66f
+    home: https://lumenvox.com
+    name: lumenvox-vb
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-vb-6.2.0/lumenvox-vb-6.2.0.tgz
+    version: 6.2.0
   - annotations:
       artifacthub.io/containsSecurityUpdates: "true"
       artifacthub.io/images: |
