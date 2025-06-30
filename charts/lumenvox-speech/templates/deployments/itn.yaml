@@ -1,5 +1,4 @@
-{{- if .Values.global.enableItn }}
-{{- range .Values.global.asrLanguages }}
+{{- range .Values.global.itnLanguages }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -145,4 +144,3 @@ spec:
       schedulerName: {{ $.Values.global.lumenvox.schedulerName }}
       {{- end }}
 {{- end }}
-{{- end }}       

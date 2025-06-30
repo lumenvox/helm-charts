@@ -1,5 +1,4 @@
-{{- if .Values.global.enableItn }}
-{{- range .Values.global.asrLanguages }}
+{{- range .Values.global.itnLanguages }}
 ---
 apiVersion: v1
 kind: Service
@@ -13,5 +12,4 @@ spec:
     - name: http
       port: 5110
       targetPort: http
-{{- end }}
 {{- end }}

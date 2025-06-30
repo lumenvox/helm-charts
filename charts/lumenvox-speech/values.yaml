@@ -6,6 +6,7 @@ image: {}
 
 global:
   asrLanguages: []
+  itnLanguages: []
   ttsLanguages: []
   customAsrModels: []
   lidLanguages: []
@@ -24,6 +25,7 @@ asr:
 
 grammar:
   maxGrammarTransitions: ""
+  useLegacyEnhanced: false
 
 tts:
   useFakeResult: "false"

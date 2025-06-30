@@ -78,14 +78,14 @@ spec:
               value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__ASR_LANGUAGES_VERSION" . }}'
             - name: CLUSTER_LANGUAGES__DNN_MODULES
               value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__DNN_MODULES" . }}'
-            {{- if .Values.global.enableItn }}
+            {{- end }}
+            {{- if .Values.global.itnLanguages }}
             - name: CLUSTER_LANGUAGES__ITN_LANGUAGES
-              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__ASR_LANGUAGES" . }}'
+              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__ITN_LANGUAGES" . }}'
             {{- end }}
             {{- if .Values.global.enableNlu }}
             - name: CLUSTER_LANGUAGES__NLU_LANGUAGES
               value: 'en'
-            {{- end }}
             {{- end }}
             {{- if .Values.global.ttsLanguages }}
             - name: CLUSTER_LANGUAGES__TTS_LANGUAGES

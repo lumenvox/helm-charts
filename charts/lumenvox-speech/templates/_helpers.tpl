@@ -18,6 +18,14 @@
 {{- end }}
 {{- end }}
 
+{{- define "lumenvox-speech.CLUSTER_LANGUAGES__ITN_LANGUAGES" }}
+{{- $listStarted := false }}
+{{- range .Values.global.itnLanguages }}
+{{- if $listStarted }};{{ end }}{{ .name }}
+{{- $listStarted = true }}
+{{- end }}
+{{- end }}
+
 {{- define "lumenvox-speech.CLUSTER_LANGUAGES__DNN_MODULES" }}
 {{- $fineTunedEnabled := false }}
 {{- $nluEnabled := false }}

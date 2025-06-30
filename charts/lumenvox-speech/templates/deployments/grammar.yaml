@@ -93,6 +93,10 @@ spec:
               value: '{{ .Values.global.lumenvox.rabbitmqQueueExpirationMs }}'
             - name: GRAMMAR_SETTINGS__MAX_GRAMMAR_TRANSITIONS
               value: '{{ .Values.grammar.maxGrammarTransitions }}'
+            {{- if .Values.grammar.useLegacyEnhanced }}
+            - name: GRAMMAR_SETTINGS__USE_LEGACY_ENHANCED
+              value: '1'
+            {{- end }}
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
               value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE

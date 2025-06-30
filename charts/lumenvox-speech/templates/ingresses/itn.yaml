@@ -1,6 +1,5 @@
-{{- if .Values.global.enableItn }}
 {{- if .Values.global.lumenvox.metrics.enableEndpoints }}
-{{- range .Values.global.asrLanguages }}
+{{- range .Values.global.itnLanguages }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -22,6 +21,5 @@ spec:
                 name: itn-{{ .name | replace "_" "-" }}-service
                 port:
                   name: http
-{{- end }}
 {{- end }}
 {{- end }}

@@ -93,10 +93,8 @@ spec:
               value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__ASR_LANGUAGES" . }}'
             - name: CLUSTER_LANGUAGES__TTS_LANGUAGES
               value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__TTS_LANGUAGES" . }}'
-            {{- if .Values.global.enableItn }}
             - name: CLUSTER_LANGUAGES__ITN_LANGUAGES
-              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__ASR_LANGUAGES" . }}'
-            {{- end }}
+              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__ITN_LANGUAGES" . }}'
             {{- if .Values.global.enableNlu }}
             - name: CLUSTER_LANGUAGES__NLU_LANGUAGES
               value: 'en'
