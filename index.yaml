@@ -2566,6 +2566,50 @@ entries:
           image: lumenvox/lumenvox-api:6.2
         - name: neural-tts
           image: lumenvox/neural-tts:6.2
+        - name: neuron
+          image: lumenvox/neuron:6.2
+        - name: nlu
+          image: lumenvox/nlu:6.2
+        - name: reporting-api
+          image: lumenvox/reporting-api:6.2
+        - name: session
+          image: lumenvox/session:6.2
+        - name: tts
+          image: lumenvox/tts:6.2
+        - name: vad
+          image: lumenvox/vad:6.2
+    apiVersion: v2
+    appVersion: 6.2.1
+    created: "2025-09-03T20:26:40.336028758Z"
+    description: LumenVox Speech Helm chart for Kubernetes
+    digest: cb40a73438cc82d761d4f9c38a470954e9fbdef6cb8946ee78494c8c52d830c0
+    home: https://lumenvox.com
+    name: lumenvox-speech
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-speech-6.2.1/lumenvox-speech-6.2.1.tgz
+    version: 6.2.1
+  - annotations:
+      artifacthub.io/containsSecurityUpdates: "true"
+      artifacthub.io/images: |
+        - name: asr
+          image: lumenvox/asr:6.2
+        - name: diarization
+          image: lumenvox/diarization:6.2
+        - name: cloud-init-tools
+          image: lumenvox/cloud-init-tools:6.2
+        - name: cloud-logging-sidecar
+          image: lumenvox/cloud-logging-sidecar:6.2
+        - name: grammar
+          image: lumenvox/grammar:6.2
+        - name: itn
+          image: lumenvox/itn:6.2
+        - name: lid
+          image: lumenvox/lid:6.2
+        - name: lumenvox-api
+          image: lumenvox/lumenvox-api:6.2
+        - name: neural-tts
+          image: lumenvox/neural-tts:6.2
         - name: nlu
           image: lumenvox/nlu:6.2
         - name: reporting-api
