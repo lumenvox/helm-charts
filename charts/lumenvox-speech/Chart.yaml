@@ -2,8 +2,8 @@ apiVersion: v2
 name: lumenvox-speech
 description: LumenVox Speech Helm chart for Kubernetes
 type: application
-version: 6.2.0
-appVersion: "6.2.0"
+version: 6.2.1
+appVersion: "6.2.1"
 home: https://lumenvox.com
 annotations:
   artifacthub.io/containsSecurityUpdates: true
@@ -26,6 +26,8 @@ annotations:
       image: lumenvox/lumenvox-api:6.2
     - name: neural-tts
       image: lumenvox/neural-tts:6.2
+    - name: neuron
+      image: lumenvox/neuron:6.2
     - name: nlu
       image: lumenvox/nlu:6.2
     - name: reporting-api

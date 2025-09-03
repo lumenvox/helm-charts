@@ -1,0 +1,129 @@
+{{- if .Values.global.enableNeuron }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: neuron
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+  labels:
+    app: neuron
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: neuron
+  template:
+    metadata:
+      labels:
+        app: neuron
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '5110'
+        {{- if .Values.global.linkerd.enabled }}
+        linkerd.io/inject: enabled
+        {{- end }}
+    spec:
+      containers:
+        - name: neuron
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/neuron{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 5110
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
+            periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            failureThreshold: 12
+            periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
+          {{- if .Values.global.lumenvox.service.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
+            periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
+          {{- end }}
+          resources:
+            requests:
+              cpu: 5m
+              memory: 30Mi
+            {{- if or .Values.global.lumenvox.enforceLimits .Values.global.enableNeuron }}
+            limits:
+              {{- if .Values.global.lumenvox.enforceLimits }}
+              cpu: 100m
+              memory: 50Mi
+              {{- end }}
+            {{- end }}
+          envFrom:
+            - configMapRef:
+                name: timezone-configmap
+            {{- if .Values.global.rabbitmq.auth.existingPasswordSecret }}
+            - secretRef:
+                name: {{ .Values.global.rabbitmq.auth.existingPasswordSecret }}
+            {{- end }}
+            {{- if .Values.global.redis.auth.existingSecret }}
+            - secretRef:
+                name: {{ .Values.global.redis.auth.existingSecret }}
+            {{- end }}
+          env:
+            {{- if not .Values.global.rabbitmq.auth.existingPasswordSecret }}
+            - name: rabbitmq-password
+              value: '{{ .Values.global.rabbitmq.auth.password }}'
+            {{- end }}
+            {{- if not .Values.global.redis.auth.existingSecret }}
+            - name: redis-password
+              value: '{{ .Values.global.redis.auth.password }}'
+            {{- end }}
+            - name: GLOBAL_SETTINGS__CLUSTER_LOG_VERBOSITY
+              value: '{{ .Values.global.lumenvox.loggingVerbosity }}'
+            - name: LICENSE_SETTINGS__CLUSTER_GUID
+              value: '{{ .Values.global.licensing.clusterGuid }}'
+            - name: REDIS_SETTINGS__DEFAULT_TTL
+              value: '{{ .Values.global.lumenvox.redisTtl }}'
+            - name: RMQ_CA_CERTIFICATE
+              value: '{{ .Values.global.rabbitmq.caCertificate }}'
+            - name: RMQ_CLIENT_CERTIFICATE
+              value: '{{ .Values.global.rabbitmq.clientCertificate }}'
+            - name: RMQ_CLIENT_KEY
+              value: '{{ .Values.global.rabbitmq.clientKey }}'
+            - name: GLOBAL_SETTINGS__RABBITMQ_CONNECTION_STRING
+              value: 'amqp{{ if .Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ .Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ .Values.global.rabbitmq.connection.url }}:{{ .Values.global.rabbitmq.connection.port }}'
+            - name: GLOBAL_SETTINGS__RMQ_QUEUE_EXPIRE_MS
+              value: '{{ .Values.global.lumenvox.rabbitmqQueueExpirationMs }}'
+            - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
+              value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+            - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
+              value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+            - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
+              value: 'ignore'
+            - name: NEURON_SETTINGS__SERVICE_LANGUAGE
+              value: 'en'
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.global.imagePullSecrets }}
+        - name: {{ . }}
+      {{- end }}
+      {{- end }}
+      initContainers:
+        - name: wait-for-deployment-service
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          command: ["curl2"]
+          args: ["http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5110/health", "Deployment Service"]
+        - name: wait-for-resource-manager
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          command: ["curl2"]
+          args: ["http://resource-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5110/health", "Resource Manager Service"]
+      {{- if .Values.global.lumenvox.schedulerName }}
+      schedulerName: {{ .Values.global.lumenvox.schedulerName }}
+      {{- end }}
+{{- end }}
+

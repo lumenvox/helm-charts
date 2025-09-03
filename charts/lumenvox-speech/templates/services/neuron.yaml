@@ -1,0 +1,15 @@
+{{- if .Values.global.enableNeuron }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: neuron-service
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+spec:
+  selector:
+    app: neuron
+  ports:
+    - name: http
+      port: 5110
+      targetPort: http
+{{- end }}
