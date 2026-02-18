@@ -136,28 +136,28 @@ global:
     commandTimeoutSeconds: 100
     runMigrations: 'true'
     exitAfterMigrations: 'false'
-    # Service mesh configuration
-    # Supported values: "linkerd", "istio", or "" (empty string for none)
-    # If not specified, defaults to "linkerd" if global.linkerd.enabled is true, otherwise ""
-    serviceMesh:
-      type: "linkerd"  # Options: "linkerd", "istio", or "" (none)
-      linkerd:
-        # Ingress mode for linkerd: "nginx" or "traefik"
-        # When "nginx", uses "linkerd.io/inject: enabled"
-        # When "traefik", uses "linkerd.io/inject: ingress"
-        ingressMode: "nginx"
-      istio:
-        # Additional Istio configuration can be added here
-        passThrough: true
-        # External services that need ServiceEntry resources for Istio
-        # These are external HTTPS endpoints that Istio should allow traffic to
-        externalServices:
-          - assets.lumenvox.com
-          - license.lumenvox.com
-        # Outbound ports to exclude from Istio interception
-        # Default is "443" to allow external HTTPS connections without ServiceEntry
-        # Set to "" to disable port exclusion (requires ServiceEntry for external traffic)
-        excludeOutboundPorts: "443"
+  # Service mesh configuration
+  # Supported values: "linkerd", "istio", or "" (empty string for none)
+  # If not specified, defaults to "linkerd" if global.linkerd.enabled is true, otherwise ""
+  serviceMesh:
+    type: "linkerd"  # Options: "linkerd", "istio", or "" (none)
+    linkerd:
+      # Ingress mode for linkerd: "nginx" or "traefik"
+      # When "nginx", uses "linkerd.io/inject: enabled"
+      # When "traefik", uses "linkerd.io/inject: ingress"
+      ingressMode: "nginx"
+    istio:
+      # Additional Istio configuration can be added here
+      passThrough: true
+      # External services that need ServiceEntry resources for Istio
+      # These are external HTTPS endpoints that Istio should allow traffic to
+      externalServices:
+        - assets.lumenvox.com
+        - license.lumenvox.com
+      # Outbound ports to exclude from Istio interception
+      # Default is "443" to allow external HTTPS connections without ServiceEntry
+      # Set to "" to disable port exclusion (requires ServiceEntry for external traffic)
+      excludeOutboundPorts: "443"
   # Legacy linkerd configuration (deprecated, use serviceMesh.type instead)
   # Kept for backward compatibility
   linkerd:
@@ -178,8 +178,8 @@ global:
   enableNeuron: false
   # enabling Filestore allows for the Filestore service to be installed and allows for Filestore page to be accessed via the deployment portal.
   enableFilestore: true
-  asrDefaultVersion: "4.1.0"
-  neuralttsDefaultVersion: "4.0.0"
+  asrDefaultVersion: "7.0.0"
+  neuralttsDefaultVersion: "8"
   ttsDefaultVersion: "1.0"
   vbDefaultVersion: "2.1.15"
   lidVersion: "2.0.0"

@@ -60,25 +60,25 @@ For typical deployments, enable `lumenvoxSpeech` along with `lumenvoxCommon`.
 
 ## General Configuration
 
-| Parameter                                          | Description                                                     | Default                            |
-|----------------------------------------------------|-----------------------------------------------------------------|------------------------------------|
-| `timezone`                                         | Timezone for logs. Examples: UTC, America/New_York, Europe/Rome | `UTC`                              |
-| `global.licensing.clusterGuid`                     | License GUID obtained from LumenVox account                     | `"GET-CLUSTER-GUID-FROM-LUMENVOX"` |
-| `global.hostnameSuffix`                            | Desired ingress suffix (include leading dot)                    | `".testmachine.com"`               |
-| `global.lumenvox.ingress.className`                | Ingress class name                                              | `nginx`                            |
-| `global.lumenvox.deploymentReconnectionTimeoutSec` | Deployment database connection timeout                          | `30`                               |
-| `global.lumenvox.enableAudit`                      | Whether to enable audit logging                                 | `false`                            |
-| `global.lumenvox.enforceLimits`                    | Whether to enforce resource limits                              | `false`                            |
-| `global.lumenvox.enforceReservations`              | Whether to enforce resource reservations (required for autoscaling) | `false`                        |
-| `global.lumenvox.loggingVerbosity`                 | Cluster-level logging verbosity (debug, info, warn, error, etc.) | `info`                            |
-| `global.image.pullPolicy`                          | Pull policy when installing cluster                             | `IfNotPresent`                     |
-| `global.image.tag`                                 | Default image tag                                               | `":7.0"`                           |
+| Parameter                                          | Description                                                         | Default                            |
+|----------------------------------------------------|---------------------------------------------------------------------|------------------------------------|
+| `timezone`                                         | Timezone for logs. Examples: UTC, America/New_York, Europe/Rome     | `UTC`                              |
+| `global.licensing.clusterGuid`                     | License GUID obtained from LumenVox account                         | `"GET-CLUSTER-GUID-FROM-LUMENVOX"` |
+| `global.hostnameSuffix`                            | Desired ingress suffix (include leading dot)                        | `".testmachine.com"`               |
+| `global.lumenvox.ingress.className`                | Ingress class name                                                  | `nginx`                            |
+| `global.lumenvox.deploymentReconnectionTimeoutSec` | Deployment database connection timeout                              | `30`                               |
+| `global.lumenvox.enableAudit`                      | Whether to enable audit logging                                     | `false`                            |
+| `global.lumenvox.enforceLimits`                    | Whether to enforce resource limits                                  | `false`                            |
+| `global.lumenvox.enforceReservations`              | Whether to enforce resource reservations (required for autoscaling) | `false`                            |
+| `global.lumenvox.loggingVerbosity`                 | Cluster-level logging verbosity (debug, info, warn, error, etc.)    | `info`                             |
+| `global.image.pullPolicy`                          | Pull policy when installing cluster                                 | `IfNotPresent`                     |
+| `global.image.tag`                                 | Default image tag                                                   | `":7.0"`                           |
 
 ## Persistent Volume Configuration
 
 | Parameter      | Description                                                                                                                 | Default    |
 |----------------|-----------------------------------------------------------------------------------------------------------------------------|------------|
-| `platform`     | Cluster platform: `cloud` or `minikube`. Used for persistent volume setup and resource sizing.                             | `minikube` |
+| `platform`     | Cluster platform: `cloud` or `minikube`. Used for persistent volume setup and resource sizing.                              | `minikube` |
 | `provider`     | Platform provider: used for provider-specific optimizations. Currently only used for AWS EFS; specify `"aws"` in this case. | `""`       |
 | `volumeRoot`   | Root of persistent data location. To specify the root of the file system, use `"/."`                                        | `"/data"`  |
 | `volumeServer` | IP address of persistent data filesystem. Ignored for minikube.                                                             | `""`       |
@@ -91,11 +91,11 @@ Depending on the location of your cluster, the configuration for persistent volu
 
 ## Product Selection
 
-| Parameter                       | Description                                   | Default |
-|---------------------------------|-----------------------------------------------|---------|
-| `global.enabled.lumenvoxSpeech` | If `true`, enable LumenVox Speech stack       | `false` |
+| Parameter                       | Description                                                                   | Default |
+|---------------------------------|-------------------------------------------------------------------------------|---------|
+| `global.enabled.lumenvoxSpeech` | If `true`, enable LumenVox Speech stack                                       | `false` |
 | `global.enabled.lumenvoxVb`     | If `true`, enable LumenVox Voice Biometrics (legacy, not actively maintained) | `false` |
-| `global.enabled.lumenvoxCommon` | If `true`, enable common infrastructure       | `true`  |
+| `global.enabled.lumenvoxCommon` | If `true`, enable common infrastructure                                       | `true`  |
 
 **Typical Configuration**: Enable `lumenvoxSpeech` along with `lumenvoxCommon` for a standard deployment.
 
@@ -103,14 +103,14 @@ Depending on the location of your cluster, the configuration for persistent volu
 
 ## Feature Toggles
 
-| Parameter                    | Description                                                                       | Default |
-|------------------------------|-----------------------------------------------------------------------------------|---------|
-| `global.enableNlu`           | Enable Natural Language Understanding service                                     | `false` |
-| `global.enableDiarization`   | Enable speaker diarization service                                                | `false` |
-| `global.enableLanguageId`    | Enable language identification (LID) service                                      | `false` |
-| `global.enableNeuron`        | Enable Neuron service                                                             | `false` |
-| `global.enableFilestore`     | Enable Filestore service and deployment portal integration                        | `true`  |
-| `global.minimalInstall`      | If `true`, install only CPA interactions (ASR and TTS services will not install)  | `false` |
+| Parameter                  | Description                                                                       | Default |
+|----------------------------|-----------------------------------------------------------------------------------|---------|
+| `global.enableNlu`         | Enable Natural Language Understanding service                                     | `false` |
+| `global.enableDiarization` | Enable speaker diarization service                                                | `false` |
+| `global.enableLanguageId`  | Enable language identification (LID) service                                      | `false` |
+| `global.enableNeuron`      | Enable Neuron service                                                             | `false` |
+| `global.enableFilestore`   | Enable Filestore service and deployment portal integration                        | `true`  |
+| `global.minimalInstall`    | If `true`, install only CPA interactions (ASR and TTS services will not install)  | `false` |
 
 ## External Dependencies
 
@@ -130,12 +130,12 @@ The docker-compose setup includes:
 
 ### RabbitMQ Configuration
 
-| Parameter                         | Description                   | Default                                       |
-|-----------------------------------|-------------------------------|-----------------------------------------------|
-| `global.rabbitmq.enableTLS`       | Connect to RabbitMQ with TLS  | `false`                                       |
-| `global.rabbitmq.connection.url`  | URL for RabbitMQ connection   | `"external-services-rabbitmq.lumenvox"`       |
-| `global.rabbitmq.connection.port` | Port for RabbitMQ connection  | `5672`                                        |
-| `global.rabbitmq.connection.user` | User for RabbitMQ connection  | `"lvuser"`                                    |
+| Parameter                         | Description                  | Default                                 |
+|-----------------------------------|------------------------------|-----------------------------------------|
+| `global.rabbitmq.enableTLS`       | Connect to RabbitMQ with TLS | `false`                                 |
+| `global.rabbitmq.connection.url`  | URL for RabbitMQ connection  | `"external-services-rabbitmq.lumenvox"` |
+| `global.rabbitmq.connection.port` | Port for RabbitMQ connection | `5672`                                  |
+| `global.rabbitmq.connection.user` | User for RabbitMQ connection | `"lvuser"`                              |
 
 The installation expects an existing Kubernetes secret named `rabbitmq-existing-secret` with one field:
 - `rabbitmq-password`: The password for the RabbitMQ user
@@ -147,12 +147,12 @@ The installation expects an existing Kubernetes secret named `rabbitmq-existing-
 
 ### Redis Configuration
 
-| Parameter                      | Description                               | Default                                          |
-|--------------------------------|-------------------------------------------|--------------------------------------------------|
-| `global.redis.enableTLS`       | Connect to Redis with TLS                 | `false`                                          |
-| `global.redis.connection.url`  | URL for Redis connection                  | `"external-services-redis-master.lumenvox"`      |
-| `global.redis.connection.port` | Port for Redis connection                 | `6379`                                           |
-| `global.lumenvox.redisTtl`     | Time to live for certain objects in Redis | `3h`                                             |
+| Parameter                      | Description                               | Default                                     |
+|--------------------------------|-------------------------------------------|---------------------------------------------|
+| `global.redis.enableTLS`       | Connect to Redis with TLS                 | `false`                                     |
+| `global.redis.connection.url`  | URL for Redis connection                  | `"external-services-redis-master.lumenvox"` |
+| `global.redis.connection.port` | Port for Redis connection                 | `6379`                                      |
+| `global.lumenvox.redisTtl`     | Time to live for certain objects in Redis | `3h`                                        |
 
 Valid time units for `redisTtl`: "ns", "us" (or "µs"), "ms", "s", "m", "h", "d", "w", "y". Examples: "300ms", "-1.5h", "2h45m"
 
@@ -161,30 +161,30 @@ The installation expects an existing Kubernetes secret named `redis-existing-sec
 
 ### MongoDB Configuration
 
-| Parameter                        | Description                            | Default                                    |
-|----------------------------------|----------------------------------------|--------------------------------------------|
-| `global.mongodb.connection.url`  | URL for MongoDB connection             | `"external-services-mongodb.lumenvox"`     |
-| `global.mongodb.connection.port` | Port for MongoDB connection            | `27017`                                    |
-| `global.mongodb.auth.rootUser`   | MongoDB root username                  | `"lvuser"`                                 |
-| `global.mongodb.atlas`           | Enable for MongoDB Atlas support       | `false`                                    |
+| Parameter                        | Description                      | Default                                |
+|----------------------------------|----------------------------------|----------------------------------------|
+| `global.mongodb.connection.url`  | URL for MongoDB connection       | `"external-services-mongodb.lumenvox"` |
+| `global.mongodb.connection.port` | Port for MongoDB connection      | `27017`                                |
+| `global.mongodb.auth.rootUser`   | MongoDB root username            | `"lvuser"`                             |
+| `global.mongodb.atlas`           | Enable for MongoDB Atlas support | `false`                                |
 
 The installation expects an existing Kubernetes secret named `mongodb-existing-secret` with one field:
 - `mongodb-root-password`: The MongoDB root password
 
 ### PostgreSQL Configuration
 
-| Parameter                                        | Description                                      | Default                                       |
-|--------------------------------------------------|--------------------------------------------------|-----------------------------------------------|
-| `global.postgresql.connection.url`               | URL for PostgreSQL connection                    | `"external-services-postgresql.lumenvox"`     |
-| `global.postgresql.connection.port`              | Port for PostgreSQL connection                   | `5432`                                        |
-| `global.postgresql.connection.user`              | User for PostgreSQL connection                   | `"lvuser"`                                    |
-| `global.postgresql.connection.databaseName`      | Database name                                    | `"lumenvox_db"`                               |
-| `global.postgresql.connection.databaseSchema`    | Database schema name                             | `"public"`                                    |
-| `global.postgresql.connection.ssl.mode`          | SSL Connection Mode: `disable` or `verify-ca`    | `"disable"`                                   |
-| `global.postgresql.connection.ssl.caCertificate` | CA certificate to verify server (base64-encoded) | `""`                                          |
-| `global.postgresql.runMigrations`                | Run database migrations on deployment            | `"true"`                                      |
-| `global.postgresql.exitAfterMigrations`          | Exit after migrations complete                   | `"false"`                                     |
-| `global.postgresql.commandTimeoutSeconds`        | Command timeout in seconds                       | `100`                                         |
+| Parameter                                        | Description                                      | Default                                   |
+|--------------------------------------------------|--------------------------------------------------|-------------------------------------------|
+| `global.postgresql.connection.url`               | URL for PostgreSQL connection                    | `"external-services-postgresql.lumenvox"` |
+| `global.postgresql.connection.port`              | Port for PostgreSQL connection                   | `5432`                                    |
+| `global.postgresql.connection.user`              | User for PostgreSQL connection                   | `"lvuser"`                                |
+| `global.postgresql.connection.databaseName`      | Database name                                    | `"lumenvox_db"`                           |
+| `global.postgresql.connection.databaseSchema`    | Database schema name                             | `"public"`                                |
+| `global.postgresql.connection.ssl.mode`          | SSL Connection Mode: `disable` or `verify-ca`    | `"disable"`                               |
+| `global.postgresql.connection.ssl.caCertificate` | CA certificate to verify server (base64-encoded) | `""`                                      |
+| `global.postgresql.runMigrations`                | Run database migrations on deployment            | `"true"`                                  |
+| `global.postgresql.exitAfterMigrations`          | Exit after migrations complete                   | `"false"`                                 |
+| `global.postgresql.commandTimeoutSeconds`        | Command timeout in seconds                       | `100`                                     |
 
 The installation expects an existing Kubernetes secret named `postgres-existing-secret` with two fields:
 - `postgresql-password`: The password for the database user
@@ -202,13 +202,13 @@ base64 -w 0 ca.crt
 
 A service mesh provides critical load-balancing and traffic management functionality for LumenVox services. While the chart can operate without a service mesh, it is **strongly recommended for production deployments** to ensure proper scaling and reliability.
 
-| Parameter                                    | Description                                                          | Default      |
-|----------------------------------------------|----------------------------------------------------------------------|--------------|
-| `global.serviceMesh.type`                    | Service mesh type: `linkerd`, `istio`, or `""` (none)                | `"linkerd"`  |
-| `global.serviceMesh.linkerd.ingressMode`     | Linkerd ingress mode: `nginx` or `traefik`                           | `"nginx"`    |
-| `global.serviceMesh.istio.passThrough`       | Enable Istio passthrough mode                                        | `true`       |
-| `global.serviceMesh.istio.excludeOutboundPorts` | Ports to exclude from Istio interception                          | `"443"`      |
-| `global.linkerd.enabled`                     | Legacy linkerd toggle (deprecated, use `serviceMesh.type` instead)   | `true`       |
+| Parameter                                       | Description                                                        | Default     |
+|-------------------------------------------------|--------------------------------------------------------------------|-------------|
+| `global.serviceMesh.type`                       | Service mesh type: `linkerd`, `istio`, or `""` (none)              | `"linkerd"` |
+| `global.serviceMesh.linkerd.ingressMode`        | Linkerd ingress mode: `nginx` or `traefik`                         | `"nginx"`   |
+| `global.serviceMesh.istio.passThrough`          | Enable Istio passthrough mode                                      | `true`      |
+| `global.serviceMesh.istio.excludeOutboundPorts` | Ports to exclude from Istio interception                           | `"443"`     |
+| `global.linkerd.enabled`                        | Legacy linkerd toggle (deprecated, use `serviceMesh.type` instead) | `true`      |
 
 ### Linkerd Configuration
 
@@ -292,13 +292,13 @@ global:
 
 ### ASR (Automatic Speech Recognition)
 
-| Parameter                              | Description                           | Default   |
-|----------------------------------------|---------------------------------------|-----------|
-| `global.asrLanguages`                  | List of ASR languages to install      | `[]`      |
-| `global.asrDefaultVersion`             | Default ASR model version             | `"4.1.0"` |
-| `global.customAsrModels`               | Custom ASR models                     | `[]`      |
-| `lumenvox-speech.asr.cacheMaxEntries`  | Maximum cache entries                 | `500`     |
-| `lumenvox-speech.asr.cacheMaxSizeMb`   | Maximum cache size in MB              | `1000`    |
+| Parameter                             | Description                      | Default   |
+|---------------------------------------|----------------------------------|-----------|
+| `global.asrLanguages`                 | List of ASR languages to install | `[]`      |
+| `global.asrDefaultVersion`            | Default ASR model version        | `"7.0.0"` |
+| `global.customAsrModels`              | Custom ASR models                | `[]`      |
+| `lumenvox-speech.asr.cacheMaxEntries` | Maximum cache entries            | `500`     |
+| `lumenvox-speech.asr.cacheMaxSizeMb`  | Maximum cache size in MB         | `1000`    |
 
 To specify ASR languages, list your desired languages under `global.asrLanguages`. Each item must include a `name`; the `version` is optional and defaults to `asrDefaultVersion`.
 
@@ -306,12 +306,12 @@ To specify ASR languages, list your desired languages under `global.asrLanguages
 
 ```yaml
 global:
-  asrDefaultVersion: "4.1.0"
+  asrDefaultVersion: "7.0.0"
   asrLanguages:
     - name: "en"
-      version: "4.1.0"
+      version: "7.0.0"
     - name: "es"
-      version: "4.1.0"
+      version: "7.0.0"
     - name: "fr"  # Uses default version
 ```
 
@@ -329,9 +329,9 @@ global:
 
 ### ITN (Inverse Text Normalization)
 
-| Parameter              | Description                      | Default |
-|------------------------|----------------------------------|---------|
-| `global.itnLanguages`  | List of ITN languages to install | `[]`    |
+| Parameter             | Description                      | Default |
+|-----------------------|----------------------------------|---------|
+| `global.itnLanguages` | List of ITN languages to install | `[]`    |
 
 **Example:**
 
@@ -345,11 +345,11 @@ global:
 
 ### TTS (Text-to-Speech)
 
-| Parameter                  | Description                   | Default |
-|----------------------------|-------------------------------|---------|
-| `global.ttsLanguages`      | List of TTS voices to install | `[]`    |
-| `global.ttsDefaultVersion` | Default TTS voice version     | `"1.0"` |
-| `global.neuralttsDefaultVersion` | Default Neural TTS version | `"4.0.0"` |
+| Parameter                        | Description                    | Default |
+|----------------------------------|--------------------------------|---------|
+| `global.ttsLanguages`            | List of  TTS voices to install | `[]`    |
+| `global.ttsDefaultVersion`       | Default TTS voice version      | `"1.0"` |
+| `global.neuralttsDefaultVersion` | Default Neural TTS version     | `"8"`   |
 
 TTS voices are organized by region/language, with each region supporting multiple voices. Each voice uses the version specified in `ttsDefaultVersion` by default, but this can be overridden per voice.
 
@@ -358,7 +358,7 @@ TTS voices are organized by region/language, with each region supporting multipl
 ```yaml
 global:
   ttsDefaultVersion: "1.0"
-  neuralttsDefaultVersion: "4.0.0"
+  neuralttsDefaultVersion: "8"
   ttsLanguages:
     - name: "en_us"
       voices:
@@ -400,9 +400,9 @@ global:
 
 ### LID (Language Identification)
 
-| Parameter           | Description                | Default   |
-|---------------------|----------------------------|-----------|
-| `global.lidVersion` | LID model version          | `"2.0.0"` |
+| Parameter           | Description       | Default   |
+|---------------------|-------------------|-----------|
+| `global.lidVersion` | LID model version | `"2.0.0"` |
 
 Language identification must be enabled via `global.enableLanguageId: true`.
 
@@ -410,23 +410,23 @@ Language identification must be enabled via `global.enableLanguageId: true`.
 
 ### Grammar Manager
 
-| Parameter                                       | Description                                        | Default        |
-|-------------------------------------------------|----------------------------------------------------|----------------|
-| `lumenvox-speech.grammar.maxGrammarTransitions` | Maximum grammar complexity (0 = unlimited)         | `0`            |
+| Parameter                                       | Description                                | Default |
+|-------------------------------------------------|--------------------------------------------|---------|
+| `lumenvox-speech.grammar.maxGrammarTransitions` | Maximum grammar complexity (0 = unlimited) | `0`     |
 
 ### Resource Management
 
-| Parameter                                  | Description                                               | Default                              |
-|--------------------------------------------|-----------------------------------------------------------|--------------------------------------|
-| `global.lumenvox.resourceDownloadEndpoint` | Download endpoint for models and manifests                | `"https://assets.lumenvox.com/"`     |
+| Parameter                                  | Description                                | Default                          |
+|--------------------------------------------|--------------------------------------------|----------------------------------|
+| `global.lumenvox.resourceDownloadEndpoint` | Download endpoint for models and manifests | `"https://assets.lumenvox.com/"` |
 
 ### HTTP Proxy Configuration
 
-| Parameter                     | Description                                                          | Default                                       |
-|-------------------------------|----------------------------------------------------------------------|-----------------------------------------------|
-| `global.httpProxy.enabled`    | Enable HTTP proxy for external connections                           | `false`                                       |
-| `global.httpProxy.proxyUrl`   | HTTP/HTTPS proxy URL                                                 | `"http://PROXYURL.CONFIG.REQUIRED.invalid:3128"` |
-| `global.httpProxy.noProxy`    | Comma-separated list of domains to exclude from proxy                | `".local,.lumenvox"`                          |
+| Parameter                   | Description                                           | Default                                          |
+|-----------------------------|-------------------------------------------------------|--------------------------------------------------|
+| `global.httpProxy.enabled`  | Enable HTTP proxy for external connections            | `false`                                          |
+| `global.httpProxy.proxyUrl` | HTTP/HTTPS proxy URL                                  | `"http://PROXYURL.CONFIG.REQUIRED.invalid:3128"` |
+| `global.httpProxy.noProxy`  | Comma-separated list of domains to exclude from proxy | `".local,.lumenvox"`                             |
 
 HTTP proxy settings apply to services that make external HTTP/HTTPS connections (grammar, license, neural-tts, resource).
 
@@ -442,28 +442,28 @@ global:
 
 ### Ingress Configuration
 
-| Parameter                                        | Description                              | Default     |
-|--------------------------------------------------|------------------------------------------|-------------|
-| `global.lumenvox.ingress.commonAnnotations`      | Annotations for all ingress resources    | See values  |
-| `global.lumenvox.ingress.grpcAnnotations`        | Additional annotations for gRPC ingress  | See values  |
-| `global.lumenvox.ingress.httpAnnotations`        | Additional annotations for HTTP ingress  | See values  |
-| `global.enableLumenvoxapiHealthcheck`            | Enable external access to `/health`      | `false`     |
+| Parameter                                   | Description                             | Default    |
+|---------------------------------------------|-----------------------------------------|------------|
+| `global.lumenvox.ingress.commonAnnotations` | Annotations for all ingress resources   | See values |
+| `global.lumenvox.ingress.grpcAnnotations`   | Additional annotations for gRPC ingress | See values |
+| `global.lumenvox.ingress.httpAnnotations`   | Additional annotations for HTTP ingress | See values |
+| `global.enableLumenvoxapiHealthcheck`       | Enable external access to `/health`     | `false`    |
 
 ### Licensing Configuration
 
-| Parameter                          | Description                                | Default |
-|------------------------------------|--------------------------------------------|---------|
-| `global.licensing.reportFreqMins`  | License reporting frequency (minutes)      | `1440`  |
-| `global.licensing.reportSyncHour`  | Hour to sync reporting (0-23)              | `1`     |
-| `global.licensing.reportSyncMin`   | Minute to sync reporting (0-59)            | `0`     |
+| Parameter                         | Description                           | Default |
+|-----------------------------------|---------------------------------------|---------|
+| `global.licensing.reportFreqMins` | License reporting frequency (minutes) | `1440`  |
+| `global.licensing.reportSyncHour` | Hour to sync reporting (0-23)         | `1`     |
+| `global.licensing.reportSyncMin`  | Minute to sync reporting (0-59)       | `0`     |
 
 ### RabbitMQ Advanced Settings
 
-| Parameter                                      | Description                                 | Default  |
-|------------------------------------------------|---------------------------------------------|----------|
-| `global.lumenvox.rabbitmqQueueExpirationMs`    | Default queue expiration in milliseconds    | `180000` |
-| `rabbitmq.retryTime`                           | Retry time for RabbitMQ connections         | `60`     |
-| `global.rabbitmq.init.checkManagementEndpoint` | Check RabbitMQ management endpoint on init  | `false`  |
+| Parameter                                      | Description                                | Default  |
+|------------------------------------------------|--------------------------------------------|----------|
+| `global.lumenvox.rabbitmqQueueExpirationMs`    | Default queue expiration in milliseconds   | `180000` |
+| `rabbitmq.retryTime`                           | Retry time for RabbitMQ connections        | `60`     |
+| `global.rabbitmq.init.checkManagementEndpoint` | Check RabbitMQ management endpoint on init | `false`  |
 
 # Installation
 
@@ -744,11 +744,11 @@ global:
 
 All services include health check endpoints for Kubernetes liveness and readiness probes:
 
-| Parameter                                    | Description                              | Default |
-|----------------------------------------------|------------------------------------------|---------|
-| `global.lumenvox.probes.periodSeconds`       | Probe check frequency                    | `5`     |
-| `global.lumenvox.service.startDelaySeconds`  | Delay before starting probes             | `5`     |
-| `global.lumenvox.service.livenessProbe.enabled` | Enable liveness probes                | `true`  |
+| Parameter                                       | Description                  | Default |
+|-------------------------------------------------|------------------------------|---------|
+| `global.lumenvox.probes.periodSeconds`          | Probe check frequency        | `5`     |
+| `global.lumenvox.service.startDelaySeconds`     | Delay before starting probes | `5`     |
+| `global.lumenvox.service.livenessProbe.enabled` | Enable liveness probes       | `true`  |
 
 To enable external access to the LumenVox API health check endpoint (`/health`):
 
@@ -761,10 +761,10 @@ global:
 
 ### Resource Limits and Reservations
 
-| Parameter                                 | Description                                      | Default |
-|-------------------------------------------|--------------------------------------------------|---------|
-| `global.lumenvox.enforceLimits`           | Enforce resource limits on all services          | `false` |
-| `global.lumenvox.enforceReservations`     | Enforce resource reservations (required for HPA) | `false` |
+| Parameter                             | Description                                      | Default |
+|---------------------------------------|--------------------------------------------------|---------|
+| `global.lumenvox.enforceLimits`       | Enforce resource limits on all services          | `false` |
+| `global.lumenvox.enforceReservations` | Enforce resource reservations (required for HPA) | `false` |
 
 **Resource Reservations** are required for Horizontal Pod Autoscaling (HPA) in cloud deployments. They are typically disabled for kubeadm-based installations.
 
