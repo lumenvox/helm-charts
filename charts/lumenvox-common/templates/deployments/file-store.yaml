@@ -1,48 +1,68 @@
+{{- if .Values.global.enableFilestore }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: archive
+  name: file-store
   namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
   labels:
-    app: archive
+    app: file-store
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: archive
+      app: file-store
   template:
     metadata:
       labels:
-        app: archive
+        app: file-store
       annotations:
         prometheus.io/scrape: 'true'
-        prometheus.io/port: '5110'
+        prometheus.io/port: '9180'
 {{- include "lumenvox-common.serviceMeshAnnotations" . | indent 8 }}
     spec:
       containers:
-        - name: archive
-          image: {{ .Values.image.repository | default .Values.global.image.repository }}/archive{{ .Values.image.tag | default .Values.global.image.tag }}
+        - name: file-store
+          image: {{ .Values.image.repository | default .Values.global.image.repository }}/file-store{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           ports:
             - name: http
-              containerPort: 5110
+              containerPort: 9180
+            - name: public-http
+              containerPort: 9182
+            - name: https
+              containerPort: 9181
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            failureThreshold: 360
+            periodSeconds: 10
           readinessProbe:
             exec:
               command:
-              - /usr/bin/archive-manager
+              - /app/file-store
               - --healthcheck
             initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
+          {{- if .Values.global.lumenvox.service.livenessProbe.enabled }}
+          livenessProbe:
+            exec:
+              command:
+              - /app/file-store
+              - --healthcheck
+            initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
+            periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
+          {{- end }}
           resources:
             requests:
               {{- if .Values.global.lumenvox.enforceReservations }}
-              cpu: 50m
-              memory: 50Mi
+              cpu: 100m
+              memory: 100Mi
               {{- end }}
             {{- if .Values.global.lumenvox.enforceLimits }}
             limits:
-              cpu: 200m
-              memory: 100Mi
+              cpu: 500m
+              memory: 500Mi
             {{- end }}
           envFrom:
             - configMapRef:
@@ -56,44 +76,55 @@ spec:
                 name: {{ .Values.global.postgresql.auth.existingSecret }}
             {{- end }}
           env:
-            {{- if not .Values.global.rabbitmq.auth.existingPasswordSecret }}
-            - name: rabbitmq-password
-              value: '{{ .Values.global.rabbitmq.auth.password }}'
-            {{- end }}
             {{- if not .Values.global.postgresql.auth.existingSecret }}
             - name: postgresql-password
               value: "{{ .Values.global.postgresql.auth.password }}"
             {{- end }}
             - name: GLOBAL_SETTINGS__CLUSTER_LOG_VERBOSITY
               value: '{{ .Values.global.lumenvox.loggingVerbosity }}'
+            - name: RABBITMQ_CONNECTION_STRING
+              value: 'amqp{{ if .Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ .Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ .Values.global.rabbitmq.connection.url }}:{{ .Values.global.rabbitmq.connection.port }}'
             - name: LICENSE_SETTINGS__CLUSTER_GUID
               value: '{{ .Values.global.licensing.clusterGuid }}'
-            - name: REDIS_SETTINGS__DEFAULT_TTL
-              value: '{{ .Values.global.lumenvox.redisTtl }}'
-            - name: RMQ_CA_CERTIFICATE
-              value: '{{ .Values.global.rabbitmq.caCertificate }}'
-            - name: RMQ_CLIENT_CERTIFICATE
-              value: '{{ .Values.global.rabbitmq.clientCertificate }}'
-            - name: RMQ_CLIENT_KEY
-              value: '{{ .Values.global.rabbitmq.clientKey }}'
-            - name: GLOBAL_SETTINGS__RABBITMQ_CONNECTION_STRING
-              value: 'amqp{{ if .Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ .Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ .Values.global.rabbitmq.connection.url }}:{{ .Values.global.rabbitmq.connection.port }}'
-            - name: GLOBAL_SETTINGS__RMQ_QUEUE_EXPIRE_MS
-              value: '{{ .Values.global.lumenvox.rabbitmqQueueExpirationMs }}'
-            - name: SERVICE_ADDRESSES__BINARY_STORAGE_SERVICE
-              value: 'binary-storage-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
-            - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
-              value: 'configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
               value: 'deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
-            - name: SERVICE_ADDRESSES__LUMENVOX_API
-              value: 'lumenvox-api-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
-            - name: SESSION_SETTINGS__API_EXCHANGE
-              value: 'BroadcastExchange'
-            - name: LOCAL_SETTINGS__ENV
-              value: 'dev'
-            - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
-              value: 'ignore'
+            - name: TLS_ENABLED
+              value: 'false'
+            - name: TLS_CERT_FILE
+              value: '/certs/server.crt'
+            - name: TLS_KEY_FILE
+              value: '/certs/server.key'
+            - name: STORAGE_PATH
+              value: '/data/files'
+            - name: METADATA_PATH
+              value: '/data/metadata.db'
+            - name: LOG_LEVEL
+              value: 'debug'
+            - name: MAX_UPLOAD_SIZE
+              value: '104857600'
+            - name: READ_TIMEOUT
+              value: '30s'
+            - name: WRITE_TIMEOUT
+              value: '30s'
+            - name: IDLE_TIMEOUT
+              value: '120s'
+            - name: DEPLOYMENT_CACHE_MAX_SIZE
+              value: '100'
+            - name: METADATA_CACHE_SIZE
+              value: '1000'
+            - name: RATE_LIMIT_ENABLED
+              value: 'false'
+            - name: RATE_LIMIT_REQUESTS_PER_SECOND
+              value: '100.0'
+            - name: RATE_LIMIT_BURST
+              value: '200'
+            - name: RATE_LIMIT_TTL
+              value: '10m'
+          volumeMounts:
+            - mountPath: /data
+              name: data
+            - mountPath: /certs
+              name: certs
       {{- if .Values.global.imagePullSecrets }}
       imagePullSecrets:
       {{- range .Values.global.imagePullSecrets }}
@@ -109,15 +140,25 @@ spec:
         - name: wait-for-rabbitmq-service
           image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
-          command: ["nslookup2"]
-          args: ["{{ .Values.global.rabbitmq.connection.url }}", "RabbitMQ Service"]
+          command: [ "nslookup2" ]
+          args: [ "{{ .Values.global.rabbitmq.connection.url }}", "RabbitMQ Service" ]
         {{- if .Values.global.rabbitmq.init.checkManagementEndpoint }}
         - name: wait-for-rabbitmq-management-endpoint
           image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
-          command: ["curl2"]
-          args: ["http{{ if .Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ .Values.global.rabbitmq.connection.url }}{{ if not .Values.global.rabbitmq.enableTLS }}:15672{{ end }}", "RabbitMQ Management Page"]
+          command: [ "curl2" ]
+          args: [ "http{{ if .Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ .Values.global.rabbitmq.connection.url }}{{ if not .Values.global.rabbitmq.enableTLS }}:15672{{ end }}", "RabbitMQ Management Page" ]
         {{- end }}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: file-store-data-claim
+            readOnly: false
+        - name: certs
+          persistentVolumeClaim:
+            claimName: file-store-certs-claim
+            readOnly: false
       {{- if .Values.global.lumenvox.schedulerName }}
       schedulerName: {{ .Values.global.lumenvox.schedulerName }}
       {{- end }}
+  {{- end }}

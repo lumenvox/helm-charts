@@ -15,9 +15,7 @@ spec:
       labels:
         app: reporting-bio-api
       annotations:
-        {{- if .Values.global.linkerd.enabled }}
-        linkerd.io/inject: enabled
-        {{- end }}
+{{- include "lumenvox-common.serviceMeshAnnotations" . | indent 8 }}
     spec:
       containers:
         - name: reporting-bio-api

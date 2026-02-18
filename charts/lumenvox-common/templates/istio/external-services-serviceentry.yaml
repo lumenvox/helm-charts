@@ -1,0 +1,41 @@
+{{- $serviceMesh := "" }}
+{{- if hasKey .Values.global "serviceMesh" }}
+{{- $serviceMesh = .Values.global.serviceMesh.type | default "" }}
+{{- else if hasKey .Values.global "linkerd" }}
+{{- if .Values.global.linkerd.enabled }}
+{{- $serviceMesh = "linkerd" }}
+{{- end }}
+{{- end }}
+
+{{- if eq $serviceMesh "istio" }}
+{{- $externalServices := list }}
+{{- $istioConfig := .Values.global.serviceMesh.istio | default dict }}
+{{- if hasKey $istioConfig "externalServices" }}
+{{- $externalServices = $istioConfig.externalServices }}
+{{- else }}
+{{- /* Default external services for LumenVox */}}
+{{- $externalServices = list "assets.lumenvox.com" }}
+{{- end }}
+
+{{- if $externalServices }}
+{{- range $index, $host := $externalServices }}
+{{- if gt $index 0 }}
+---
+{{- end }}
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: {{ $host | replace "." "-" | replace "_" "-" }}-external
+  namespace: {{ default $.Release.Namespace $.Values.global.defaultNamespace }}
+spec:
+  hosts:
+  - {{ $host }}
+  ports:
+  - number: 443
+    name: https
+    protocol: HTTPS
+  resolution: DNS
+  location: MESH_EXTERNAL
+{{- end }}
+{{- end }}
+{{- end }}

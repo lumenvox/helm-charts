@@ -16,9 +16,7 @@ spec:
         app: biometric-api
         # No Prometheus scraping for now
       annotations:
-        {{- if .Values.global.linkerd.enabled }}
-        linkerd.io/inject: enabled
-        {{- end }}
+{{- include "lumenvox-common.serviceMeshAnnotations" . | indent 8 }}
     spec:
       containers:
         - name: biometric-api

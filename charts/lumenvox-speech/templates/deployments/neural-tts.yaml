@@ -21,9 +21,7 @@ spec:
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '5110'
-        {{- if $.Values.global.linkerd.enabled }}
-        linkerd.io/inject: enabled
-        {{- end }}
+{{- include "lumenvox-common.serviceMeshAnnotations" $ | indent 8 }}
     spec:
       containers:
         - name: neural-tts
@@ -48,13 +46,11 @@ spec:
           {{- end }}
           resources:
             requests:
-              cpu: 5m
-              memory: 30Mi
-            {{- if $.Values.global.lumenvox.enforceLimits }}
+              cpu: {{ (index ($.Values.tts.neuralTtsResources.requests | default dict) "cpu") | default "2000m" }}
+              memory: {{ (index ($.Values.tts.neuralTtsResources.requests | default dict) "memory") | default "4000Mi" }}
             limits:
-              cpu: 100m
-              memory: 50Mi
-            {{- end }}
+              cpu: {{ (index ($.Values.tts.neuralTtsResources.limits | default dict) "cpu") | default "3000m" }}
+              memory: {{ (index ($.Values.tts.neuralTtsResources.limits | default dict) "memory") | default (ternary "20000Mi" "8000Mi" (eq (toString ($.Values.global.platform | default "")) "cloud")) }}
           envFrom:
             - configMapRef:
                 name: timezone-configmap
@@ -92,9 +88,9 @@ spec:
             - name: GLOBAL_SETTINGS__RMQ_QUEUE_EXPIRE_MS
               value: '{{ $.Values.global.lumenvox.rabbitmqQueueExpirationMs }}'
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
-              value: 'http://configuration-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}'
+              value: 'configuration-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}:5000'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
-              value: 'http://deployment-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}'
+              value: 'deployment-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}:5000'
             - name: TTS3_SETTINGS__SERVICE_LANGUAGE
               value: '{{ .name }}'
             - name: NEURAL_TTS_SETTINGS__SERVICE_VOICES
@@ -105,15 +101,32 @@ spec:
               value: 'ignore'
             - name: ENABLE_FAKE_RESULT
               value: '{{ $.Values.tts.useFakeResult }}'
+            {{- if $.Values.global.httpProxy.enabled }}
+            - name: http_proxy
+              value: {{ $.Values.global.httpProxy.proxyUrl }}
+            - name: https_proxy
+              value: {{ $.Values.global.httpProxy.proxyUrl }}
+            - name: HTTP_PROXY
+              value: {{ $.Values.global.httpProxy.proxyUrl }}
+            - name: HTTPS_PROXY
+              value: {{ $.Values.global.httpProxy.proxyUrl }}
+            - name: no_proxy
+              value: {{ $.Values.global.httpProxy.noProxy }}
+            - name: NO_PROXY
+              value: {{ $.Values.global.httpProxy.noProxy }}
+            {{- end }}
           volumeMounts:
             - mountPath: /usr/local/lib/python3.8/dist-packages
-              name: tts-dist-packages
+              name: lang
+              subPath: DistPackageModels/neural_tts/dist-packages
             - mountPath: /app/TtsModels
-              name: tts-models
+              name: lang
+              subPath: NeuralTtsModels
             - mountPath: /tts_cache
               name: tts-cache
             - mountPath: /app/BackendModels
-              name: backendmodels
+              name: lang
+              subPath: BackendModels
       {{- if $.Values.global.imagePullSecrets }}
       imagePullSecrets:
       {{- range $.Values.global.imagePullSecrets }}
@@ -132,17 +145,9 @@ spec:
           command: ["curl2"]
           args: ["http://resource-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}:5110/health", "Resource Manager Service"]    
       volumes:
-        - name: tts-dist-packages
+        - name: lang
           persistentVolumeClaim:
-            claimName: tts-dist-packages-claim
-            readOnly: false
-        - name: tts-models
-          persistentVolumeClaim:
-            claimName: tts-models-claim
-            readOnly: false
-        - name: backendmodels
-          persistentVolumeClaim:
-            claimName: backendmodels-claim
+            claimName: lang-claim
             readOnly: false
         - name: tts-cache
           persistentVolumeClaim:

@@ -10,6 +10,9 @@ global:
   ttsLanguages: []
   customAsrModels: []
   lidLanguages: []
+  neuronModels: []
+  # Neuron languages - one deployment per language (same pattern as asrLanguages)
+  neuronLanguages: []
   lumenvox:
     ingress:
       disableTls: false
@@ -29,6 +32,14 @@ grammar:
 
 tts:
   useFakeResult: "false"
+  # Optional: override neural-tts resources. When not set, platform "cloud" uses limits cpu: 3000m, memory: 20000Mi
+  #  requests:
+  #    cpu: 2000m
+  #    memory: 4000Mi
+  #  limits:
+  #    cpu: 3000m
+  #    memory: 8000Mi
+  neuralTtsResources: {}
 
 vad:
   redisDataTimeout: ""

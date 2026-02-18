@@ -1,0 +1,157 @@
+{{- if .Values.enableDefaultDeployment }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: deployment-add-job
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+spec:
+  ttlSecondsAfterFinished: 60
+  template:
+    metadata:
+      annotations:
+{{- include "lumenvox-common.serviceMeshAnnotations" . | indent 8 }}
+    spec:
+      restartPolicy: Never
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.global.imagePullSecrets }}
+        - name: {{ . }}
+      {{- end }}
+      {{- end }}
+      initContainers:
+        - name: wait-for-services
+          image: busybox:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              check_service() {
+                local service=$1
+                local port=$2
+                until wget -q --spider "http://${service}:${port}/health" 2>/dev/null; do
+                  echo "${service} not ready, retrying in 5s..."
+                  sleep 5
+                done
+                echo "${service} is ready!"
+              }
+              # Run checks in parallel
+              check_service deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }} 5110 &
+              check_service management-api-service.{{ default .Release.Namespace .Values.global.defaultNamespace }} 5110 &
+              # Wait for both to complete
+              wait
+              echo "All services are ready!"
+      containers:
+        - name: curl
+          image: curlimages/curl:latest
+          env:
+          {{- if and .Values.defaultDeployment.connectionStrings .Values.defaultDeployment.connectionStrings.mongodb }}
+            - name: MONGO_CONN_OVERRIDE
+              value: {{ .Values.defaultDeployment.connectionStrings.mongodb | quote }}
+          {{- else }}
+          {{- if .Values.global.mongodb.auth.existingSecret }}
+            - name: MONGO_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.global.mongodb.auth.existingSecret }}
+                  key: mongodb-root-password
+          {{- else }}
+            - name: MONGO_PASS
+              value: '{{ .Values.global.mongodb.auth.rootPassword }}'
+          {{- end }}
+          {{- end }}
+          {{- if and .Values.defaultDeployment.connectionStrings .Values.defaultDeployment.connectionStrings.postgresql }}
+            - name: PG_CONN_OVERRIDE
+              value: {{ .Values.defaultDeployment.connectionStrings.postgresql | quote }}
+          {{- else }}
+          {{- if .Values.global.postgresql.auth.existingSecret }}
+            - name: PG_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.global.postgresql.auth.existingSecret }}
+                  key: postgresql-password
+          {{- else }}
+            - name: PG_PASS
+              value: "{{ .Values.global.postgresql.auth.password }}"
+          {{- end }}
+          {{- end }}
+          {{- if and .Values.defaultDeployment.connectionStrings .Values.defaultDeployment.connectionStrings.redis }}
+            - name: REDIS_CONN_OVERRIDE
+              value: {{ .Values.defaultDeployment.connectionStrings.redis | quote }}
+          {{- else }}
+          {{- if .Values.global.redis.auth.existingSecret }}
+            - name: REDIS_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.global.redis.auth.existingSecret }}
+                  key: redis-password
+          {{- else if .Values.global.redis.auth.password }}
+            - name: REDIS_PASS
+              value: '{{ .Values.global.redis.auth.password }}'
+          {{- else }}
+            - name: REDIS_PASS
+              value: ""
+          {{- end }}
+          {{- end }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              # Build MongoDB connection string (use override if set, else auto-build from global config)
+              if [ -n "${MONGO_CONN_OVERRIDE:-}" ]; then
+                MONGO_CONN="${MONGO_CONN_OVERRIDE}"
+              else
+          {{- if and .Values.global.mongodb.auth.rootUser (or .Values.global.mongodb.auth.existingSecret .Values.global.mongodb.auth.rootPassword) }}
+                MONGO_CONN="mongodb://{{ .Values.global.mongodb.auth.rootUser }}:${MONGO_PASS}@{{ .Values.global.mongodb.connection.url }}:{{ .Values.global.mongodb.connection.port }}"
+          {{- else }}
+                MONGO_CONN="mongodb://{{ .Values.global.mongodb.connection.url }}:{{ .Values.global.mongodb.connection.port }}"
+          {{- end }}
+              fi
+
+              # Build Postgres connection string (use override if set, else auto-build from global config)
+              if [ -n "${PG_CONN_OVERRIDE:-}" ]; then
+                PG_CONN="${PG_CONN_OVERRIDE}"
+              else
+          {{- if and .Values.global.postgresql.connection.user (or .Values.global.postgresql.auth.existingSecret .Values.global.postgresql.auth.password) }}
+                PG_CONN="postgres://{{ .Values.global.postgresql.connection.user }}:${PG_PASS}@{{ .Values.global.postgresql.connection.url }}:{{ .Values.global.postgresql.connection.port }}/{{ .Values.global.postgresql.connection.databaseName }}?sslmode={{ .Values.global.postgresql.connection.ssl.mode }}{{ if .Values.global.postgresql.connection.ssl.caCertificate }}&sslrootcert=ServerRoot.crt{{ end }}&search_path={{ .Values.global.postgresql.connection.databaseSchema }}"
+          {{- else }}
+                PG_CONN="postgres://{{ .Values.global.postgresql.connection.url }}:{{ .Values.global.postgresql.connection.port }}/{{ .Values.global.postgresql.connection.databaseName }}?sslmode={{ .Values.global.postgresql.connection.ssl.mode }}{{ if .Values.global.postgresql.connection.ssl.caCertificate }}&sslrootcert=ServerRoot.crt{{ end }}&search_path={{ .Values.global.postgresql.connection.databaseSchema }}"
+          {{- end }}
+              fi
+
+              # Build Redis connection string (use override if set, else auto-build from global config)
+              if [ -n "${REDIS_CONN_OVERRIDE:-}" ]; then
+                REDIS_CONN="${REDIS_CONN_OVERRIDE}"
+              elif [ -n "${REDIS_PASS:-}" ]; then
+                REDIS_CONN="redis://:${REDIS_PASS}@{{ .Values.global.redis.connection.url }}:{{ .Values.global.redis.connection.port }}"
+              else
+                REDIS_CONN="redis://{{ .Values.global.redis.connection.url }}:{{ .Values.global.redis.connection.port }}"
+              fi
+
+              # Build certificates JSON objects
+          {{- if .Values.global.mongodb.caCertificate }}
+              MONGO_CERTS='{"caCertificate":"{{ .Values.global.mongodb.caCertificate }}"}'
+          {{- else }}
+              MONGO_CERTS='{}'
+          {{- end }}
+
+          {{- if .Values.global.postgresql.connection.ssl.caCertificate }}
+              PG_CERTS='{"caCertificate":"{{ .Values.global.postgresql.connection.ssl.caCertificate }}"}'
+          {{- else }}
+              PG_CERTS='{}'
+          {{- end }}
+
+          {{- if .Values.global.redis.caCertificate }}
+              REDIS_CERTS='{"caCertificate":"{{ .Values.global.redis.caCertificate }}"}'
+          {{- else }}
+              REDIS_CERTS='{}'
+          {{- end }}
+
+              # Make the API call
+              curl -X POST \
+                "http://management-api-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5110/Management/Deployment/Add?customDeploymentId={{ .Values.defaultDeployment.customDeploymentId }}" \
+                -H "accept: application/json" \
+                -H "X-Operator-Id: 00000000-0000-0000-0000-000000000001" \
+                -H "X-Scopes: VB MGMT REPO" \
+                -H "Content-Type: application/json" \
+                -d "{\"description\": \"{{ .Values.defaultDeployment.description }}\",\"name\": \"{{ .Values.defaultDeployment.name }}\", \"MongoDbCertificates\":${MONGO_CERTS}, \"MongoDbConnectionString\": \"${MONGO_CONN}\", \"PostgresCertificates\":${PG_CERTS}, \"PostgresConnectionString\": \"${PG_CONN}\", \"RedisCertificates\":${REDIS_CERTS}, \"RedisConnectionString\": \"${REDIS_CONN}\"}"
+{{- end }}

@@ -17,9 +17,7 @@ spec:
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '5110'
-        {{- if .Values.global.linkerd.enabled }}
-        linkerd.io/inject: enabled
-        {{- end }}
+{{- include "lumenvox-common.serviceMeshAnnotations" . | indent 8 }}
     spec:
       containers:
         - name: configuration
@@ -48,12 +46,14 @@ spec:
           {{- end }}
           resources:
             requests:
-              cpu: 10m
-              memory: 200Mi
+              {{- if .Values.global.lumenvox.enforceReservations }}
+              cpu: 50m
+              memory: 50Mi
+              {{- end }}
             {{- if .Values.global.lumenvox.enforceLimits }}
             limits:
               cpu: 100m
-              memory: 450Mi
+              memory: 100Mi
             {{- end }}
           envFrom:
             - configMapRef:
@@ -102,7 +102,7 @@ spec:
               value: '{{ template "lumenvox-vb.CLUSTER_LANGUAGES__VB_ACTIVE" . }}'
             {{- end }}
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
-              value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+              value: 'deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
             - name: DB_SETTINGS__DEPLOYMENT_RECONNECTION_TIMEOUT_SEC
               value: '{{ .Values.global.lumenvox.deploymentReconnectionTimeoutSec }}'
             - name: DB_MIGRATION__RUN_DATABASE_MIGRATIONS
@@ -119,7 +119,8 @@ spec:
               value: 'ignore'
           volumeMounts:
             - mountPath: /etc/lumenvox/Lang/vb-active
-              name: vb-active
+              name: lang
+              subPath: vb-active
 
       {{- if .Values.global.imagePullSecrets }}
       imagePullSecrets:
@@ -146,9 +147,9 @@ spec:
           args: ["http{{ if .Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ .Values.global.rabbitmq.connection.url }}{{ if not .Values.global.rabbitmq.enableTLS }}:15672{{ end }}", "RabbitMQ Management Page"]
         {{- end }}
       volumes:
-        - name: vb-active
+        - name: lang
           persistentVolumeClaim:
-            claimName: vb-active-claim
+            claimName: lang-claim
             readOnly: false
       {{- if .Values.global.lumenvox.schedulerName }}
       schedulerName: {{ .Values.global.lumenvox.schedulerName }}

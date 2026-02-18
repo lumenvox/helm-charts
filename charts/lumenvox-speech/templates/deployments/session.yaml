@@ -17,9 +17,7 @@ spec:
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '5110'
-        {{- if .Values.global.linkerd.enabled }}
-        linkerd.io/inject: enabled
-        {{- end }}
+{{- include "lumenvox-common.serviceMeshAnnotations" . | indent 8 }}
     spec:
       containers:
         - name: session
@@ -46,12 +44,14 @@ spec:
           {{- end }}
           resources:
             requests:
-              cpu: 5m
-              memory: 30Mi
+              {{- if .Values.global.lumenvox.enforceReservations }}
+              cpu: 100m
+              memory: 200Mi
+              {{- end }}
             {{- if .Values.global.lumenvox.enforceLimits }}
             limits:
-              cpu: 100m
-              memory: 50Mi
+              cpu: 1000m
+              memory: 500Mi
             {{- end }}
           envFrom:
             - configMapRef:
@@ -89,12 +89,34 @@ spec:
               value: 'amqp{{ if .Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ .Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ .Values.global.rabbitmq.connection.url }}:{{ .Values.global.rabbitmq.connection.port }}'
             - name: GLOBAL_SETTINGS__RMQ_QUEUE_EXPIRE_MS
               value: '{{ .Values.global.lumenvox.rabbitmqQueueExpirationMs }}'
+            {{- if .Values.global.enableFilestore }}
+            - name: FILE_STORE_URL_PREFIX
+              value: 'https://file-store{{ .Values.global.hostnameSuffix }}'
+            {{- end }}
+            {{- if .Values.global.enabled.lumenvoxSpeech }}
+            {{- if .Values.global.asrLanguages }}
             - name: CLUSTER_LANGUAGES__ASR_LANGUAGES
               value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__ASR_LANGUAGES" . }}'
+            - name: CLUSTER_LANGUAGES__DNN_MODULES
+              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__DNN_MODULES" . }}'
+            {{- end }}
+            {{- if .Values.global.ttsLanguages }}
             - name: CLUSTER_LANGUAGES__TTS_LANGUAGES
               value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__TTS_LANGUAGES" . }}'
+            - name: CLUSTER_LANGUAGES__TTS_VOICES
+              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__TTS_VOICES_VERSION" . }}'
+            - name: CLUSTER_LANGUAGES__NEURAL_TTS_VOICES
+              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__NEURAL_TTS_VOICES_VERSION" . }}'
+            {{- end }}
+            {{- if .Values.global.itnLanguages }}
             - name: CLUSTER_LANGUAGES__ITN_LANGUAGES
               value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__ITN_LANGUAGES" . }}'
+            {{- end }}
+            {{- end }}
+            {{- if .Values.global.enableNeuron }}
+            - name: CLUSTER_LANGUAGES__NEURON_MODELS
+              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__NEURON_MODELS" . }}'
+            {{- end }}
             {{- if .Values.global.enableNlu }}
             - name: CLUSTER_LANGUAGES__NLU_LANGUAGES
               value: 'en'
@@ -108,9 +130,9 @@ spec:
               value: 'false'
             {{- end }}
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
-              value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+              value: 'configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
-              value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+              value: 'deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
             - name: SETTINGS__USE_GRAMMAR_MANAGER
               value: 'true'
             - name: SESSION_SETTINGS__API_EXCHANGE

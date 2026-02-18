@@ -17,15 +17,15 @@ spec:
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '5110'
-        {{- if .Values.global.linkerd.enabled }}
-        linkerd.io/inject: enabled
-        {{- end }}
+{{- include "lumenvox-common.serviceMeshAnnotations" . | indent 8 }}
     spec:
       containers:
         - name: resource
           image: {{ .Values.image.repository | default .Values.global.image.repository }}/resource{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           ports:
+            - name: grpc
+              containerPort: 8080
             - name: http
               containerPort: 5110
           startupProbe:
@@ -53,12 +53,14 @@ spec:
           {{- end }}
           resources:
             requests:
-              cpu: 5m
-              memory: 30Mi
+              {{- if .Values.global.lumenvox.enforceReservations }}
+              cpu: 100m
+              memory: 100Mi
+              {{- end }}
             {{- if .Values.global.lumenvox.enforceLimits }}
             limits:
-              cpu: 100m
-              memory: 50Mi
+              cpu: 500m
+              memory: 500Mi
             {{- end }}
           envFrom:
             - configMapRef:
@@ -104,14 +106,18 @@ spec:
             - name: CLUSTER_LANGUAGES__LID
               value: "vba_all_LID_LID-{{ .Values.global.lidVersion}}"
             {{- end }}
+            {{- if .Values.global.enableNeuron }}
+            - name: CLUSTER_LANGUAGES__NEURON_MODELS
+              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__NEURON_MODELS" . }}'
+            {{- end }}
             - name: GLOBAL_SETTINGS__CLUSTER_LOG_VERBOSITY
               value: '{{ .Values.global.lumenvox.loggingVerbosity }}'
             - name: REDIS_SETTINGS__DEFAULT_TTL
               value: '{{ .Values.global.lumenvox.redisTtl }}'   
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
-              value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+              value: 'configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
-              value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+              value: 'deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
             - name: RESOURCE_SETTINGS__RESOURCE_DOWNLOAD_ENDPOINT
               value: '{{ .Values.global.lumenvox.resourceDownloadEndpoint }}'
             - name: RESOURCE_SETTINGS__MAX_CONCURRENT_DOWNLOADS
@@ -124,6 +130,20 @@ spec:
               value: '8080'
             - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
               value: 'ignore'
+            {{- if .Values.global.httpProxy.enabled }}
+            - name: http_proxy
+              value: {{ .Values.global.httpProxy.proxyUrl }}
+            - name: https_proxy
+              value: {{ .Values.global.httpProxy.proxyUrl }}
+            - name: HTTP_PROXY
+              value: {{ .Values.global.httpProxy.proxyUrl }}
+            - name: HTTPS_PROXY
+              value: {{ .Values.global.httpProxy.proxyUrl }}
+            - name: no_proxy
+              value: {{ .Values.global.httpProxy.noProxy }}
+            - name: NO_PROXY
+              value: {{ .Values.global.httpProxy.noProxy }}
+            {{- end }}
           volumeMounts:
             - mountPath: /etc/lumenvox/Lang
               name: lang

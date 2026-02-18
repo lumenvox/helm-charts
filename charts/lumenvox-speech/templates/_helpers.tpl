@@ -8,6 +8,7 @@
 {{- if $listStarted }};{{ end }}{{ .name }}{{ if .version }}-{{ .version }}{{ end }}
 {{- $listStarted = true }}
 {{- end }}
+{{- if $listStarted }};dist_package_model_asr-7.0.0{{ end }}
 {{- end }}
 
 {{- define "lumenvox-speech.CLUSTER_LANGUAGES__ASR_LANGUAGES" }}
@@ -29,11 +30,17 @@
 {{- define "lumenvox-speech.CLUSTER_LANGUAGES__DNN_MODULES" }}
 {{- $fineTunedEnabled := false }}
 {{- $nluEnabled := false }}
+{{- $asrLangsDetected := false }}
+{{- $itnLangsDetected := false }}
 {{- if .Values.global.enableNlu }}{{ $nluEnabled = true }}{{ end }}
-{{- range .Values.global.asrLanguages }}
+{{- range .Values.global.asrLanguages }}{{ $asrLangsDetected = true }}
 {{- if .enableFineTuned }}{{ $fineTunedEnabled = true }}{{ end }}
-{{- end }}backend_dnn_model_p;dist_package_model_en{{ if $fineTunedEnabled }};dist_package_model_finetuned{{ end }}
+{{- end }}
+{{- if .Values.global.itnLanguages }}{{ $itnLangsDetected = true }}{{ end }}backend_dnn_model_p;dist_package_model_en
+{{- if $fineTunedEnabled }};dist_package_model_finetuned{{ end }}
 {{- if $nluEnabled }};dist_package_model_nlu{{ end }}
+{{- if $asrLangsDetected }};backend_dnn_model_7-7.0.0{{ end }}
+{{- if $itnLangsDetected }};dist_package_model_itn-7.0.3{{ end }}
 {{- end }}
 
 {{- define "lumenvox-speech.CLUSTER_LANGUAGES__TTS_LANGUAGES" }}
@@ -53,6 +60,14 @@
 {{- if $listStarted }};{{ end }}tts_{{ $langRegion }}_{{ .name }}_22
 {{- $listStarted = true }}
 {{- end }}
+{{- end }}
+{{- end }}
+
+{{- define "lumenvox-speech.CLUSTER_LANGUAGES__NEURON_MODELS" }}
+{{- $listStarted := false }}
+{{- range .Values.global.neuronModels }}
+{{- if $listStarted }};{{ end }}neuron{{ if .language }}_{{ .language }}{{ end }}_{{ .name }}{{ if .version }}-{{ .version }}{{ end }}
+{{- $listStarted = true }}
 {{- end }}
 {{- end }}
 

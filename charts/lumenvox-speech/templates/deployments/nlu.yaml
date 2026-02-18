@@ -19,9 +19,7 @@ spec:
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '5110'
-        {{- if .Values.global.linkerd.enabled }}
-        linkerd.io/inject: enabled
-        {{- end }}
+{{- include "lumenvox-common.serviceMeshAnnotations" . | indent 8 }}
     spec:
       containers:
         - name: nlu
@@ -52,13 +50,15 @@ spec:
           {{- end }}
           resources:
             requests:
-              cpu: 5m
-              memory: 30Mi
+              {{- if .Values.global.lumenvox.enforceReservations }}
+              cpu: 500m
+              memory: 1000Mi
+              {{- end }}
             {{- if or .Values.global.lumenvox.enforceLimits .Values.global.enableNlu }}
             limits:
               {{- if .Values.global.lumenvox.enforceLimits }}
-              cpu: 100m
-              memory: 50Mi
+              cpu: 1000m
+              memory: 5000Mi
               {{- end }}
               {{- if .Values.global.enableNlu }}
               nvidia.com/gpu: "1"
@@ -101,18 +101,20 @@ spec:
             - name: GLOBAL_SETTINGS__RMQ_QUEUE_EXPIRE_MS
               value: '{{ .Values.global.lumenvox.rabbitmqQueueExpirationMs }}'
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
-              value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+              value: 'configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
-              value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+              value: 'deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
             - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
               value: 'ignore'
             - name: NLU_SETTINGS__SERVICE_LANGUAGE
               value: 'en'
           volumeMounts:
             - mountPath: /app/venv/lib/python3.10/site-packages
-              name: nlu-site-packages
+              name: lang
+              subPath: DistPackageModels/nlu/site-packages
             - mountPath: /app/models
-              name: nlumodels
+              name: lang
+              subPath: NluModels
       {{- if .Values.global.imagePullSecrets }}
       imagePullSecrets:
       {{- range .Values.global.imagePullSecrets }}
@@ -135,13 +137,9 @@ spec:
           command: ["curl2"]
           args: ["http://resource-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5110/health", "Resource Manager Service"]
       volumes:
-        - name: nlu-site-packages
+        - name: lang
           persistentVolumeClaim:
-            claimName: nlu-site-packages-claim
-            readOnly: false
-        - name: nlumodels
-          persistentVolumeClaim:
-            claimName: nlumodels-claim
+            claimName: lang-claim
             readOnly: false
       {{- if .Values.global.lumenvox.schedulerName }}
       schedulerName: {{ .Values.global.lumenvox.schedulerName }}

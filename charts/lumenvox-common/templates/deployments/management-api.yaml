@@ -16,9 +16,7 @@ spec:
         app: management-api
         # No Prometheus scraping for now
       annotations:
-        {{- if .Values.global.linkerd.enabled }}
-        linkerd.io/inject: enabled
-        {{- end }}
+{{- include "lumenvox-common.serviceMeshAnnotations" . | indent 8 }}
     spec:
       containers:
         - name: management-api
@@ -43,12 +41,14 @@ spec:
           {{- end }}
           resources:
             requests:
-              cpu: 10m
-              memory: 150Mi
+              {{- if .Values.global.lumenvox.enforceReservations }}
+              cpu: 50m
+              memory: 50Mi
+              {{- end }}
             {{- if .Values.global.lumenvox.enforceLimits }}
             limits:
               cpu: 100m
-              memory: 500Mi
+              memory: 100Mi
             {{- end }}
           envFrom:
             - configMapRef:
@@ -79,11 +79,11 @@ spec:
             - name: GLOBAL_SETTINGS__RMQ_QUEUE_EXPIRE_MS
               value: '{{ .Values.global.lumenvox.rabbitmqQueueExpirationMs }}'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
-              value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
+              value: 'deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
-              value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
+              value: 'configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
             - name: SERVICE_ADDRESSES__BINARY_STORAGE_SERVICE
-              value: 'http://binary-storage-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
+              value: 'binary-storage-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
             - name: LICENSE_SETTINGS__CLUSTER_GUID
               value: '{{ .Values.global.licensing.clusterGuid }}'
             - name: LOCAL_SETTINGS__ENABLE_AUDIT_LOG

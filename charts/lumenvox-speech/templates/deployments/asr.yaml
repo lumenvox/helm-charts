@@ -20,9 +20,7 @@ spec:
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '5110'
-        {{- if $.Values.global.linkerd.enabled }}
-        linkerd.io/inject: enabled
-        {{- end }}
+{{- include "lumenvox-common.serviceMeshAnnotations" $ | indent 8 }}
     spec:
       containers:
         - name: asr
@@ -53,13 +51,15 @@ spec:
           {{- end }}
           resources:
             requests:
-              cpu: 5m
-              memory: 30Mi
+              {{- if $.Values.global.lumenvox.enforceReservations }}
+              cpu: 1000m
+              memory: 4000Mi
+              {{- end }}
             {{- if or $.Values.global.lumenvox.enforceLimits .enableFineTuned }}
             limits:
               {{- if $.Values.global.lumenvox.enforceLimits }}
-              cpu: 100m
-              memory: 50Mi
+              cpu: 1500m
+              memory: 8000Mi
               {{- end }}
               {{- if .enableFineTuned }}
               nvidia.com/gpu: "1"
@@ -102,9 +102,9 @@ spec:
             - name: GLOBAL_SETTINGS__RMQ_QUEUE_EXPIRE_MS
               value: '{{ $.Values.global.lumenvox.rabbitmqQueueExpirationMs }}'
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
-              value: 'http://configuration-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}'
+              value: 'configuration-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}:5000'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
-              value: 'http://deployment-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}'
+              value: 'deployment-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}:5000'
             - name: ASR_SETTINGS__SERVICE_LANGUAGE
               value: '{{ .name }}'
             - name: ASR_SETTINGS__CACHE_MAX_ENTRIES
@@ -118,18 +118,22 @@ spec:
             - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
               value: 'ignore'
           volumeMounts:
-            - mountPath: /usr/local/lib/python3.8/dist-packages
-              name: asr-dist-packages
+            - mountPath: /usr/local/lib/python3.12/dist-packages
+              name: lang
+              subPath: DistPackageModels/asr/dist-packages
             {{- if .enableFineTuned }}
             - mountPath: /finetuned/venv/lib/python3.8/site-packages
-              name: asr-site-packages
+              name: lang
+              subPath: DistPackageModels/finetuned/site-packages
             {{- end }}
             - mountPath: /EuropaAsrModels
-              name: europamodels
+              name: lang
+              subPath: EuropaAsrModels
             - mountPath: /var/lumenvox/cache
               name: europa-cache
             - mountPath: /BackendModels
-              name: backendmodels
+              name: lang
+              subPath: BackendModels
       {{- if $.Values.global.imagePullSecrets }}
       imagePullSecrets:
       {{- range $.Values.global.imagePullSecrets }}
@@ -148,23 +152,9 @@ spec:
           command: ["curl2"]
           args: ["http://resource-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}:5110/health", "Resource Manager Service"]
       volumes:
-        - name: asr-dist-packages
+        - name: lang
           persistentVolumeClaim:
-            claimName: asr-dist-packages-claim
-            readOnly: false
-        {{- if .enableFineTuned }}
-        - name: asr-site-packages
-          persistentVolumeClaim:
-            claimName: asr-site-packages-claim
-            readOnly: false
-        {{- end }}
-        - name: europamodels
-          persistentVolumeClaim:
-            claimName: europamodels-claim
-            readOnly: false
-        - name: backendmodels
-          persistentVolumeClaim:
-            claimName: backendmodels-claim
+            claimName: lang-claim
             readOnly: false
         - name: europa-cache
           persistentVolumeClaim:

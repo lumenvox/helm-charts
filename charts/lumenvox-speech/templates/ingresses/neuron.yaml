@@ -1,25 +1,27 @@
 {{- if .Values.global.enableNeuron }}
 {{- if .Values.global.lumenvox.metrics.enableEndpoints }}
+{{- range .Values.global.neuronLanguages }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: neuron-ingress
-  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+  name: neuron-{{ .name | replace "_" "-" }}-ingress
+  namespace: {{ default $.Release.Namespace $.Values.global.defaultNamespace }}
 spec:
-  {{- if .Values.global.lumenvox.ingress.className }}
-  ingressClassName: {{ .Values.global.lumenvox.ingress.className }}
+  {{- if $.Values.global.lumenvox.ingress.className }}
+  ingressClassName: {{ $.Values.global.lumenvox.ingress.className }}
   {{- end }}
   rules:
-    - host: neuron{{ .Values.global.hostnameSuffix }}
+    - host: neuron-{{ .name | replace "_" "-" }}{{ $.Values.global.hostnameSuffix }}
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: neuron-service
+                name: neuron-{{ .name | replace "_" "-" }}-service
                 port:
                   name: http
+{{- end }}
 {{- end }}
 {{- end }}

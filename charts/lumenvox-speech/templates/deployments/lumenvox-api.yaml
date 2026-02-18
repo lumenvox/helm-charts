@@ -16,10 +16,8 @@ spec:
         app: lumenvox-api
       annotations:
         prometheus.io/scrape: 'true'
-        prometheus.io/port: '5110'      
-        {{- if .Values.global.linkerd.enabled }}
-        linkerd.io/inject: enabled
-        {{- end }}
+        prometheus.io/port: '5110'
+{{- include "lumenvox-common.serviceMeshAnnotations" . | indent 8 }}
     spec:
       containers:
         - name: lumenvox-api
@@ -48,12 +46,14 @@ spec:
           {{- end }}
           resources:
             requests:
-              cpu: 50m
+              {{- if .Values.global.lumenvox.enforceReservations }}
+              cpu: 500m
               memory: 100Mi
+              {{- end }}
             {{- if .Values.global.lumenvox.enforceLimits }}
             limits:
-              cpu: 60m
-              memory: 120Mi
+              cpu: 1000m
+              memory: 200Mi
             {{- end }}
           envFrom:
             - configMapRef:
@@ -92,9 +92,9 @@ spec:
             - name: GLOBAL_SETTINGS__RMQ_QUEUE_EXPIRE_MS
               value: '{{ .Values.global.lumenvox.rabbitmqQueueExpirationMs }}'
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
-              value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+              value: 'configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
-              value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+              value: 'deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
             - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
               value: 'ignore'
       {{- if .Values.global.imagePullSecrets }}

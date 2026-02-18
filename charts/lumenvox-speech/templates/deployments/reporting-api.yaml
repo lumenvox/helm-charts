@@ -15,9 +15,7 @@ spec:
       labels:
         app: reporting-api
       annotations:
-        {{- if .Values.global.linkerd.enabled }}
-        linkerd.io/inject: enabled
-        {{- end }}
+{{- include "lumenvox-common.serviceMeshAnnotations" . | indent 8 }}
     spec:
       containers:
         - name: reporting-api
@@ -46,8 +44,10 @@ spec:
           {{- end }}
           resources:
             requests:
-              cpu: 10m
+              {{- if .Values.global.lumenvox.enforceReservations }}
+              cpu: 50m
               memory: 100Mi
+              {{- end }}
             {{- if .Values.global.lumenvox.enforceLimits }}
             limits:
               cpu: 100m
@@ -92,13 +92,13 @@ spec:
             - name: GLOBAL_SETTINGS__RMQ_QUEUE_EXPIRE_MS
               value: '{{ .Values.global.lumenvox.rabbitmqQueueExpirationMs }}'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
-              value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+              value: 'deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
-              value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+              value: 'configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
             - name: SERVICE_ADDRESSES__BINARY_STORAGE_SERVICE
-              value: 'http://binary-storage-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
+              value: 'binary-storage-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
             - name: SERVICE_ADDRESSES__REPORTING_SERVICE
-              value: 'http://reporting-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+              value: 'reporting-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
             - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
               value: 'ignore'
       {{- if .Values.global.imagePullSecrets }}

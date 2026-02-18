@@ -21,9 +21,7 @@ spec:
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '5110'
-        {{- if $.Values.global.linkerd.enabled }}
-        linkerd.io/inject: enabled
-        {{- end }}
+{{- include "lumenvox-common.serviceMeshAnnotations" $ | indent 8 }}
     spec:
       containers:
         - name: tts
@@ -48,8 +46,10 @@ spec:
           {{- end }}
           resources:
             requests:
+              {{- if $.Values.global.lumenvox.enforceReservations }}
               cpu: 5m
               memory: 30Mi
+              {{- end }}
             {{- if $.Values.global.lumenvox.enforceLimits }}
             limits:
               cpu: 100m
@@ -92,9 +92,9 @@ spec:
             - name: GLOBAL_SETTINGS__RMQ_QUEUE_EXPIRE_MS
               value: '{{ $.Values.global.lumenvox.rabbitmqQueueExpirationMs }}'
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
-              value: 'http://configuration-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}'
+              value: 'configuration-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}:5000'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
-              value: 'http://deployment-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}'
+              value: 'deployment-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}:5000'
             - name: TTS_SETTINGS__SERVICE_LANGUAGE
               value: '{{ .name }}'
             - name: TTS_SETTINGS__SERVICE_VOICES
@@ -105,7 +105,8 @@ spec:
               value: '{{ $.Values.tts.useFakeResult }}'
           volumeMounts:
             - mountPath: /etc/lumenvox/Lang/tts/staging
-              name: tts
+              name: lang
+              subPath: tts/tts1
             - mountPath: /var/log/lumenvox/ttsserver
               name: logs
         - name: tts-application-log
@@ -162,9 +163,9 @@ spec:
           command: ["curl2"]
           args: ["http://resource-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}:5110/health", "Resource Manager Service"]    
       volumes:
-        - name: tts
+        - name: lang
           persistentVolumeClaim:
-            claimName: tts1-claim
+            claimName: lang-claim
             readOnly: false
         - name: logs
           emptyDir: {}

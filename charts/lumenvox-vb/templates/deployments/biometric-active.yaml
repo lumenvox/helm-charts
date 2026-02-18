@@ -17,9 +17,7 @@ spec:
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '90'
-        {{- if .Values.global.linkerd.enabled }}
-        linkerd.io/inject: enabled
-        {{- end }}
+{{- include "lumenvox-common.serviceMeshAnnotations" . | indent 8 }}
     spec:
       containers:
         - name: biometric-active
@@ -85,7 +83,8 @@ spec:
               value: '6'
           volumeMounts:
             - mountPath: /etc/lumenvox/Lang/vb-active
-              name: vb-active
+              name: lang
+              subPath: vb-active
       {{- if .Values.global.imagePullSecrets }}
       imagePullSecrets:
       {{- range .Values.global.imagePullSecrets }}
@@ -99,9 +98,9 @@ spec:
           command: ["curl2"]
           args: ["http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:90/health", "Deployment Service"]
       volumes:
-        - name: vb-active
+        - name: lang
           persistentVolumeClaim:
-            claimName: vb-active-claim
+            claimName: lang-claim
             readOnly: false
       {{- if .Values.global.lumenvox.schedulerName }}
       schedulerName: {{ .Values.global.lumenvox.schedulerName }}

@@ -17,9 +17,7 @@ spec:
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '5110'
-        {{- if .Values.global.linkerd.enabled }}
-        linkerd.io/inject: enabled
-        {{- end }}
+{{- include "lumenvox-common.serviceMeshAnnotations" . | indent 8 }}
     spec:
       containers:
         - name: binary-storage
@@ -48,8 +46,10 @@ spec:
           {{- end }}
           resources:
             requests:
+              {{- if .Values.global.lumenvox.enforceReservations }}
               cpu: 350m
               memory: 300Mi
+              {{- end }}
             {{- if .Values.global.lumenvox.enforceLimits }}
             limits:
               cpu: 550m

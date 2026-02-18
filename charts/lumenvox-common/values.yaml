@@ -10,6 +10,8 @@ encryption:
   masterKeyProvider: "EnvVariableMasterKeyService"
   useEncryption: true
 
+# Legacy linkerd configuration (deprecated, use serviceMesh.dashboard instead)
+# Kept for backward compatibility
 linkerd:
   dashboard:
     # Applies ingress for linkerd dashboard when enabled (true)
@@ -33,3 +35,32 @@ global:
       httpAnnotations: []
     schedulerName: ""
   lidVersion: "2.0.0"
+  serviceMesh: # Service mesh dashboard configuration
+    dashboard:
+      # Applies ingress for service mesh dashboard when enabled (true)
+      enabled: false
+      # Service mesh type: "linkerd" or "istio"
+      type: "linkerd"
+      # Namespace used by service mesh dashboard
+      namespace: linkerd-viz  # For linkerd: linkerd-viz, For istio: istio-system
+      # Hostname prefix to use for ingress
+      hostPrefix: linkerd  # For linkerd: linkerd, For istio: istio
+      # Opaque secret value for dashboard ingress authentication (base64 encoded)
+      ingressSecret: ""
+      # Optional class name to assign to dashboard ingress (i.e. "nginx" for example)
+      ingressClassName: ""
+
+# Enable default deployment creation job
+enableDefaultDeployment: false
+# Default deployment configuration
+defaultDeployment:
+  # Note: This deployment will not work without a valid deploymentID GUID value. (abcdefg-1234-abcd-1234-abcdefghijkl)
+  customDeploymentId: "CONFIGURE-DEPLOYMENT-ID-HERE"
+  description: "test-description"
+  name: "test-name"
+  # Optional: full connection strings override the auto-built ones from global.mongodb/postgresql/redis.
+  # Leave empty to use the auto-built connection strings (from global config + secrets).
+  connectionStrings:
+    mongodb: ""
+    postgresql: ""
+    redis: ""

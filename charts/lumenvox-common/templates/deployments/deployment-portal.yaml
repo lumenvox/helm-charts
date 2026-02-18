@@ -17,9 +17,7 @@ spec:
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '5110'
-        {{- if .Values.global.linkerd.enabled }}
-        linkerd.io/inject: enabled
-        {{- end }}
+{{- include "lumenvox-common.serviceMeshAnnotations" . | indent 8 }}
     spec:
       containers:
         - name: deployment-portal
@@ -38,12 +36,14 @@ spec:
             periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
           resources:
             requests:
-              cpu: 5m
-              memory: 30Mi
+              {{- if .Values.global.lumenvox.enforceReservations }}
+              cpu: 50m
+              memory: 50Mi
+              {{- end }}
             {{- if .Values.global.lumenvox.enforceLimits }}
             limits:
               cpu: 100m
-              memory: 50Mi
+              memory: 100Mi
             {{- end }}
           envFrom:
             - configMapRef:
@@ -68,26 +68,44 @@ spec:
             - name: GLOBAL_SETTINGS__RMQ_QUEUE_EXPIRE_MS
               value: '{{ .Values.global.lumenvox.rabbitmqQueueExpirationMs }}'
             - name: SERVICE_EXTERNAL_ADDRESSES__REPORTING_API
-              value: 'http://reporting-api-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
+              value: 'reporting-api-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
             - name: SERVICE_EXTERNAL_ADDRESSES__MANAGEMENT_API
               value: 'https://management-api{{ .Values.global.hostnameSuffix }}'
             - name: SERVICE_EXTERNAL_ADDRESSES__LUMENVOX_API
-              value: 'http://lumenvox-api-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
+              value: 'lumenvox-api-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
             - name: SERVICE_EXTERNAL_ADDRESSES__DEPLOYMENT_PORTAL
-              value: 'http://deployment-portal-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
+              value: 'deployment-portal-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
             - name: SERVICE_EXTERNAL_ADDRESSES__ADMIN_PORTAL
-              value: 'http://admin-portal-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
+              value: 'admin-portal-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
+            {{- if .Values.global.enableFilestore }}
+            - name: SERVICE_EXTERNAL_ADDRESSES__FILE_STORE
+              value: 'http://file-store-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:9180'
+            - name: FILE_STORE_URL_PREFIX
+              value: 'https://file-store{{ .Values.global.hostnameSuffix }}'
+            {{- end }}
             {{- if .Values.global.enabled.lumenvoxSpeech }}
             {{- if .Values.global.asrLanguages }}
             - name: CLUSTER_LANGUAGES__ASR_LANGUAGES
-              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__ASR_LANGUAGES" . }}'
+              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__ASR_LANGUAGES_VERSION" . }}'
+            - name: CLUSTER_LANGUAGES__DNN_MODULES
+              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__DNN_MODULES" . }}'
+            {{- end }}
+            {{- if .Values.global.itnLanguages }}
+            - name: CLUSTER_LANGUAGES__ITN_LANGUAGES
+              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__ITN_LANGUAGES" . }}'
+            {{- end }}
             {{- end }}
             {{- if .Values.global.ttsLanguages }}
             - name: CLUSTER_LANGUAGES__TTS_LANGUAGES
               value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__TTS_LANGUAGES" . }}'
             - name: CLUSTER_LANGUAGES__TTS_VOICES
-              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__TTS_VOICES" . }}'
+              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__TTS_VOICES_VERSION" . }}'
+            - name: CLUSTER_LANGUAGES__NEURAL_TTS_VOICES
+              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__NEURAL_TTS_VOICES_VERSION" . }}'
             {{- end }}
+            {{- if .Values.global.enableNeuron }}
+            - name: CLUSTER_LANGUAGES__NEURON_MODELS
+              value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__NEURON_MODELS" . }}'
             {{- end }}
             {{- if .Values.global.enabled.lumenvoxVb }}
             - name: CLUSTER_LANGUAGES__VB_ACTIVE

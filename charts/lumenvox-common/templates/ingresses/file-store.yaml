@@ -1,0 +1,36 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: file-store-ingress
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+  {{- if or .Values.global.lumenvox.ingress.commonAnnotations .Values.global.lumenvox.ingress.httpAnnotations }}
+  annotations:
+    {{- range .Values.global.lumenvox.ingress.commonAnnotations }}
+      {{ .name }}: "{{ .value }}"
+    {{- end }}
+    {{- range .Values.global.lumenvox.ingress.httpAnnotations }}
+      {{ .name }}: "{{ .value }}"
+    {{- end }}
+  {{- end }}
+spec:
+  {{- if .Values.global.lumenvox.ingress.className }}
+  ingressClassName: {{ .Values.global.lumenvox.ingress.className }}
+  {{- end }}
+  rules:
+    - host: file-store{{ .Values.global.hostnameSuffix }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: file-store-service
+                port:
+                  name: public-http
+  {{- if not .Values.global.lumenvox.ingress.disableTls }}
+  tls:
+    - secretName: speech-tls-secret
+      hosts:
+        - file-store{{ .Values.global.hostnameSuffix }}
+  {{- end }}
+

@@ -17,9 +17,7 @@ spec:
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '5110'
-        {{- if .Values.global.linkerd.enabled }}
-        linkerd.io/inject: enabled
-        {{- end }}
+{{- include "lumenvox-common.serviceMeshAnnotations" . | indent 8 }}
     spec:
       containers:
         - name: grammar
@@ -44,12 +42,14 @@ spec:
           {{- end }}
           resources:
             requests:
-              cpu: 5m
-              memory: 30Mi
+              {{- if .Values.global.lumenvox.enforceReservations }}
+              cpu: 500m
+              memory: 1000Mi
+              {{- end }}
             {{- if .Values.global.lumenvox.enforceLimits }}
             limits:
-              cpu: 100m
-              memory: 50Mi
+              cpu: 1000m
+              memory: 2000Mi
             {{- end }}
           envFrom:
             - configMapRef:
@@ -98,16 +98,32 @@ spec:
               value: '1'
             {{- end }}
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
-              value: 'http://configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+              value: 'configuration-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
-              value: 'http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}'
+              value: 'deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
             - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
               value: 'ignore'
+            {{- if .Values.global.httpProxy.enabled }}
+            - name: http_proxy
+              value: {{ .Values.global.httpProxy.proxyUrl }}
+            - name: https_proxy
+              value: {{ .Values.global.httpProxy.proxyUrl }}
+            - name: HTTP_PROXY
+              value: {{ .Values.global.httpProxy.proxyUrl }}
+            - name: HTTPS_PROXY
+              value: {{ .Values.global.httpProxy.proxyUrl }}
+            - name: no_proxy
+              value: {{ .Values.global.httpProxy.noProxy }}
+            - name: NO_PROXY
+              value: {{ .Values.global.httpProxy.noProxy }}
+            {{- end }}
           volumeMounts:
             - mountPath: /etc/lumenvox/Lang/Dict
-              name: dict
+              name: lang
+              subPath: Dict
             - mountPath: /etc/lumenvox/Lang/AsrModels
-              name: asrmodels
+              name: lang
+              subPath: AsrModels
             - mountPath: /var/lumenvox/cache
               name: europa-cache
             - mountPath: /var/log/lumenvox/sre
@@ -130,13 +146,9 @@ spec:
           command: ["curl2"]
           args: ["http://resource-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5110/health", "Resource Manager Service"]
       volumes:
-        - name: dict
+        - name: lang
           persistentVolumeClaim:
-            claimName: dict-claim
-            readOnly: false
-        - name: asrmodels
-          persistentVolumeClaim:
-            claimName: asr-models-claim
+            claimName: lang-claim
             readOnly: false
         - name: europa-cache
           persistentVolumeClaim:

@@ -7,6 +7,9 @@ spec:
   selector:
     app: resource
   ports:
+    - name: grpc
+      port: 8080
+      targetPort: grpc
     - name: http
       port: 5110
       targetPort: http

@@ -2,39 +2,39 @@ apiVersion: v2
 name: lumenvox-speech
 description: LumenVox Speech Helm chart for Kubernetes
 type: application
-version: 6.3.0
-appVersion: "6.3.0"
+version: 7.0.0
+appVersion: "7.0.0"
 home: https://lumenvox.com
 annotations:
   artifacthub.io/containsSecurityUpdates: true
   artifacthub.io/images: |
     - name: asr
-      image: lumenvox/asr:6.3
+      image: lumenvox/asr:7.0
     - name: diarization
-      image: lumenvox/diarization:6.3
+      image: lumenvox/diarization:7.0
     - name: cloud-init-tools
-      image: lumenvox/cloud-init-tools:6.3
+      image: lumenvox/cloud-init-tools:7.0
     - name: cloud-logging-sidecar
-      image: lumenvox/cloud-logging-sidecar:6.3
+      image: lumenvox/cloud-logging-sidecar:7.0
     - name: grammar
-      image: lumenvox/grammar:6.3
+      image: lumenvox/grammar:7.0
     - name: itn
-      image: lumenvox/itn:6.3
+      image: lumenvox/itn:7.0
     - name: lid
-      image: lumenvox/lid:6.3
+      image: lumenvox/lid:7.0
     - name: lumenvox-api
-      image: lumenvox/lumenvox-api:6.3
+      image: lumenvox/lumenvox-api:7.0
     - name: neural-tts
-      image: lumenvox/neural-tts:6.3
+      image: lumenvox/neural-tts:7.0
     - name: neuron
-      image: lumenvox/neuron:6.3
+      image: lumenvox/neuron:7.0
     - name: nlu
-      image: lumenvox/nlu:6.3
+      image: lumenvox/nlu:7.0
     - name: reporting-api
-      image: lumenvox/reporting-api:6.3
+      image: lumenvox/reporting-api:7.0
     - name: session
-      image: lumenvox/session:6.3
+      image: lumenvox/session:7.0
     - name: tts
-      image: lumenvox/tts:6.3
+      image: lumenvox/tts:7.0
     - name: vad
-      image: lumenvox/vad:6.3
+      image: lumenvox/vad:7.0
