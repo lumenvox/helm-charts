@@ -12,7 +12,7 @@ to Helm's [documentation](https://helm.sh/docs/) to get started
 
 ## Prerequisites
 
-* Kubernetes 1.26.4 (and below)
+* Kubernetes 1.33 (and below)
 * Helm 3+
 
 ## Get Repo Info
@@ -35,10 +35,8 @@ We'd love to have you contribute! Please contact us for details
 
 ## LumenVox Chart
 
-The LumenVox chart serves as a root chart through which various
-combinations of products can be managed. Using this chart, you
-can install our Speech stack, our Voice Biometrics stack, or
-both.
+The LumenVox chart serves as a root chart through which the LumenVox Speech
+stack can be managed, including ASR, TTS, and other voice AI services.
 
 To install the LumenVox chart using Helm, you should contact
 LumenVox first and obtain license and configuration information
@@ -63,8 +61,13 @@ to provide you with the necessary license configuration as well as
 overall system configuration steps
 
 ### NOTE
-When making us of a custom DNS hostname suffix please be sure to enter the full suffix as pet the example below:
-.domain-name.com
+When making use of a custom DNS hostname suffix, please be sure to enter the
+full suffix including the leading dot, as shown in the example below:
+
+```yaml
+global:
+  hostnameSuffix: ".domain-name.com"
+```
 
 To see all configurable options, visit the chart's values.yaml,
 or run the following:
@@ -76,7 +79,7 @@ helm show values lumenvox/lumenvox
 ### Installation
 
 ```shell
-helm install lumenvox lumenvox/lumenvox -f my-lumenvox-values.yaml -n lumenvox
+helm install lumenvox lumenvox/lumenvox -f my-lumenvox-values.yaml -n lumenvox --create-namespace
 ```
 
 _See [helm install](https://helm.sh/docs/helm/helm_install/) for command documentation._
@@ -84,7 +87,7 @@ _See [helm install](https://helm.sh/docs/helm/helm_install/) for command documen
 ### Uninstallation
 
 ```shell
-helm delete lumenvox
+helm uninstall lumenvox -n lumenvox
 ```
 
 This removes all the Kubernetes components associated with the chart and
@@ -92,95 +95,36 @@ deletes the release.
 
 ## Voice-Biometrics Chart
 
-This chart can be used to install the voice biometrics stack.
-This has been migrated to a subchart of the LumenVox chart,
-and it will be deprecated in the near future.
-
-To install LumenVox Voice Biometrics using Helm, you should
-contact LumenVox first and obtain license and configuration
-information that is needed before you can start.
-
-You will also need to provision the following, ideally in a
-hosted cloud environment for production, but locally can be
-used during testing or development:
-
-* Postgres Database
-* MongoDB Database
-* Redis
-* RabbitMQ
-
-_See the **Dependencies** section below for important details_
-
-### Configuration
-
-You will need to work with your LumenVox account manager and the support
-team before running LumenVox application in Kubernetes. This is needed
-to provide you with the necessary license configuration as well as
-overall system configuration steps
-
-To see all configurable options, visit the chart's values.yaml,
-or run the following:
-
-```shell
-helm show values lumenvox/voice-biometrics
-```
-
-### Installation
-
-```shell
-helm install lumenvox-vb lumenvox/voice-biometrics -f my-lumenvox-values.yaml -n lumenvox
-```
- 
-_See [helm install](https://helm.sh/docs/helm/helm_install/) for command documentation._
-
-### Uninstallation
-
-```shell
-helm delete lumenvox-vb
-```
+**Note**: This standalone chart is deprecated and not actively maintained. Voice Biometrics functionality is currently not supported for new deployments. If you have specific Voice Biometrics requirements, please contact LumenVox to discuss your needs.
 
 ## Dependencies
 
-The following dependencies can optionally be installed:
+For testing and development environments, LumenVox provides a Docker Compose configuration that includes the required external services. See the [external-services repository](https://github.com/lumenvox/external-services) for installation instructions.
 
-```shell
-  - name: "redis"
-    version: 7.0.13
-    repository: "https://charts.bitnami.com/bitnami"
+The Docker Compose setup includes:
 
-  - name: "mongodb"
-    version: 5.0.16
-    repository: "https://charts.bitnami.com/bitnami"
-
-  - name: "rabbitmq"
-    version: 3.9.16
-    repository: "https://charts.bitnami.com/bitnami"
-
-  - name: "postgresql"
-    version: 13
-    repository: "https://charts.bitnami.com/bitnami"
-
-  - name: "grafana"
-    version: 7
-    repository: "https://charts.bitnami.com/bitnami"
+```yaml
+dependencies:
+  - MongoDB 8.2
+  - PostgreSQL 17.5
+  - RabbitMQ 4.1.8 (with management interface)
+  - Redis 8.2.4
 ```
-> Note that these dependencies are provided for setting up a test environment only.
+
+> **Important**: These dependencies are provided for setting up a test environment only.
 
 We recommend that when creating a production environment, you provision your
 own cloud-hosted services to replace these test dependencies, which are not
 configured for persistence or scale.
 
-Each of these dependencies can be disabled in the `values.yaml` file in their
-respective sections. For example, to disable the redis dependency when using your
-own, set the `redis.enabled` setting to false in your `values.yaml` file. The
-same can be done for all of these dependencies, allowing you to easily use the
-LumenVox Helm Charts in either test or production configurations. 
+For production, use your own managed database services and configure the connection details
+in the main `lumenvox` chart values. 
 
-To configure Grafana for monitoring, when setting up the test environment
-with the optional dependencies enabled, log into Grafana and specify a
-dashboard to use with Prometheus monitoring, for example:
+To configure Grafana for monitoring in test environments with the Docker Compose dependencies,
+log into Grafana and add Prometheus as a data source, then import a Kubernetes monitoring dashboard.
+For example:
 
-* 12740 (Select Prometheus at the bottom) - Kubernetes Monitoring Dashboard
+* Dashboard ID 12740: Kubernetes Monitoring Dashboard (select Prometheus as the data source)
 
 ## Testing Environment: Minimum Resource Requirements
 
@@ -189,8 +133,7 @@ production environments, please contact LumenVox for assistance with sizing.
 
 ### Cluster Resources
 
-* LumenVox Speech: minimum of 3 nodes with at least 8CPUs and 16GB memory each.
-* LumenVox Voice Biometrics: minimum of 3 node with at least 8CPUs and 16GB memory.
+* LumenVox Speech: minimum of 3 nodes with at least 8 CPUs and 16GB memory each
 
 ### External Resources
 

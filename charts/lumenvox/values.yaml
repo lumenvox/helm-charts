@@ -36,6 +36,8 @@ global:
     reportSyncHour: "1"
     reportSyncMin: "0"
   defaultNamespace: "lumenvox"
+  # Platform for resource sizing (e.g. "cloud" for neural-tts memory limits). Must match root 'platform' when using PV/PVC.
+  platform: minikube
   # Note that you need to enter the complete domain name including the "." as per the example below
   hostnameSuffix: ".testmachine.com"
   lumenvox:
@@ -67,7 +69,10 @@ global:
       startDelaySeconds: 5
       livenessProbe:
         enabled: true
+    # enforcement of resource limits applied to all services. Disabled by default.
     enforceLimits: false
+    # enforcement of resource reservations applied to all services. This is a requirement for autoscaling in cloud installs. Disabled by default for KubeAdm installs.
+    enforceReservations: false
     # Cluster-level logging verbosity. Options: debug, info, warn, error, dpanic, panic, fatal
     loggingVerbosity: "info"
     # Default TTL for Redis Keys, 3 hours
@@ -81,7 +86,7 @@ global:
   image:
     repository: "lumenvox"
     pullPolicy: IfNotPresent
-    tag: ":6.3"
+    tag: ":7.0"
   imagePullSecrets: []
   rabbitmq:
     enableTLS: false
@@ -131,6 +136,30 @@ global:
     commandTimeoutSeconds: 100
     runMigrations: 'true'
     exitAfterMigrations: 'false'
+    # Service mesh configuration
+    # Supported values: "linkerd", "istio", or "" (empty string for none)
+    # If not specified, defaults to "linkerd" if global.linkerd.enabled is true, otherwise ""
+    serviceMesh:
+      type: "linkerd"  # Options: "linkerd", "istio", or "" (none)
+      linkerd:
+        # Ingress mode for linkerd: "nginx" or "traefik"
+        # When "nginx", uses "linkerd.io/inject: enabled"
+        # When "traefik", uses "linkerd.io/inject: ingress"
+        ingressMode: "nginx"
+      istio:
+        # Additional Istio configuration can be added here
+        passThrough: true
+        # External services that need ServiceEntry resources for Istio
+        # These are external HTTPS endpoints that Istio should allow traffic to
+        externalServices:
+          - assets.lumenvox.com
+          - license.lumenvox.com
+        # Outbound ports to exclude from Istio interception
+        # Default is "443" to allow external HTTPS connections without ServiceEntry
+        # Set to "" to disable port exclusion (requires ServiceEntry for external traffic)
+        excludeOutboundPorts: "443"
+  # Legacy linkerd configuration (deprecated, use serviceMesh.type instead)
+  # Kept for backward compatibility
   linkerd:
     enabled: true
   enabled:
@@ -147,6 +176,8 @@ global:
   minimalInstall: false
   # enabling Neuron allows for the Neuron service to be installed and allows for Neuron interactions to be called via the API.
   enableNeuron: false
+  # enabling Filestore allows for the Filestore service to be installed and allows for Filestore page to be accessed via the deployment portal.
+  enableFilestore: true
   asrDefaultVersion: "4.1.0"
   neuralttsDefaultVersion: "4.0.0"
   ttsDefaultVersion: "1.0"
@@ -155,3 +186,10 @@ global:
   # Enabling the LumenVox API healthcheck below allows external access to the HTTP healthcheck /health.
   enableLumenvoxapiHealthcheck: false
   extraRootCaCerts: false
+  # Enable HTTP proxy settings for deployments (grammar, license, neural-tts, resource)
+  httpProxy:
+    enabled: false
+    # Note: A valid HTTP/HTTPS proxy URL is required for this feature to work (e.g., http://proxy.capacity-private-cloud.com:3128)
+    proxyUrl: "http://PROXYURL.CONFIG.REQUIRED.invalid:3128"
+    # Comma-separated list of domains/addresses that should not use the proxy
+    noProxy: ".local,.lumenvox"

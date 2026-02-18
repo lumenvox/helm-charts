@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: nlu-site-packages
+  name: file-store-data
 spec:
   accessModes:
   {{- if eq .Values.platform "minikube" }}
@@ -17,4 +17,4 @@ spec:
   nfs:
     server: {{ .Values.volumeServer }}
   {{- end }}
-    path: {{ .Values.volumeRoot }}/lang/DistPackageModels/nlu/site-packages/
+    path: {{ .Values.volumeRoot }}/file_store/data
