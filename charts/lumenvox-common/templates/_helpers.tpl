@@ -28,13 +28,13 @@ linkerd.io/inject: enabled
 {{- end }}
 {{- else if eq $serviceMesh "istio" }}
 sidecar.istio.io/inject: "true"
-{{- $excludeOutboundPorts := "" }}
+{{- $excludeOutboundPorts := "443" }}
 {{- $istioConfig := .Values.global.serviceMesh.istio | default dict }}
 {{- if hasKey $istioConfig "excludeOutboundPorts" }}
 {{- $excludeOutboundPorts = printf "%v" $istioConfig.excludeOutboundPorts }}
-{{- else }}
-{{- /* Default: exclude HTTPS port 443 to allow external HTTPS connections */}}
-{{- $excludeOutboundPorts = "443" }}
+{{- end }}
+{{- if $excludeOutboundPorts }}
+traffic.sidecar.istio.io/excludeOutboundPorts: {{ $excludeOutboundPorts | quote }}
 {{- end }}
 {{- end }}
 {{- end }}
