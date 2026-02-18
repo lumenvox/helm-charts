@@ -1403,6 +1403,42 @@ entries:
         - name: file-store
           image: lumenvox/file-store:7.0
     apiVersion: v2
+    appVersion: 7.0.1
+    created: "2026-02-18T17:34:24.739590423Z"
+    description: LumenVox Common Components Helm chart for Kubernetes
+    digest: c0dfda8a3b6627088753e5a3448e6d6bd772de0157e149f198ac35be64a45c08
+    home: https://lumenvox.com
+    name: lumenvox-common
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-common-7.0.1/lumenvox-common-7.0.1.tgz
+    version: 7.0.1
+  - annotations:
+      artifacthub.io/containsSecurityUpdates: "true"
+      artifacthub.io/images: |
+        - name: admin-portal
+          image: lumenvox/admin-portal:7.0
+        - name: archive
+          image: lumenvox/archive:7.0
+        - name: binary-storage
+          image: lumenvox/storage:7.0
+        - name: cloud-init-tools
+          image: lumenvox/cloud-init-tools:7.0
+        - name: configuration
+          image: lumenvox/configuration:7.0
+        - name: deployment
+          image: lumenvox/deployment:7.0
+        - name: deployment-portal
+          image: lumenvox/deployment-portal:7.0
+        - name: license
+          image: lumenvox/license:7.0
+        - name: management-api
+          image: lumenvox/management-api:7.0
+        - name: resource
+          image: lumenvox/resource:7.0
+        - name: file-store
+          image: lumenvox/file-store:7.0
+    apiVersion: v2
     appVersion: 7.0.0
     created: "2026-02-18T01:28:23.675538179Z"
     description: LumenVox Common Components Helm chart for Kubernetes
