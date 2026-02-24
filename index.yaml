@@ -2837,6 +2837,50 @@ entries:
         - name: vad
           image: lumenvox/vad:7.0
     apiVersion: v2
+    appVersion: 7.0.1
+    created: "2026-02-24T21:19:16.98227159Z"
+    description: LumenVox Speech Helm chart for Kubernetes
+    digest: 2a2325409a950f7fdae46bb9d477ee25f67fbc6b33761af1915ec44254e10e2a
+    home: https://lumenvox.com
+    name: lumenvox-speech
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-speech-7.0.1/lumenvox-speech-7.0.1.tgz
+    version: 7.0.1
+  - annotations:
+      artifacthub.io/containsSecurityUpdates: "true"
+      artifacthub.io/images: |
+        - name: asr
+          image: lumenvox/asr:7.0
+        - name: diarization
+          image: lumenvox/diarization:7.0
+        - name: cloud-init-tools
+          image: lumenvox/cloud-init-tools:7.0
+        - name: cloud-logging-sidecar
+          image: lumenvox/cloud-logging-sidecar:7.0
+        - name: grammar
+          image: lumenvox/grammar:7.0
+        - name: itn
+          image: lumenvox/itn:7.0
+        - name: lid
+          image: lumenvox/lid:7.0
+        - name: lumenvox-api
+          image: lumenvox/lumenvox-api:7.0
+        - name: neural-tts
+          image: lumenvox/neural-tts:7.0
+        - name: neuron
+          image: lumenvox/neuron:7.0
+        - name: nlu
+          image: lumenvox/nlu:7.0
+        - name: reporting-api
+          image: lumenvox/reporting-api:7.0
+        - name: session
+          image: lumenvox/session:7.0
+        - name: tts
+          image: lumenvox/tts:7.0
+        - name: vad
+          image: lumenvox/vad:7.0
+    apiVersion: v2
     appVersion: 7.0.0
     created: "2026-02-18T01:28:23.888447929Z"
     description: LumenVox Speech Helm chart for Kubernetes
