@@ -1,11 +1,13 @@
 {{- define "lumenvox-speech.CLUSTER_LANGUAGES__ASR_LANGUAGES_VERSION" }}
 {{- $listStarted := false }}
 {{- range .Values.global.asrLanguages }}
-{{- if $listStarted }};{{ end }}{{ .name }}{{ if .version }}-{{ .version }}{{ end }}{{ if .enableFineTuned }};asr_finetuned_model_{{ .name }}{{ end }}
+{{- $asrVersion := .version | default $.Values.global.asrDefaultVersion }}
+{{- if $listStarted }};{{ end }}{{ .name }}{{ if $asrVersion }}-{{ $asrVersion }}{{ end }}{{ if .enableFineTuned }};asr_finetuned_model_{{ .name }}{{ end }}
 {{- $listStarted = true }}
 {{- end }}
 {{- range .Values.global.customAsrModels }}
-{{- if $listStarted }};{{ end }}{{ .name }}{{ if .version }}-{{ .version }}{{ end }}
+{{- $asrVersion := .version | default $.Values.global.asrDefaultVersion }}
+{{- if $listStarted }};{{ end }}{{ .name }}{{ if $asrVersion }}-{{ $asrVersion }}{{ end }}
 {{- $listStarted = true }}
 {{- end }}
 {{- if $listStarted }};dist_package_model_asr-7.0.0{{ end }}
