@@ -9,7 +9,9 @@ spec:
   template:
     metadata:
       annotations:
-{{- include "lumenvox-common.serviceMeshAnnotations" . | indent 8 }}
+        # Exclude from service mesh - jobs don't need sidecar proxy
+        linkerd.io/inject: disabled
+        sidecar.istio.io/inject: "false"
     spec:
       restartPolicy: Never
       {{- if .Values.global.imagePullSecrets }}
@@ -97,13 +99,22 @@ spec:
             - -c
             - |
               # Build MongoDB connection string (use override if set, else auto-build from global config)
+              # Use mongodb+srv:// for Atlas (SRV format, no port); mongodb:// for standard connections
               if [ -n "${MONGO_CONN_OVERRIDE:-}" ]; then
                 MONGO_CONN="${MONGO_CONN_OVERRIDE}"
               else
+          {{- if .Values.global.mongodb.atlas }}
+          {{- if and .Values.global.mongodb.auth.rootUser (or .Values.global.mongodb.auth.existingSecret .Values.global.mongodb.auth.rootPassword) }}
+                MONGO_CONN="mongodb+srv://{{ .Values.global.mongodb.auth.rootUser }}:${MONGO_PASS}@{{ .Values.global.mongodb.connection.url }}/"
+          {{- else }}
+                MONGO_CONN="mongodb+srv://{{ .Values.global.mongodb.connection.url }}/"
+          {{- end }}
+          {{- else }}
           {{- if and .Values.global.mongodb.auth.rootUser (or .Values.global.mongodb.auth.existingSecret .Values.global.mongodb.auth.rootPassword) }}
                 MONGO_CONN="mongodb://{{ .Values.global.mongodb.auth.rootUser }}:${MONGO_PASS}@{{ .Values.global.mongodb.connection.url }}:{{ .Values.global.mongodb.connection.port }}"
           {{- else }}
                 MONGO_CONN="mongodb://{{ .Values.global.mongodb.connection.url }}:{{ .Values.global.mongodb.connection.port }}"
+          {{- end }}
           {{- end }}
               fi
 
@@ -119,12 +130,14 @@ spec:
               fi
 
               # Build Redis connection string (use override if set, else auto-build from global config)
+              # Use rediss:// or rediss-cluster:// when TLS is enabled; redis:// or redis-cluster:// otherwise
+              # When URL contains "clustercfg" (e.g. AWS ElastiCache), use -cluster scheme variant
               if [ -n "${REDIS_CONN_OVERRIDE:-}" ]; then
                 REDIS_CONN="${REDIS_CONN_OVERRIDE}"
               elif [ -n "${REDIS_PASS:-}" ]; then
-                REDIS_CONN="redis://:${REDIS_PASS}@{{ .Values.global.redis.connection.url }}:{{ .Values.global.redis.connection.port }}"
+                REDIS_CONN="redis{{ if .Values.global.redis.enableTLS }}s{{ end }}{{ if contains "clustercfg" .Values.global.redis.connection.url }}-cluster{{ end }}://:${REDIS_PASS}@{{ .Values.global.redis.connection.url }}:{{ .Values.global.redis.connection.port }}"
               else
-                REDIS_CONN="redis://{{ .Values.global.redis.connection.url }}:{{ .Values.global.redis.connection.port }}"
+                REDIS_CONN="redis{{ if .Values.global.redis.enableTLS }}s{{ end }}{{ if contains "clustercfg" .Values.global.redis.connection.url }}-cluster{{ end }}://{{ .Values.global.redis.connection.url }}:{{ .Values.global.redis.connection.port }}"
               fi
 
               # Build certificates JSON objects
