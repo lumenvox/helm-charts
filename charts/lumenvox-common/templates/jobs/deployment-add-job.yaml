@@ -148,7 +148,7 @@ spec:
           {{- end }}
 
           {{- if .Values.global.postgresql.connection.ssl.caCertificate }}
-              PG_CERTS='{"caCertificate":"{{ .Values.global.postgresql.connection.ssl.caCertificate }}"}'
+              PG_CERTS='{"ServerRoot.crt":"{{ .Values.global.postgresql.connection.ssl.caCertificate }}"}'
           {{- else }}
               PG_CERTS='{}'
           {{- end }}
