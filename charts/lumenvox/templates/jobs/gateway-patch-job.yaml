@@ -1,0 +1,129 @@
+{{- /* Serves the Gateway that lumenvox-common renders, so it's gated on that chart
+(which also provides the lumenvox-common.gatewayNamespace helper used below). */}}
+{{- if and .Values.global.enabled.lumenvoxCommon (eq .Values.global.platform "minikube") (eq .Values.global.lumenvox.ingress.className "istio") }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gateway-patch
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "-10"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ default .Release.Namespace .Values.global.defaultNamespace }}-gateway-patch-nodes
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "-9"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+rules:
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ default .Release.Namespace .Values.global.defaultNamespace }}-gateway-patch-nodes
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "-9"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ default .Release.Namespace .Values.global.defaultNamespace }}-gateway-patch-nodes
+subjects:
+- kind: ServiceAccount
+  name: gateway-patch
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: gateway-patch-svc
+  namespace: {{ include "lumenvox-common.gatewayNamespace" . }}
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "-9"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+rules:
+- apiGroups: [""]
+  resources: ["services"]
+  verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gateway-patch-svc
+  namespace: {{ include "lumenvox-common.gatewayNamespace" . }}
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "-9"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: gateway-patch-svc
+subjects:
+- kind: ServiceAccount
+  name: gateway-patch
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gateway-patch-job
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  ttlSecondsAfterFinished: 60
+  template:
+    metadata:
+      annotations:
+        linkerd.io/inject: disabled
+        sidecar.istio.io/inject: "false"
+    spec:
+      restartPolicy: Never
+      serviceAccountName: gateway-patch
+      containers:
+        - name: kubectl
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              SVC_NAME="{{ .Values.global.lumenvox.gateway.name }}-{{ .Values.global.lumenvox.gateway.className }}"
+              NAMESPACE="{{ include "lumenvox-common.gatewayNamespace" . }}"
+
+              echo "Waiting for gateway service ${SVC_NAME} to exist..."
+              until kubectl get svc "${SVC_NAME}" -n "${NAMESPACE}" 2>/dev/null; do
+                echo "Service not found, retrying in 5s..."
+                sleep 5
+              done
+
+              NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
+              echo "Patching ${SVC_NAME} with externalIP ${NODE_IP}..."
+              kubectl patch svc "${SVC_NAME}" -n "${NAMESPACE}" \
+                -p "{\"spec\":{\"externalIPs\":[\"${NODE_IP}\"]}}"
+              echo "Done."
+{{- end }}

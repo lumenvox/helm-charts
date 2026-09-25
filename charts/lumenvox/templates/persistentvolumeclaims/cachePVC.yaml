@@ -5,13 +5,19 @@ metadata:
   namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
 spec:
   accessModes:
-  {{- if eq .Values.platform "minikube" }}
+  {{- if eq .Values.provider "azure" }}
+    - ReadWriteMany
+  {{- else if eq .Values.platform "minikube" }}
     - ReadWriteOnce
   {{- else if eq .Values.platform "cloud" }}
     - ReadWriteMany
   {{- end }}
+  {{- if eq .Values.provider "azure" }}
+  storageClassName: {{ .Values.azureStorageClassName }}
+  {{- else }}
   volumeName: europa-cache
   storageClassName: ""
+  {{- end }}
   resources:
     requests:
       storage: 6Gi

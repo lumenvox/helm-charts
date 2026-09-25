@@ -1,3 +1,4 @@
+{{- if ne .Values.provider "azure" }}
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -18,3 +19,4 @@ spec:
     server: {{ .Values.volumeServer }}
   {{- end }}
     path: {{ .Values.volumeRoot }}/file_store/certs
+{{- end }}

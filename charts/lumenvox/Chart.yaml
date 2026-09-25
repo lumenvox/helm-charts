@@ -2,28 +2,32 @@ apiVersion: v2
 name: lumenvox
 description: LumenVox Helm chart for Kubernetes
 type: application
-version: 7.1.0
-appVersion: "7.1.0"
+version: 8.0.0
+appVersion: "8.0.0"
 home: https://lumenvox.com
 annotations:
   artifacthub.io/containsSecurityUpdates: true
   artifacthub.io/images: |
     - name: cloud-init-tools
-      image: lumenvox/cloud-init-tools:7.0
+      image: lumenvox/cloud-init-tools:8.0
 
 dependencies:
   - name: lumenvox-vb
-    version: 7.1.0
+    version: 8.0.0
     condition: global.enabled.lumenvoxVb
     repository: "https://lumenvox.github.io/helm-charts"
 
   - name: lumenvox-common
-    version: 7.1.0
+    version: 8.0.0
     condition: global.enabled.lumenvoxCommon
     repository: "https://lumenvox.github.io/helm-charts"
 
   - name: lumenvox-speech
-    version: 7.1.0
+    version: 8.0.0
     condition: global.enabled.lumenvoxSpeech
     repository: "https://lumenvox.github.io/helm-charts"
 
+  - name: lumenvox-external-services
+    version: 8.0.0
+    condition: global.enabled.externalServices
+    repository: "https://lumenvox.github.io/helm-charts"

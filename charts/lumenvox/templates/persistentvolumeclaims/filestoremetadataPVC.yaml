@@ -1,0 +1,22 @@
+{{- if eq .Values.provider "azure" }}
+# SQLite (file-store's metadata.db) cannot run on Azure Files (file-store-data-claim):
+# WAL and rollback journal modes both require POSIX locking that Azure Files doesn't
+# reliably support, causing "database is locked" on any write. This claim uses the
+# cluster's default storage class instead (omitting storageClassName), which resolves
+# to block storage (e.g. managed-csi) -- the same class of storage the redis-cluster
+# PVCs in this namespace already use successfully.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: file-store-metadata-claim
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- if .Values.azureMetadataStorageClassName }}
+  storageClassName: {{ .Values.azureMetadataStorageClassName }}
+  {{- end }}
+  resources:
+    requests:
+      storage: 1Gi
+{{- end }}

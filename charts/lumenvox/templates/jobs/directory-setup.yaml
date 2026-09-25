@@ -1,7 +1,20 @@
+{{- if or .Release.IsInstall (.Values.directorySetup | default dict).runOnUpgrade }}
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: persistent-volume-directory-setup
+  annotations:
+    # Runs speech_dirs (as root) to create the storage tree and fix its ownership.
+    # post-install, not pre-install: pre-install hooks run before any release
+    # resource exists, including the root-claim PVC this job mounts, so on a fresh
+    # install the pod could never schedule. pre-upgrade is safe because the PVC
+    # already exists, but only renders when directorySetup.runOnUpgrade is set:
+    # speech_dirs walks the whole volume and helm blocks the upgrade on it.
+    # before-hook-creation replaces the previous run. No "hook-succeeded": the
+    # completed job stays inspectable until ttlSecondsAfterFinished removes it.
+    "helm.sh/hook": post-install,pre-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation
 spec:
   ttlSecondsAfterFinished: 3600
   template:
@@ -31,3 +44,4 @@ spec:
             claimName: root-claim
             readOnly: false
   backoffLimit: 4
+{{- end }}

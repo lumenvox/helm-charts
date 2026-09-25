@@ -99,9 +99,9 @@ deletes the release.
 
 ## Dependencies
 
-For testing and development environments, LumenVox provides a Docker Compose configuration that includes the required external services. See the [external-services repository](https://github.com/lumenvox/external-services) for installation instructions.
+For testing and development environments, the [`lumenvox-external-services`](charts/lumenvox-external-services) subchart runs the required external services inside the cluster. Enable it with `global.enabled.externalServices: true` in the `lumenvox` chart values, after creating the secrets listed in its README.
 
-The Docker Compose setup includes:
+It includes:
 
 ```yaml
 dependencies:
@@ -120,7 +120,7 @@ configured for persistence or scale.
 For production, use your own managed database services and configure the connection details
 in the main `lumenvox` chart values. 
 
-To configure Grafana for monitoring in test environments with the Docker Compose dependencies,
+To configure Grafana for monitoring in a test environment,
 log into Grafana and add Prometheus as a data source, then import a Kubernetes monitoring dashboard.
 For example:
 

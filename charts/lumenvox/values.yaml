@@ -6,9 +6,20 @@ timezone: UTC  # or America/New_York, Europe/Rome, etc.
 
 # Persistent volume configuration
 platform: minikube
-provider: ""
+provider: ""   # set to "azure" for AKS: app volumes switch to dynamic provisioning
+azureStorageClassName: "azurefile-premium"   # used only when provider is "azure"
+azureMetadataStorageClassName: ""   # RWO block-storage class for file-store's metadata.db (e.g. "managed-csi"); empty uses the cluster default storage class. Used only when provider is "azure".
 volumeRoot: "/data"
 volumeServer: ""
+# persistent-volume-directory-setup (speech_dirs) creates the storage tree and
+# sets its ownership. It always runs after a fresh install. runOnUpgrade also
+# runs it before every upgrade, and helm waits for it: it re-chmods and
+# re-chowns every file on the volume, which can take half an hour or more on
+# NFS/EFS. Existing installs don't need it (resource's supplementalGroups
+# covers the subPath directories kubelet creates); turn it on for one upgrade
+# to repair ownership after files were changed outside the chart.
+directorySetup:
+  runOnUpgrade: false
 
 rabbitmq:
   retryTime: 60
@@ -38,11 +49,96 @@ global:
   defaultNamespace: "lumenvox"
   # Platform for resource sizing (e.g. "cloud" for neural-tts memory limits). Must match root 'platform' when using PV/PVC.
   platform: minikube
+  # Storage provider, mirrors root 'provider'. Must match root 'provider' when using PV/PVC.
+  provider: ""
   # Note that you need to enter the complete domain name including the "." as per the example below
   hostnameSuffix: ".testmachine.com"
   lumenvox:
     ingress:
-      className: nginx
+      # "istio" renders Kubernetes Gateway API resources (Gateway + HTTPRoutes,
+      # requires Istio). Any other value renders Ingress resources with that
+      # ingressClassName, e.g. "nginx" or "nginx-public"; empty omits it.
+      className: "nginx"
+      # Ingress mode only: leave TLS off the Ingresses (e.g. TLS terminated at the
+      # load balancer). Gateway mode uses gateway.disableTls instead.
+      disableTls: false
+      # Source-IP allowlist (CIDRs) for the internal-staff routes: admin-portal,
+      # deployment-portal, file-store, management-api and reporting-api. On nginx it
+      # sets whitelist-source-range on each of those Ingresses (overriding any
+      # whitelist-source-range entry in the annotation lists there); on Istio it
+      # renders a DENY AuthorizationPolicy per route. When empty, no restriction is
+      # applied. The customer-facing lumenvox-api route has its own
+      # lumenvoxApiAllowlist below.
+      internalAllowlist: []
+      # Disables token authentication on the customer-facing lumenvox-api route.
+      # Defaults to true (no token auth), as in 7.x, so environments must opt in
+      # explicitly by setting this to false. See lumenvoxApiAllowlist for combining
+      # it with a source-IP allowlist.
+      disableTokenAuth: true
+      # How bearer tokens are validated when disableTokenAuth is false. Any
+      # OIDC-style identity provider works; the settings below are provider-neutral.
+      # - "token-auth-service" (default): an external auth service validates each
+      #   request. On nginx this renders an auth-url annotation pointing at
+      #   tokenAuthUrl (nginx's auth_request). On Istio it renders an
+      #   AuthorizationPolicy with action CUSTOM that delegates to the extension
+      #   provider named by tokenAuthProvider.
+      # - "istio-native": the Istio gateway validates JWTs itself against the
+      #   identity provider's JWKS (RequestAuthentication + a DENY
+      #   AuthorizationPolicy). Requires issuer; usually also requiredClaims.
+      #   Istio only: the render fails if it's selected in Ingress mode, since
+      #   nothing would enforce the token there.
+      jwtAuth:
+        provider: "token-auth-service"
+        # --- token-auth-service settings ---
+        # nginx: external auth endpoint called for each request (auth-url). Required
+        # when token auth is on in Ingress mode. nginx forwards the Authorization
+        # header the service returns to lumenvox-api. The Ingress also carries a
+        # configuration-snippet, so the ingress-nginx controller must allow snippet
+        # annotations (allow-snippet-annotations).
+        # Example: "http://token-auth-service.token-auth.svc.cluster.local:8082/auth"
+        tokenAuthUrl: ""
+        # Istio: extension provider (meshConfig.extensionProviders) the CUSTOM
+        # AuthorizationPolicy delegates to. Declared in the Istio mesh config, not
+        # by this chart.
+        tokenAuthProvider: "token-auth"
+        # --- istio-native settings ---
+        # OIDC issuer; the token's "iss" claim must match it exactly.
+        # Example (AWS Cognito): "https://cognito-idp.<region>.amazonaws.com/<userPoolId>"
+        issuer: ""
+        # JWKS endpoint. Leave empty to let Istio discover it from
+        # <issuer>/.well-known/openid-configuration.
+        jwksUri: ""
+        # Accepted "aud" values. Leave empty to skip the audience check. Some
+        # providers (Cognito access tokens, for one) don't populate "aud" and carry
+        # the app client identifier in another claim; use requiredClaims for those.
+        audiences: []
+        # Claims a token must carry to be accepted. Each entry renders one DENY rule
+        # rejecting tokens whose claim is missing or not one of "values".
+        # Example (Cognito access tokens):
+        #   requiredClaims:
+        #     - claim: client_id      # app client ID(s) allowed to call the API
+        #       values: ["<appClientId>"]
+        #     - claim: token_use      # accept access tokens only, reject ID tokens
+        #       values: ["access"]
+        requiredClaims: []
+      # Source-IP allowlist (CIDRs) for the customer-facing lumenvox-api route. On
+      # nginx it sets whitelist-source-range (overriding any entry in the
+      # annotation lists); on Istio it renders a DENY
+      # AuthorizationPolicy. When empty, no restriction is applied. Combined with
+      # token auth, either one grants access: allowlisted clients need no token and
+      # clients with a valid token need not be allowlisted. /health, /metrics and
+      # /ready on the same hostname are never restricted.
+      lumenvoxApiAllowlist: []
+      # nginx annotations (Ingress mode only), each entry {name, value}, as in 7.x.
+      # commonAnnotations plus grpcAnnotations apply to the lumenvox-api and
+      # reporting-api gRPC Ingresses; commonAnnotations plus httpAnnotations to
+      # admin-portal, deployment-portal, file-store, management-api and the
+      # lumenvox-api health check. A kind-specific entry wins over a common one
+      # with the same name. Overriding a list replaces it, so keep ssl-redirect
+      # and backend-protocol in your own lists. Keys the chart manages itself can't
+      # be overridden here: whitelist-source-range on any route with an allowlist,
+      # and the auth-* keys, configuration-snippet and satisfy on lumenvox-api while
+      # token auth is on.
       commonAnnotations:
         - name: "nginx.ingress.kubernetes.io/ssl-redirect"
           value: "true"
@@ -56,6 +152,47 @@ global:
       httpAnnotations:
         - name: "nginx.ingress.kubernetes.io/backend-protocol"
           value: "HTTP"
+    gateway:
+      # GatewayClass name - "istio" for Istio Gateway API support
+      className: istio
+      # Name of the Gateway resource deployed by lumenvox-common
+      name: lumenvox-gateway
+      # Namespace where the Gateway resource (and its Istio proxy pod/service) are deployed.
+      # Using a dedicated namespace isolates gateway infrastructure from application workloads.
+      namespace: "istio-ingress"
+      # When className is "istio", this release renders the gateway Namespace by
+      # default. Set false on clusters where istio is shared infrastructure so a
+      # second release doesn't fail trying to adopt a Namespace another release owns.
+      createIstioNamespace: true
+      # Set to true to disable TLS termination (not recommended for production)
+      disableTls: false
+      # Name of the TLS secret containing the certificate (must exist in the gateway namespace)
+      tlsSecretName: speech-tls-secret
+      # Backend request timeout
+      backendTimeout: "350s"
+      # Annotations set on the Gateway's spec.infrastructure.annotations and
+      # propagated by Istio onto the generated LoadBalancer Service. See the
+      # lumenvox-common values for why cloud LB annotations belong here rather
+      # than on the Service.
+      infrastructureAnnotations: {}
+      # Keep the Azure LB health probe pointed at Istio's status port
+      # (15021 /healthz/ready) on provider "azure". See lumenvox-common values.
+      azureHealthProbeDefaults: true
+      # Extra ports added to the auto-generated Gateway Service via
+      # spec.infrastructure.parametersRef ConfigMap. Needed when TLS is
+      # terminated externally (e.g. AWS NLB with ACM cert) but the chart's
+      # listener block only declares port 80 - AWS Load Balancer Controller
+      # requires port 443 on the Service for the ssl-ports annotation to
+      # attach the cert to the correct listener.
+      #
+      # Each entry: {name, port, targetPort, protocol (default TCP)}
+      # Example for NLB-terminated TLS on port 443:
+      #   serviceExtraPorts:
+      #     - name: https
+      #       port: 443
+      #       targetPort: 80
+      #       protocol: TCP
+      serviceExtraPorts: []
     # Maximum amount of time allowed for deployment database connection to succeed
     deploymentReconnectionTimeoutSec: 30
     probes:
@@ -86,7 +223,7 @@ global:
   image:
     repository: "lumenvox"
     pullPolicy: IfNotPresent
-    tag: ":7.1"
+    tag: ":8.0"
   imagePullSecrets: []
   rabbitmq:
     enableTLS: false
@@ -96,6 +233,8 @@ global:
       url: "external-services-rabbitmq.lumenvox"
       port: 5672
       user: "lvuser"
+      # RabbitMQ virtual host to connect to. "/" is the RabbitMQ default vhost.
+      vhost: "/"
     init:
       checkManagementEndpoint: false
     # certificates and keys below need to be Base64 encoded certificate versions of .pem/.crt files
@@ -107,7 +246,7 @@ global:
     auth:
       existingSecret: redis-existing-secret
     connection:
-      url: "external-services-redis-master.lumenvox"
+      url: "external-services-redis-clustercfg.lumenvox"
       port: 6379
   mongodb:
     auth:
@@ -158,6 +297,10 @@ global:
       # Default is "443" to allow external HTTPS connections without ServiceEntry
       # Set to "" to disable port exclusion (requires ServiceEntry for external traffic)
       excludeOutboundPorts: "443"
+      # lumenvox-external-services only (MongoDB, PostgreSQL, RabbitMQ, Redis).
+      # When false, those pods are annotated sidecar.istio.io/inject: "false" to
+      # keep them out of the mesh. Set true to allow sidecar injection.
+      injectDatabaseSidecars: false
   # Legacy linkerd configuration (deprecated, use serviceMesh.type instead)
   # Kept for backward compatibility
   linkerd:
@@ -166,6 +309,52 @@ global:
     lumenvoxSpeech: false
     lumenvoxVb: false
     lumenvoxCommon: true
+    # enabling externalServices installs MongoDB, PostgreSQL, RabbitMQ and Redis inside the cluster
+    # (the lumenvox-external-services subchart) for testing and development. Disabled by default.
+    externalServices: false
+  # Per-service toggles within the speech stack (one deployment per asrLanguages
+  # entry, or per ttsLanguages entry for neuralTts). See `global.gpu` below for
+  # GPU sizing defaults, which asrLanguages entries can override per language.
+  asr:
+    enabled: true
+  transcribeRealtime:
+    enabled: true
+  transcribeBatch:
+    enabled: true
+  neuralTts:
+    enabled: true
+  # Chart-wide default GPU sizing per speech service. GPU-accelerated inference
+  # is opt-in (enabled defaults to false); when on for a given language+service
+  # it sets ASR_SETTINGS__ENABLE_GPU=true, requests `count` nvidia.com/gpu
+  # device(s), and exposes the NVIDIA driver capabilities.
+  # visibleDevices (optional) sets NVIDIA_VISIBLE_DEVICES, e.g. "all", which ensures the
+  # CUDA compute libraries (libcuda.so) are mounted; needed on clusters where the device
+  # plugin sets NVIDIA_VISIBLE_DEVICES=void.
+  # runtimeClassName (optional) sets the pod RuntimeClass (e.g. "nvidia") when the
+  # node's default container runtime is not the NVIDIA runtime.
+  # Requires GPU nodes with the NVIDIA device plugin installed.
+  #
+  # Every field here can be overridden per language via
+  # global.asrLanguages[].services.<asr|transcribeRealtime|transcribeBatch>.gpu,
+  # which accepts either a bare bool (shorthand for overriding just `enabled`)
+  # or an object overriding any subset of these same fields for that one
+  # language+service. See global.asrLanguages in lumenvox-speech/values.yaml.
+  gpu:
+    asr:
+      enabled: false
+      count: 1
+      visibleDevices: ""
+      runtimeClassName: ""
+    transcribeRealtime:
+      enabled: false
+      count: 1
+      visibleDevices: ""
+      runtimeClassName: ""
+    transcribeBatch:
+      enabled: false
+      count: 1
+      visibleDevices: ""
+      runtimeClassName: ""
   # enabling NLU allows for the NLU service to be installed and allows for NLU interactions to be called via the API.
   enableNlu: false
   # enabling Diarization allows for the Diarization service to be installed and allows for Diarization interactions to be called via the API.
@@ -178,11 +367,18 @@ global:
   enableNeuron: false
   # enabling Filestore allows for the Filestore service to be installed and allows for Filestore page to be accessed via the deployment portal.
   enableFilestore: true
-  asrDefaultVersion: "7.0.0"
+  asrDefaultVersion: "8.0.0"
   neuralttsDefaultVersion: "8"
   ttsDefaultVersion: "1.0"
   vbDefaultVersion: "2.1.15"
   lidVersion: "2.0.0"
+  # Versions of the shared model packages the resource manager downloads.
+  # Override any of these to pin a specific package version. These must stay
+  # in this parent chart: they're read by both lumenvox-common and
+  # lumenvox-speech, and a global set in one subchart isn't visible to the other.
+  asrDistPackageVersion: "8.0.0"   # dist_package_model_asr
+  dnnBackendVersion: "8.0.0"       # backend_dnn_model_7
+  itnDistPackageVersion: "8.0.0"   # dist_package_model_itn
   # Enabling the LumenVox API healthcheck below allows external access to the HTTP healthcheck /health.
   enableLumenvoxapiHealthcheck: false
   extraRootCaCerts: false

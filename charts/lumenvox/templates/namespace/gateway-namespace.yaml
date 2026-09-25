@@ -1,0 +1,10 @@
+{{- /* Serves the Gateway that lumenvox-common renders, so it's gated on that chart
+(which also provides the lumenvox-common.gatewayNamespace helper used below). */}}
+{{- if and .Values.global.enabled.lumenvoxCommon (eq .Values.global.lumenvox.ingress.className "istio") .Values.global.lumenvox.gateway.createIstioNamespace }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ include "lumenvox-common.gatewayNamespace" . }}
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}

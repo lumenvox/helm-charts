@@ -19,7 +19,7 @@ The chart also includes common infrastructure services such as licensing, config
 
 ## Prerequisites
 
-- Kubernetes 1.33 or compatible version
+- Kubernetes 1.35 or compatible version
 - Helm 3+
 - A valid LumenVox license (contact LumenVox for licensing information)
 - External dependencies (or use the included test dependencies):
@@ -50,9 +50,9 @@ helm install lumenvox lumenvox/lumenvox -f my-values.yaml -n lumenvox --create-n
 
 The LumenVox chart is composed of three main subcharts:
 
-- **lumenvox-common** (v7.0.0): Core infrastructure services including deployment portal, configuration management, license management, and resource management
-- **lumenvox-speech** (v7.0.0): Speech services including ASR, TTS, ITN, and optional NLU, Diarization, LID, and Neuron
-- **lumenvox-vb** (v7.0.0): Voice Biometrics subchart (not actively maintained; contact LumenVox for Voice Biometrics requirements)
+- **lumenvox-common**: Core infrastructure services including deployment portal, configuration management, license management, and resource management
+- **lumenvox-speech**: Speech services including ASR, TTS, ITN, and optional NLU, Diarization, LID, and Neuron
+- **lumenvox-vb**: Voice Biometrics subchart (not actively maintained; contact LumenVox for Voice Biometrics requirements)
 
 For typical deployments, enable `lumenvoxSpeech` along with `lumenvoxCommon`.
 
@@ -65,14 +65,14 @@ For typical deployments, enable `lumenvoxSpeech` along with `lumenvoxCommon`.
 | `timezone`                                         | Timezone for logs. Examples: UTC, America/New_York, Europe/Rome     | `UTC`                              |
 | `global.licensing.clusterGuid`                     | License GUID obtained from LumenVox account                         | `"GET-CLUSTER-GUID-FROM-LUMENVOX"` |
 | `global.hostnameSuffix`                            | Desired ingress suffix (include leading dot)                        | `".testmachine.com"`               |
-| `global.lumenvox.ingress.className`                | Ingress class name                                                  | `nginx`                            |
+| `global.lumenvox.ingress.className`                | Ingress class name; `"istio"` selects Gateway API mode              | `nginx`                            |
 | `global.lumenvox.deploymentReconnectionTimeoutSec` | Deployment database connection timeout                              | `30`                               |
 | `global.lumenvox.enableAudit`                      | Whether to enable audit logging                                     | `false`                            |
 | `global.lumenvox.enforceLimits`                    | Whether to enforce resource limits                                  | `false`                            |
 | `global.lumenvox.enforceReservations`              | Whether to enforce resource reservations (required for autoscaling) | `false`                            |
 | `global.lumenvox.loggingVerbosity`                 | Cluster-level logging verbosity (debug, info, warn, error, etc.)    | `info`                             |
 | `global.image.pullPolicy`                          | Pull policy when installing cluster                                 | `IfNotPresent`                     |
-| `global.image.tag`                                 | Default image tag                                                   | `":7.0"`                           |
+| `global.image.tag`                                 | Default image tag                                                   | `":8.0"`                           |
 
 ## Persistent Volume Configuration
 
@@ -82,6 +82,7 @@ For typical deployments, enable `lumenvoxSpeech` along with `lumenvoxCommon`.
 | `provider`     | Platform provider: used for provider-specific optimizations. Currently only used for AWS EFS; specify `"aws"` in this case. | `""`       |
 | `volumeRoot`   | Root of persistent data location. To specify the root of the file system, use `"/."`                                        | `"/data"`  |
 | `volumeServer` | IP address of persistent data filesystem. Ignored for minikube.                                                             | `""`       |
+| `directorySetup.runOnUpgrade` | Also run the storage directory setup job (`speech_dirs`) before each upgrade. It always runs after a fresh install. Helm waits for it, and it rewrites ownership and mode of every file on the volume, which can take 30+ minutes on NFS/EFS; enable it for one upgrade to repair ownership. | `false` |
 
 Depending on the location of your cluster, the configuration for persistent volumes will differ:
 
@@ -114,19 +115,19 @@ Depending on the location of your cluster, the configuration for persistent volu
 
 ## External Dependencies
 
-The chart requires four external services: RabbitMQ, Redis, MongoDB, and PostgreSQL. These must be provided externally.
+The chart requires four external services: RabbitMQ, Redis, MongoDB, and PostgreSQL. Provide them yourself, or for testing and development run them in the cluster with the `lumenvox-external-services` subchart.
 
 ### Test/Development Setup
 
-For non-production testing and development environments, LumenVox provides a Docker Compose configuration that includes these dependencies. See the [external-services repository](https://github.com/lumenvox/external-services) for details.
+For non-production testing and development environments, the [`lumenvox-external-services`](../lumenvox-external-services) subchart runs these dependencies inside the cluster. Set `global.enabled.externalServices: true` after creating the four secrets listed in its README.
 
-The docker-compose setup includes:
+It includes:
 - MongoDB 8.2
 - PostgreSQL 17.5
 - RabbitMQ 4.1.8 (with management interface)
 - Redis 8.2.4
 
-> **Important**: The docker-compose dependencies are **for testing/development only**. For production, use managed cloud services or self-hosted instances configured for high availability, persistence, and scale.
+> **Important**: The subchart's defaults are sized **for testing/development only**. For production, use managed cloud services or self-hosted instances configured for high availability, persistence, and scale.
 
 ### RabbitMQ Configuration
 
@@ -292,30 +293,32 @@ global:
 
 ### ASR (Automatic Speech Recognition)
 
-| Parameter                             | Description                      | Default   |
-|---------------------------------------|----------------------------------|-----------|
-| `global.asrLanguages`                 | List of ASR languages to install | `[]`      |
-| `global.asrDefaultVersion`            | Default ASR model version        | `"7.0.0"` |
-| `global.customAsrModels`              | Custom ASR models                | `[]`      |
-| `lumenvox-speech.asr.cacheMaxEntries` | Maximum cache entries            | `500`     |
-| `lumenvox-speech.asr.cacheMaxSizeMb`  | Maximum cache size in MB         | `1000`    |
+| Parameter                             | Description                                             | Default   |
+|----------------------------------------|---------------------------------------------------------|-----------|
+| `global.asrLanguages`                  | List of ASR languages to install                        | `[]`      |
+| `global.asrDefaultVersion`             | Default ASR model version                                | `"8.0.0"` |
+| `global.customAsrModels`               | Shared, non-per-language ASR download packages           | `[]`      |
+| `global.gpu`                           | Chart-wide default GPU sizing per speech service (see [GPU](#gpu)) | see below |
+| `global.asr.enabled`, `global.transcribeRealtime.enabled`, `global.transcribeBatch.enabled` | Deploy that service for every `asrLanguages` entry | `true` |
+| `lumenvox-speech.asr.cacheMaxEntries`  | Maximum cache entries                                    | `500`     |
+| `lumenvox-speech.asr.cacheMaxSizeMb`   | Maximum cache size in MB                                 | `1000`    |
 
-To specify ASR languages, list your desired languages under `global.asrLanguages`. Each item must include a `name`; the `version` is optional and defaults to `asrDefaultVersion`.
+To specify ASR languages, list your desired languages under `global.asrLanguages`. Each item must include a `name`; the `version` is optional and defaults to `asrDefaultVersion`. Everything else about a language — GPU use, which services load which models — lives nested inside that same entry rather than in a separate list.
 
 **Example:**
 
 ```yaml
 global:
-  asrDefaultVersion: "7.0.0"
+  asrDefaultVersion: "8.0.0"
   asrLanguages:
     - name: "en"
-      version: "7.0.0"
+      version: "8.0.0"
     - name: "es"
-      version: "7.0.0"
+      version: "8.0.0"
     - name: "fr"  # Uses default version
 ```
 
-**Custom ASR Models:**
+**Shared ASR download packages:**
 
 ```yaml
 global:
@@ -325,7 +328,85 @@ global:
     - name: "custom2"
 ```
 
+`global.customAsrModels` is for packages that aren't tied to any one language and are download-only (e.g. `dist_package_model_asr`, `backend_dnn_model_p`). A model that a *specific language* should load belongs under that language's `asrLanguages[].extraModels` instead — see below.
+
 **ASR Cache**: The ASR service uses a cache to speed up processing of frequently used grammars. Configure the cache size with `cacheMaxEntries` and `cacheMaxSizeMb`.
+
+**Per-service model loading (ASR_ENCODERS/ASR_DECODERS):** The `asr`, `transcribe-realtime`, and `transcribe-batch` services each load only the encoder/decoder models listed in their own mandatory env var (`ASR_ENCODERS`/`ASR_DECODERS`, `TRANS_RT_ENCODERS`/`TRANS_RT_DECODERS`, `TRANS_BATCH_ENCODERS`/`TRANS_BATCH_DECODERS`) instead of glob-loading every model under `/EuropaAsrModels`. The chart builds these automatically per language and per service:
+
+- The base (suffix-less) model for a language — e.g. `asr_encoder_model_en` / `asr_decoder_model_en` — is loaded by every service unless narrowed. `asrLanguages[].services.<service>.base: false` excludes the base **encoder** from that service (for a hidef-only service, say); the base **decoder** has no such "default model" concept and is always loaded by every service regardless of this setting.
+- `decoderLocale` overrides the locale used in the base decoder's package name when it differs from the language's `name`. **You don't need to set this for `en`** — the chart already defaults it to `"en_us"` (confirmed via resource-service logs: the installed package is `asr_decoder_model_en_us`, there's no bare `asr_decoder_model_en`). Only set `decoderLocale` for a language the chart doesn't already know about, or to override the built-in default for one specific language entry. To add/override a known exception for *every* `asrLanguages` entry in an install at once instead of repeating `decoderLocale` per language, set `global.asrDecoderLocaleDefaults` (e.g. `{ en: "en_us", fr: "fr_fr" }`). Get this wrong for a language and `asr`/`transcribe-realtime`/`transcribe-batch` fail fast at startup with a "model ... is not installed" error.
+- Extra models (hidef or other variants) come from `asrLanguages[].extraModels`, nested under the language they belong to, and optionally take `services: [...]` (default: all three) to scope which service(s) load it.
+- GPU use is controlled by `asrLanguages[].services.<service>.gpu` — see [GPU](#gpu) below.
+- Helm fails the render (rather than deploying a pod that will crash-loop) if a service/language combination resolves to zero models, since the target env var is mandatory.
+
+**Example:**
+
+```yaml
+global:
+  asrLanguages:
+    - name: "en"
+      version: "8.0.0"
+      # no decoderLocale needed - "en_us" is the chart's built-in default
+      services:
+        transcribeRealtime:
+          base: false   # transcribeRealtime only uses the hidef model below
+      extraModels:
+        - name: "asr_encoder_hidef_model_en"
+          version: "8.0.0"
+          # services omitted -> loaded by asr, transcribeRealtime, and transcribeBatch
+        - name: "asr_decoder_hidef_model_en_us"
+          version: "8.0.0"
+          services: ["asr"]             # only the asr service loads this decoder
+    - name: "es"
+      version: "8.0.0"
+```
+
+This renders, for the `en` language:
+
+| Service              | `*_ENCODERS`                                                    | `*_DECODERS`                                                          |
+|----------------------|------------------------------------------------------------------|------------------------------------------------------------------------|
+| `asr`                | `asr_encoder_model_en-8.0.0;asr_encoder_hidef_model_en-8.0.0`     | `asr_decoder_model_en_us-8.0.0;asr_decoder_hidef_model_en_us-8.0.0` |
+| `transcribe-realtime`| `asr_encoder_hidef_model_en-8.0.0`                                | `asr_decoder_model_en_us-8.0.0`                                         |
+| `transcribe-batch`   | `asr_encoder_model_en-8.0.0;asr_encoder_hidef_model_en-8.0.0`     | `asr_decoder_model_en_us-8.0.0`                                         |
+
+### GPU
+
+| Parameter                          | Description                                              | Default |
+|-------------------------------------|-----------------------------------------------------------|---------|
+| `global.gpu.<service>.enabled`      | Chart-wide default: run `<service>` pods with GPU inference | `false` |
+| `global.gpu.<service>.count`        | `nvidia.com/gpu` device count requested when enabled       | `1`     |
+| `global.gpu.<service>.visibleDevices` | Sets `NVIDIA_VISIBLE_DEVICES`, e.g. `"all"`               | `""`    |
+| `global.gpu.<service>.runtimeClassName` | Pod `runtimeClassName` for GPU pods, e.g. `"nvidia"`  | `""`    |
+
+`<service>` is one of `asr`, `transcribeRealtime`, `transcribeBatch`. GPU-accelerated inference is opt-in; when enabled it sets `ASR_SETTINGS__ENABLE_GPU=true`, requests `count` `nvidia.com/gpu` device(s), and exposes the NVIDIA driver capabilities. `visibleDevices` ensures the CUDA compute libraries (`libcuda.so`) are mounted; needed on clusters where the device plugin sets `NVIDIA_VISIBLE_DEVICES=void`. Requires GPU nodes with the NVIDIA device plugin installed.
+
+Every field above is a chart-wide default that can be overridden **per language, per service** via `global.asrLanguages[].services.<service>.gpu`:
+- a bare bool overrides just `enabled` (the rest still comes from the `global.gpu.<service>` default);
+- an object overrides any subset of `enabled`/`count`/`visibleDevices`/`runtimeClassName` for that one language+service.
+
+**Example:**
+
+```yaml
+global:
+  gpu:
+    asr:
+      enabled: false   # off by default for every language
+  asrLanguages:
+    - name: "en"
+      services:
+        asr:
+          gpu: true                                                  # turn GPU on just for English's asr pods
+        transcribeRealtime:
+          gpu: true
+        transcribeBatch:
+          gpu: false
+    - name: "es"
+      services:
+        asr:
+          gpu: { enabled: true, count: 2, visibleDevices: "all" }    # size it differently for Spanish
+    - name: "fr"   # no gpu block -> uses the global.gpu default (off) for every service
+```
 
 ### ITN (Inverse Text Normalization)
 
@@ -350,6 +431,7 @@ global:
 | `global.ttsLanguages`            | List of  TTS voices to install | `[]`    |
 | `global.ttsDefaultVersion`       | Default TTS voice version      | `"1.0"` |
 | `global.neuralttsDefaultVersion` | Default Neural TTS version     | `"8"`   |
+| `global.neuralTts.enabled`       | Deploy neural TTS for each `ttsLanguages` entry | `true` |
 
 TTS voices are organized by region/language, with each region supporting multiple voices. Each voice uses the version specified in `ttsDefaultVersion` by default, but this can be overridden per voice.
 
@@ -444,10 +526,183 @@ global:
 
 | Parameter                                   | Description                             | Default    |
 |---------------------------------------------|-----------------------------------------|------------|
-| `global.lumenvox.ingress.commonAnnotations` | Annotations for all ingress resources   | See values |
-| `global.lumenvox.ingress.grpcAnnotations`   | Additional annotations for gRPC ingress | See values |
-| `global.lumenvox.ingress.httpAnnotations`   | Additional annotations for HTTP ingress | See values |
+| `global.lumenvox.ingress.disableTls`        | Leave TLS off the Ingresses (e.g. TLS terminated at the load balancer) | `false` |
+| `global.lumenvox.ingress.commonAnnotations` | nginx annotations for the API, portal and file-store Ingresses | See values |
+| `global.lumenvox.ingress.grpcAnnotations`   | Added to the gRPC Ingresses (lumenvox-api, reporting-api) | See values |
+| `global.lumenvox.ingress.httpAnnotations`   | Added to the HTTP Ingresses (portals, file-store, management-api, health check) | See values |
+| `global.lumenvox.ingress.internalAllowlist` | Source-IP allowlist (CIDRs) for the internal-staff routes (portals, file-store, management-api, reporting-api) | `[]` |
+| `global.lumenvox.ingress.lumenvoxApiAllowlist` | Source-IP allowlist (CIDRs) for the customer-facing lumenvox-api route | `[]` |
+| `global.lumenvox.ingress.disableTokenAuth`  | Set to `false` to require a bearer token on lumenvox-api | `true` |
+| `global.lumenvox.ingress.jwtAuth.*`         | How tokens are validated when token auth is on (see below) | See values |
 | `global.enableLumenvoxapiHealthcheck`       | Enable external access to `/health`     | `false`    |
+
+#### Access Control for lumenvox-api
+
+The customer-facing `lumenvox-api` route is open by default, as in 7.x. Two opt-in controls work the same way in nginx and Istio mode:
+
+- **Source-IP allowlist**: set `lumenvoxApiAllowlist` to the CIDRs allowed to call the API. nginx applies it as `whitelist-source-range`; Istio renders a DENY `AuthorizationPolicy`.
+- **Token authentication**: set `disableTokenAuth: false`. With the default `jwtAuth.provider: token-auth-service`, an external auth service validates each request. nginx calls `jwtAuth.tokenAuthUrl` through `auth-url` (the ingress-nginx controller must allow snippet annotations). Istio delegates to the extension provider named by `jwtAuth.tokenAuthProvider`, which must be declared in the mesh config. With `jwtAuth.provider: istio-native` (Istio only), the gateway validates JWTs itself against `jwtAuth.issuer`, optionally checking `audiences` and `requiredClaims`.
+
+When both are set, either one grants access: allowlisted clients need no token, and clients with a valid token need not be allowlisted. `/health`, `/metrics` and `/ready` on the same hostname are never restricted.
+
+The internal-staff routes (admin-portal, deployment-portal, file-store, management-api, reporting-api) have no token authentication. Restrict them with `internalAllowlist`.
+
+```yaml
+global:
+  lumenvox:
+    ingress:
+      lumenvoxApiAllowlist: ["203.0.113.0/24"]
+      disableTokenAuth: false
+      jwtAuth:
+        provider: token-auth-service
+        tokenAuthUrl: "http://token-auth-service.token-auth.svc.cluster.local:8082/auth"
+      internalAllowlist: ["10.0.0.0/8"]
+```
+
+### Istio Gateway API Ingress Mode
+
+The chart supports two ingress modes selected via `global.lumenvox.ingress.className`:
+
+| Value | Result |
+|---|---|
+| `"nginx"` (default), or any other Ingress class such as `"nginx-public"` | Standard Ingress resources with that `ingressClassName` |
+| `"istio"` | Kubernetes Gateway API resources (Gateway + HTTPRoutes) |
+
+> **Note**: This is independent of the service mesh setting. You can use the Istio Gateway API for ingress while running Linkerd as the service mesh, or vice versa.
+
+#### Prerequisites for Istio Mode
+
+Before installing with `className: "istio"`, the cluster must have:
+- **Istio installed** (provides the `istio` GatewayClass)
+- **Gateway API CRDs installed** (`gateway.networking.k8s.io/v1`)
+
+Install Gateway API CRDs:
+```shell
+kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml
+```
+
+Download Istio CLI
+```shell
+curl -L https://istio.io/downloadIstio | sh -
+```
+
+Install Istio CLI
+```shell
+export PATH=$HOME/istio-1.30.1/bin:$PATH
+```
+
+Install Istio with the default profile:
+```shell
+istioctl install --set profile=default -y
+```
+
+Verify:
+```shell
+kubectl get pods -n istio-system          # istio should be Running
+kubectl get gatewayclass                  # "istio" class should be Accepted
+```
+
+#### Gateway Configuration
+
+When using Istio mode, configure the gateway block in your values file:
+
+```yaml
+global:
+  lumenvox:
+    ingress:
+      className: "istio"
+    gateway:
+      className: istio                  # GatewayClass name (provided by Istio)
+      name: lumenvox-gateway            # Name of the Gateway resource
+      namespace: "istio-ingress"        # Namespace for the Gateway + proxy
+      disableTls: false                 # false = TLS terminated at gateway
+      tlsSecretName: speech-tls-secret  # TLS secret (in release namespace)
+      backendTimeout: "350s"            # Covers long-running gRPC streams
+      annotations: {}                   # LoadBalancer Service annotations
+```
+
+| Parameter | Description | Default |
+|---|---|---|
+| `gateway.className` | GatewayClass name provided by Istio | `istio` |
+| `gateway.name` | Name of the Gateway resource | `lumenvox-gateway` |
+| `gateway.namespace` | Namespace where the Gateway and Istio proxy live | `istio-ingress` |
+| `gateway.createIstioNamespace` | Render the gateway Namespace; set `false` when another release owns it | `true` |
+| `gateway.disableTls` | If `true`, gateway listens on HTTP only (port 80) | `false` |
+| `gateway.tlsSecretName` | TLS secret name (must exist in release namespace) | `speech-tls-secret` |
+| `gateway.backendTimeout` | HTTPRoute backend request timeout | `350s` |
+| `gateway.annotations` | Annotations propagated to the LoadBalancer Service | `{}` |
+| `gateway.serviceExtraPorts` | Extra `{name, port, targetPort, protocol}` ports on the generated gateway Service (e.g. 443 for NLB-terminated TLS) | `[]` |
+
+#### TLS Secret Behavior
+
+When `disableTls: false`, the Gateway terminates TLS in the gateway namespace
+(`istio-ingress`), but the TLS secret normally lives in the release namespace.
+The chart ships a `tls-secret-copy-job` that copies the secret from the release
+namespace into the gateway namespace automatically. Ensure the secret exists
+in your release namespace before deploying (same requirement as nginx mode).
+
+#### Cloud LoadBalancer Annotations
+
+When deploying to a cloud provider, set provider-specific annotations under
+`gateway.annotations`. These are propagated to the generated LoadBalancer Service.
+
+**AWS NLB (internet-facing):**
+```yaml
+global:
+  lumenvox:
+    gateway:
+      annotations:
+        service.beta.kubernetes.io/aws-load-balancer-type: "external"
+        service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "ip"
+        service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+```
+
+**GCP (external passthrough LB):**
+```yaml
+global:
+  lumenvox:
+    gateway:
+      annotations:
+        cloud.google.com/load-balancer-type: "External"
+```
+
+**Azure (public LB):**
+```yaml
+global:
+  lumenvox:
+    gateway:
+      annotations:
+        service.beta.kubernetes.io/azure-load-balancer-internal: "false"
+```
+
+#### gRPC Routing
+
+The nginx GRPC backend-protocol annotations are not needed in Istio mode.
+The chart uses HTTPRoute with `timeouts.request: "0s"` (unlimited streaming)
+for gRPC services (`lumenvox-api`, `reporting-api`), and the services carry
+`appProtocol: kubernetes.io/h2c` so Istio detects HTTP/2 correctly. No values
+configuration is required — this is automatic.
+
+#### minikube Note
+
+The chart includes a `gateway-patch-job` that patches the gateway Service
+with a node IP. This job only runs when `global.platform: minikube`. On
+cloud clusters and bare-metal kubeadm, the job is skipped — cloud
+LoadBalancers assign an external IP automatically.
+
+#### Switching Between nginx and Istio
+
+**To switch from nginx to Istio:**
+1. Install Istio and Gateway API CRDs (see Prerequisites above)
+2. Ensure the TLS secret exists in your release namespace
+3. In your values file, change `className: "nginx"` to `className: "istio"`
+4. Add the `gateway:` block under `global.lumenvox`
+5. Run `helm upgrade lumenvox lumenvox/lumenvox -f my-values.yaml -n lumenvox`
+
+**To switch from Istio back to nginx:**
+1. Change `className: "istio"` to `className: "nginx"` in your values file
+2. Remove the `gateway:` block (or leave it — it's ignored in nginx mode)
+3. Run `helm upgrade lumenvox lumenvox/lumenvox -f my-values.yaml -n lumenvox`
 
 ### Licensing Configuration
 
@@ -646,9 +901,9 @@ This removes all Kubernetes resources associated with the chart. Note that:
 # Operational Notes
 ## Image Versioning
 
-LumenVox images use `MAJOR.MINOR.PATCH` semantic versioning. By default, the chart matches the major and minor versions while pulling the most recent patch version. For example, a tag of `:7.0` will pull the latest `7.0.x` patch version.
+LumenVox images use `MAJOR.MINOR.PATCH` semantic versioning. By default, the chart matches the major and minor versions while pulling the most recent patch version. For example, a tag of `:8.0` will pull the latest `8.0.x` patch version.
 
-**Default Behavior**: The default configuration (`tag: ":7.0"`) automatically pulls the latest patch releases. This is recommended for most deployments, as patch releases only fix bugs and never introduce breaking changes.
+**Default Behavior**: The default configuration (`tag: ":8.0"`) automatically pulls the latest patch releases. This is recommended for most deployments, as patch releases only fix bugs and never introduce breaking changes.
 
 ### Controlling Image Updates
 
@@ -657,7 +912,7 @@ To control when images are updated, use the `pullPolicy` setting:
 ```yaml
 global:
   image:
-    tag: ":7.0"
+    tag: ":8.0"
     pullPolicy: IfNotPresent  # Only pull if image not already present
 ```
 
@@ -673,24 +928,24 @@ To use different image tag policies for different components:
 ```yaml
 # Override common infrastructure images
 lumenvox-common:
-  images:
-    tag: ":7.0"
+  image:
+    tag: ":8.0"
     pullPolicy: IfNotPresent
 
 # Override speech service images
 lumenvox-speech:
-  images:
-    tag: ":7.0"
+  image:
+    tag: ":8.0"
     pullPolicy: IfNotPresent
 
 # Override voice biometrics images
 lumenvox-vb:
-  images:
-    tag: ":7.0"
+  image:
+    tag: ":8.0"
     pullPolicy: IfNotPresent
 ```
 
-> **Note**: Due to LumenVox's patch release process where individual services are patched independently, specifying a specific patch version (e.g., `:7.0.3`) is not recommended. Instead, use the `pullPolicy` to control update behavior.
+> **Note**: Due to LumenVox's patch release process where individual services are patched independently, specifying a specific patch version (e.g., `:8.0.1`) is not recommended. Instead, use the `pullPolicy` to control update behavior.
 
 ## Accessing the Services
 
@@ -865,17 +1120,15 @@ helm template lumenvox lumenvox/lumenvox -f my-values.yaml
 
 ## Test Dependencies
 
-For non-production testing and development, use the LumenVox external-services Docker Compose configuration to quickly deploy the required dependencies (RabbitMQ, Redis, MongoDB, and PostgreSQL).
+For non-production testing and development, enable the [`lumenvox-external-services`](../lumenvox-external-services) subchart (`global.enabled.externalServices: true`) to deploy the required dependencies (RabbitMQ, Redis, MongoDB, and PostgreSQL) inside the cluster. See its README for the secrets to create first.
 
-See the [external-services repository](https://github.com/lumenvox/external-services) for installation instructions.
-
-The Docker Compose setup includes:
+It includes:
 - MongoDB 8.2
 - PostgreSQL 17.5
 - RabbitMQ 4.1.8 (with management interface)
 - Redis 8.2.4
 
-> **Warning**: The Docker Compose dependencies are **not configured for persistence or scale** and should never be used in production.
+> **Warning**: The subchart's defaults are sized for a proof of concept, not for production scale or high availability.
 
 ## Minimum Resource Requirements
 
@@ -896,7 +1149,7 @@ The following are minimum requirements for a testing/lab environment. **For prod
 
 ## Grafana Monitoring (Test Environments)
 
-When using the Docker Compose external services setup, you can optionally configure Grafana for monitoring:
+In a test environment, you can optionally configure Grafana for monitoring:
 
 1. Access the Grafana UI
 2. Add Prometheus as a data source
@@ -912,8 +1165,6 @@ For assistance with LumenVox deployments:
 
 # Chart Information
 
-- **Chart Version**: 7.0.0
-- **Application Version**: 7.0.0
 - **Home**: [https://lumenvox.com](https://lumenvox.com)
 - **Source**: [https://github.com/lumenvox/helm-charts](https://github.com/lumenvox/helm-charts)
 
