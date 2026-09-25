@@ -1,0 +1,216 @@
+{{- if .Values.rabbitmq.enabled }}
+{{- $rmq := .Values.rabbitmq }}
+{{- $memLimit := dig "resources" "limits" "memory" "" $rmq }}
+{{- $cpuLimit := dig "resources" "limits" "cpu" "" $rmq }}
+{{- /* Explicit rabbitmq.schedulers wins; otherwise derive from the CPU limit so
+       the two can never drift when the pod is resized. */}}
+{{- $schedulers := $rmq.schedulers }}
+{{- if and (not $schedulers) $cpuLimit }}
+{{- $schedulers = include "lumenvox-external-services.schedulers" $cpuLimit }}
+{{- end }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: external-services-rabbitmq-config
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+  labels:
+    {{- include "lumenvox-external-services.labels" . | nindent 4 }}
+data:
+  rabbitmq.conf: |
+    # Allow all users to connect from any host
+    loopback_users = none
+    disk_free_limit.absolute = {{ $rmq.diskFreeLimit }}
+    {{- if and $rmq.memoryHighWatermarkPercent (gt ($rmq.memoryHighWatermarkPercent | int) 0) $memLimit }}
+    # Absolute, derived from the container memory limit ({{ $memLimit }}) at
+    # {{ $rmq.memoryHighWatermarkPercent }}%. Left to inference this is 0.4 of whatever
+    # RabbitMQ believes total memory to be: the cgroup limit on some nodes
+    # (a watermark that can sit under real usage, blocking publishers) or host
+    # memory on others (a watermark above the container limit, so the pod is
+    # OOM-killed before flow control engages). Pinning it makes the behaviour
+    # identical on every node shape.
+    vm_memory_high_watermark.absolute = {{ include "lumenvox-external-services.maxmemory" (dict "limit" $memLimit "percent" $rmq.memoryHighWatermarkPercent) }}
+    {{- end }}
+    {{- range $rmq.extraConfig }}
+    {{ . }}
+    {{- end }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: external-services-rabbitmq-pvc
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+  labels:
+    {{- include "lumenvox-external-services.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/resource-policy": keep
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- with (default .Values.storage.className $rmq.storageClassName) }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ $rmq.storageSize }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: external-services-rabbitmq
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+  labels:
+    app: external-services-rabbitmq
+    {{- include "lumenvox-external-services.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  # single replica on an RWO volume - the old pod must release the volume
+  # before the new one can start, so RollingUpdate deadlocks on upgrades
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: external-services-rabbitmq
+  template:
+    metadata:
+      labels:
+        app: external-services-rabbitmq
+      {{- $ann := include "lumenvox-external-services.podAnnotations" (dict "svc" $rmq "root" . "ports" "5672,5551,5552") }}
+      {{- if or ($ann | trim) (dig "metrics" "enabled" false $rmq) }}
+      annotations:
+        {{- if dig "metrics" "enabled" false $rmq }}
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "{{ dig "metrics" "port" 15692 $rmq }}"
+        prometheus.io/path: "/metrics"
+        {{- end }}
+        {{- $ann | trim | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- $sched := include "lumenvox-external-services.scheduling" $rmq }}
+      {{- if $sched | trim }}
+      {{- $sched | trim | nindent 6 }}
+      {{- end }}
+      containers:
+        - name: rabbitmq
+          image: "{{ .Values.rabbitmq.image.repository }}:{{ .Values.rabbitmq.image.tag }}"
+          imagePullPolicy: {{ .Values.rabbitmq.image.pullPolicy }}
+          ports:
+            - containerPort: 4369
+            - containerPort: 5551
+            - containerPort: 5552
+            - containerPort: 5672
+            - containerPort: 25672
+            - containerPort: 15672
+            {{- if dig "metrics" "enabled" false $rmq }}
+            - containerPort: {{ dig "metrics" "port" 15692 $rmq }}
+              name: metrics
+            {{- end }}
+          env:
+            - name: RABBITMQ_DEFAULT_USER
+              value: {{ .Values.rabbitmq.username }}
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-existing-secret
+                  key: rabbitmq-password
+            - name: RABBITMQ_LOGS
+              value: "-"
+            {{- if $schedulers }}
+            # The Erlang VM sizes its scheduler pool from the number of online
+            # HOST CPUs and ignores the cgroup CPU quota, so without +S a pod
+            # limited to N cores on a 16-core node still starts 16 schedulers
+            # that then contend for that slice. +sbwt* disables busy-wait so
+            # idle schedulers do not burn quota the broker needs.
+            - name: RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS
+              value: "+S {{ $schedulers }}:{{ $schedulers }} +sbwt none +sbwtdcpu none +sbwtdio none"
+            {{- end }}
+            {{- with $rmq.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- if dig "probes" "enabled" false $rmq }}
+          # check_port_connectivity for readiness: the listener accepting
+          # connections is the thing clients actually need, and it clears well
+          # before a full node health check would.
+          readinessProbe:
+            exec:
+              command: ["rabbitmq-diagnostics", "-q", "check_port_connectivity"]
+            {{- toYaml (dig "probes" "readiness" dict $rmq) | nindent 12 }}
+          livenessProbe:
+            exec:
+              command: ["rabbitmq-diagnostics", "-q", "ping"]
+            {{- toYaml (dig "probes" "liveness" dict $rmq) | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: rabbitmq-data
+              mountPath: /var/lib/rabbitmq/mnesia
+            - name: rabbitmq-config
+              mountPath: /etc/rabbitmq/rabbitmq.conf
+              subPath: rabbitmq.conf
+          resources:
+            {{- toYaml $rmq.resources | nindent 12 }}
+      volumes:
+        - name: rabbitmq-data
+          persistentVolumeClaim:
+            claimName: external-services-rabbitmq-pvc
+        - name: rabbitmq-config
+          configMap:
+            name: external-services-rabbitmq-config
+{{- if dig "podDisruptionBudget" "enabled" false $rmq }}
+---
+# Single replica on an RWO volume: no voluntary eviction is survivable, so a
+# drain has to be an explicit decision rather than a consequence of node
+# consolidation.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: external-services-rabbitmq-pdb
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+  labels:
+    {{- include "lumenvox-external-services.labels" . | nindent 4 }}
+spec:
+  maxUnavailable: {{ dig "podDisruptionBudget" "maxUnavailable" 0 $rmq }}
+  selector:
+    matchLabels:
+      app: external-services-rabbitmq
+{{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: external-services-rabbitmq
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+  labels:
+    app: external-services-rabbitmq
+    {{- include "lumenvox-external-services.labels" . | nindent 4 }}
+  {{- if .Values.linkerd.enabled }}
+  annotations:
+    config.linkerd.io/opaque-ports: "5672,5551,5552"
+  {{- end }}
+spec:
+  selector:
+    app: external-services-rabbitmq
+  ports:
+    - name: epmd
+      port: 4369
+      targetPort: 4369
+    - name: stream-tls
+      port: 5551
+      targetPort: 5551
+    - name: stream
+      port: 5552
+      targetPort: 5552
+    - name: amqp
+      port: 5672
+      targetPort: 5672
+    - name: cluster
+      port: 25672
+      targetPort: 25672
+    - name: management
+      port: 15672
+      targetPort: 15672
+    {{- if dig "metrics" "enabled" false $rmq }}
+    - name: metrics
+      port: {{ dig "metrics" "port" 15692 $rmq }}
+      targetPort: {{ dig "metrics" "port" 15692 $rmq }}
+    {{- end }}
+  type: ClusterIP
+{{- end }}

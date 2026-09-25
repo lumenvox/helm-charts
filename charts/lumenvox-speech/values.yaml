@@ -5,9 +5,75 @@
 image: {}
 
 global:
+  # asr/transcribe-realtime/transcribe-batch each load only the models listed
+  # in their own mandatory ASR_ENCODERS/ASR_DECODERS-style env var (they don't
+  # glob-load every model under /EuropaAsrModels). Everything about a single
+  # language - its version, GPU use, and which extra models it loads - lives
+  # in one entry here instead of being spread across multiple lists.
+  #
+  # Per-language fields:
+  #   - version: optional, falls back to asrDefaultVersion.
+  #   - fineTuned: optional, loads an additional asr_finetuned_model_<name>.
+  #   - decoderLocale: locale used for the base decoder package name when it
+  #     differs from `name` itself. Defaults to `name`, EXCEPT for languages
+  #     with a known exception baked into the chart (currently just "en",
+  #     which defaults to "en_us" - confirmed via resource-service logs;
+  #     there is no bare asr_decoder_model_en package). You only need to set
+  #     this explicitly for a language the chart doesn't already know about.
+  #     To add/override a known exception for every asrLanguages entry across
+  #     an install at once (instead of repeating decoderLocale per language),
+  #     set global.asrDecoderLocaleDefaults, e.g.:
+  #       global:
+  #         asrDecoderLocaleDefaults:
+  #           en: "en_us"     # already the chart's built-in default
+  #           fr: "fr_fr"     # a newly-confirmed exception
+  #   - services.<asr|transcribeRealtime|transcribeBatch>: per-service
+  #     behavior for this language, keyed by service name. A service omitted
+  #     here gets the chart defaults (base: true, gpu: false).
+  #       - base: whether this service loads the base (suffix-less) ENCODER
+  #         for the language. Defaults to true; set false to narrow e.g. a
+  #         hidef-only transcribeRealtime. Only encoders have a "default
+  #         model" concept, so this does not affect the base decoder - every
+  #         service always loads the base decoder.
+  #       - gpu: either a bare bool (shorthand for just overriding `enabled`)
+  #         or an object overriding any of enabled/count/visibleDevices/
+  #         runtimeClassName for this one language+service. Anything not set
+  #         here falls back to the chart-wide default in global.gpu.<service>
+  #         (see lumenvox/values.yaml).
+  #   - extraModels: extra downloadable models for this language beyond its
+  #     base encoder/decoder (e.g. hidef variants), each optionally taking
+  #     `services: [...]` (default: all three) to scope which service(s)
+  #     load it.
+  #
+  #   asrLanguages:
+  #     - name: "en"          # no decoderLocale needed - "en_us" is built in
+  #       fineTuned: true
+  #       services:
+  #         asr:
+  #           gpu: true
+  #         transcribeRealtime:
+  #           gpu: true
+  #           base: false      # transcribeRealtime is hidef-only for "en"
+  #         transcribeBatch:
+  #           gpu: { enabled: true, count: 2 }
+  #       extraModels:
+  #         - name: "asr_encoder_hidef_model_en"
+  #           version: "8.0.0"
+  #           services: ["asr", "transcribeBatch"]
+  #         - name: "asr_decoder_hidef_model_en_us"
+  #           version: "8.0.0"
+  #     - name: "fr"           # everything else defaults
   asrLanguages: []
   itnLanguages: []
   ttsLanguages: []
+  # Shared ASR packages that aren't tied to any one language (e.g. the
+  # dist_package_model_asr/backend_dnn_model_p download packages). These are
+  # download-only and never loaded by asr/transcribe-realtime/transcribe-batch;
+  # a per-language loadable model belongs under that language's
+  # asrLanguages[].extraModels instead. e.g.:
+  #   customAsrModels:
+  #     - name: "dist_package_model_asr"
+  #       version: "7.2.0"
   customAsrModels: []
   lidLanguages: []
   neuronModels: []
@@ -25,6 +91,18 @@ asr:
   useFakeResult: "false"
   cacheMaxEntries: "1000"
   cacheMaxSizeMb: "500"
+
+transcribeRealtime:
+  # Audio buffer length (ms) used by the realtime transcription engine.
+  europaBufferMs: "800"
+  # Single switch for FlowSense: true sets both FLOWSENSE_ENABLED and
+  # FLOWSENSE_GATE env vars to "1"; false (default) sets both to "0".
+  enableFlowSense: false
+  # Granular overrides. When set to a non-empty QUOTED string ("0"/"1"),
+  # each wins over enableFlowSense for its env var; leave empty ("") to
+  # derive from enableFlowSense.
+  flowSenseEnabled: ""
+  flowSenseGate: ""
 
 grammar:
   maxGrammarTransitions: ""

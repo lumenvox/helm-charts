@@ -1,0 +1,70 @@
+{{- /*
+Fails the render when values still use a speech configuration key that this chart
+no longer reads. Helm would otherwise ignore those keys without any error, and
+GPU, fine-tuned or extra-model settings would silently stop applying.
+*/}}
+{{- $problems := list }}
+{{- range $i, $lang := .Values.global.asrLanguages }}
+{{- $at := printf "global.asrLanguages[%d] (%s)" $i (toString $lang.name) }}
+{{- if hasKey $lang "enableFineTuned" }}
+{{- $problems = append $problems (printf "%s.enableFineTuned: renamed to fineTuned" $at) }}
+{{- end }}
+{{- if hasKey $lang "gpu" }}
+{{- $problems = append $problems (printf "%s.gpu: move each service's setting to services.<service>.gpu" $at) }}
+{{- end }}
+{{- if hasKey $lang "baseModel" }}
+{{- $problems = append $problems (printf "%s.baseModel.services: set services.<service>.base: false for each service that shouldn't load the base encoder" $at) }}
+{{- end }}
+{{- end }}
+{{- range $i, $model := .Values.global.customAsrModels }}
+{{- $at := printf "global.customAsrModels[%d] (%s)" $i (toString $model.name) }}
+{{- if hasKey $model "language" }}
+{{- $problems = append $problems (printf "%s: move it to that language's asrLanguages[].extraModels, without the language key" $at) }}
+{{- else if or (hasPrefix "asr_encoder_" (toString $model.name)) (hasPrefix "asr_decoder_" (toString $model.name)) }}
+{{- $problems = append $problems (printf "%s: customAsrModels only downloads shared packages; move this model to its language's asrLanguages[].extraModels so it's loaded" $at) }}
+{{- end }}
+{{- end }}
+{{- range $service := list "asr" "transcribeRealtime" "transcribeBatch" "neuralTts" }}
+{{- $old := index $.Values.global.enabled $service | default dict }}
+{{- if hasKey $old "enabled" }}
+{{- $problems = append $problems (printf "global.enabled.%s.enabled: move to global.%s.enabled" $service $service) }}
+{{- end }}
+{{- if hasKey $old "gpu" }}
+{{- $problems = append $problems (printf "global.enabled.%s.gpu: move to global.gpu.%s" $service $service) }}
+{{- end }}
+{{- end }}
+{{- if $problems }}
+{{- fail (printf "\n\nThese speech values use keys this chart no longer reads, so they would be ignored:\n  - %s\n\nSee \"Per-service model loading\" in the lumenvox chart README for the current layout." (join "\n  - " $problems)) }}
+{{- end }}
+{{- /*
+Ingress keys this chart no longer reads. The SaaS-only lumenvox-api-cognito and
+lumenvox-api-internal routes moved out of the chart in 8.0 and are applied
+separately, so a values file that still turns them on would silently get no such
+routes. The cognito.* keys were replaced by provider-neutral jwtAuth.* settings.
+*/}}
+{{- $ingress := .Values.global.lumenvox.ingress }}
+{{- $removed := list }}
+{{- if $ingress.enableSaasRoutes }}
+{{- $removed = append $removed "enableSaasRoutes: the lumenvox-api-cognito and lumenvox-api-internal routes are no longer part of the chart; apply them separately after the release is installed" }}
+{{- end }}
+{{- range $old, $new := dict "cognito" "jwtAuth.issuer, jwtAuth.jwksUri and jwtAuth.requiredClaims" "cognitoAuthUrl" "jwtAuth.tokenAuthUrl" "cognitoAuthProvider" "jwtAuth.tokenAuthProvider" "cognitoAllowlist" "lumenvoxApiAllowlist" }}
+{{- if hasKey $ingress $old }}
+{{- $removed = append $removed (printf "%s: replaced by %s" $old $new) }}
+{{- end }}
+{{- end }}
+{{- if $removed }}
+{{- fail (printf "\n\nThese global.lumenvox.ingress values use keys this chart no longer reads, so they would be ignored:\n  - %s\n\nSee \"Access Control for lumenvox-api\" in the lumenvox chart README for the current layout." (join "\n  - " $removed)) }}
+{{- end }}
+{{- /*
+Token auth must actually be enforced once it's turned on. In Ingress mode only
+token-auth-service can enforce it (nginx auth-url), so selecting istio-native or
+leaving tokenAuthUrl empty would leave lumenvox-api reachable without a token.
+*/}}
+{{- $jwt := $ingress.jwtAuth | default (dict) }}
+{{- if and (not $ingress.disableTokenAuth) (ne $ingress.className "istio") }}
+{{- if eq ($jwt.provider | default "token-auth-service") "istio-native" }}
+{{- fail "\n\ndisableTokenAuth is false with jwtAuth.provider \"istio-native\", but ingress.className is not \"istio\". Native JWT validation needs the Istio gateway; in Ingress mode use jwtAuth.provider \"token-auth-service\" with tokenAuthUrl, or lumenvox-api would accept requests without a token." }}
+{{- else if not $jwt.tokenAuthUrl }}
+{{- fail "\n\ndisableTokenAuth is false but global.lumenvox.ingress.jwtAuth.tokenAuthUrl is empty. In Ingress mode nginx enforces token auth by calling that URL for each request, so set it (e.g. http://token-auth-service.<namespace>.svc.cluster.local:8082/auth), or lumenvox-api would accept requests without a token." }}
+{{- end }}
+{{- end }}

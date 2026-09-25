@@ -1,35 +1,51 @@
+{{- $ingressClassName := .Values.global.lumenvox.ingress.className -}}
+{{- if ne $ingressClassName "istio" }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: reporting-api-ingress-grpc
   namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
-  {{- if or .Values.global.lumenvox.ingress.commonAnnotations .Values.global.lumenvox.ingress.grpcAnnotations }}
   annotations:
-    {{- range .Values.global.lumenvox.ingress.commonAnnotations }}
-      {{ .name }}: "{{ .value }}"
-    {{- end }}
-    {{- range .Values.global.lumenvox.ingress.grpcAnnotations }}
-      {{ .name }}: "{{ .value }}"
-    {{- end }}
-  {{- end }}
+    # Internal staff route: internalAllowlist restricts it by source IP.
+    {{- include "lumenvox-common.nginxAnnotations" (dict "kind" "grpc" "root" $ "allowlist" .Values.global.lumenvox.ingress.internalAllowlist) }}
 spec:
-  {{- if .Values.global.lumenvox.ingress.className }}
-  ingressClassName: {{ .Values.global.lumenvox.ingress.className }}
+  {{- if $ingressClassName }}
+  ingressClassName: {{ $ingressClassName }}
   {{- end }}
-  rules:
-    - host: reporting-api{{ .Values.global.hostnameSuffix }}
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: reporting-api-service
-                port:
-                  name: grpc
   {{- if not .Values.global.lumenvox.ingress.disableTls }}
   tls:
-    - secretName: speech-tls-secret
-      hosts:
-        - reporting-api{{ .Values.global.hostnameSuffix }}
+  - hosts:
+    - "reporting-api{{ .Values.global.hostnameSuffix }}"
+    secretName: {{ .Values.global.lumenvox.gateway.tlsSecretName }}
   {{- end }}
+  rules:
+  - host: "reporting-api{{ .Values.global.hostnameSuffix }}"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: reporting-api-service
+            port:
+              name: grpc
+{{- else }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: reporting-api-grpcroute
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+spec:
+  parentRefs:
+    - name: {{ .Values.global.lumenvox.gateway.name }}
+      namespace: {{ include "lumenvox-common.gatewayNamespace" . }}
+      sectionName: web
+  hostnames:
+    - "reporting-api{{ .Values.global.hostnameSuffix }}"
+  rules:
+    - timeouts:
+        request: "0s"
+      backendRefs:
+        - name: reporting-api-service
+          port: 5000
+{{- end }}

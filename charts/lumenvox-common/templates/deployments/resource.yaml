@@ -6,7 +6,6 @@ metadata:
   labels:
     app: resource
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: resource
@@ -14,11 +13,18 @@ spec:
     metadata:
       labels:
         app: resource
+{{- include "lumenvox-common.serviceMeshLabels" . | indent 8 }}
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '5110'
 {{- include "lumenvox-common.serviceMeshAnnotations" . | indent 8 }}
     spec:
+      # Kubelet creates missing subPath targets on the shared lang volume (e.g.
+      # DistPackageModels/asr/dist-packages, when an asr pod starts) as root:root
+      # 0775. resource-manager runs as UID 1000; membership in group 0 lets it
+      # write into those directories whenever they were created.
+      securityContext:
+        supplementalGroups: [0]
       containers:
         - name: resource
           image: {{ .Values.image.repository | default .Values.global.image.repository }}/resource{{ .Values.image.tag | default .Values.global.image.tag }}
@@ -32,8 +38,7 @@ spec:
             httpGet:
               path: /health
               port: http
-{{/*            allow 1 hour for startup*/}}
-            failureThreshold: 360
+            failureThreshold: {{ .Values.probes.resourceStartupFailureThreshold }}
             periodSeconds: 10
           readinessProbe:
             exec:
@@ -92,21 +97,25 @@ spec:
             {{- if .Values.global.ttsLanguages }}
             - name: CLUSTER_LANGUAGES__TTS_LANGUAGES
               value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__TTS_LANGUAGES" . }}'
+            {{- if include "lumenvox-speech.CLUSTER_LANGUAGES__TTS_VOICES_ENABLED" . }}
             - name: CLUSTER_LANGUAGES__TTS_VOICES
               value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__TTS_VOICES_VERSION" . }}'
+            {{- end }}
+            {{- if include "lumenvox-speech.CLUSTER_LANGUAGES__NEURAL_TTS_VOICES_ENABLED" . }}
             - name: CLUSTER_LANGUAGES__NEURAL_TTS_VOICES
               value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__NEURAL_TTS_VOICES_VERSION" . }}'
             {{- end }}
             {{- end }}
-            {{- if or .Values.global.enableDiarization .Values.global.enabled.lumenvoxVb }}
+            {{- end }}
+            {{- if or (and .Values.global.enabled.lumenvoxSpeech .Values.global.enableDiarization) .Values.global.enabled.lumenvoxVb }}
             - name: CLUSTER_LANGUAGES__VB_ACTIVE
               value: '{{ template "lumenvox-vb.CLUSTER_LANGUAGES__VB_ACTIVE" . }}'
             {{- end }}
-            {{- if .Values.global.enableLanguageId }}
+            {{- if and .Values.global.enabled.lumenvoxSpeech .Values.global.enableLanguageId }}
             - name: CLUSTER_LANGUAGES__LID
               value: "vba_all_LID_LID-{{ .Values.global.lidVersion}}"
             {{- end }}
-            {{- if .Values.global.enableNeuron }}
+            {{- if and .Values.global.enabled.lumenvoxSpeech .Values.global.enableNeuron }}
             - name: CLUSTER_LANGUAGES__NEURON_MODELS
               value: '{{ template "lumenvox-speech.CLUSTER_LANGUAGES__NEURON_MODELS" . }}'
             {{- end }}

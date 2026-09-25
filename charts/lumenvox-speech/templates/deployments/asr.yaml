@@ -1,5 +1,7 @@
 {{- if not .Values.global.minimalInstall }}
+{{- if .Values.global.asr.enabled }}
 {{- range .Values.global.asrLanguages }}
+{{- $asrGpu := include "lumenvox-speech.RESOLVE_SERVICE_GPU" (dict "root" $ "lang" . "service" "asr") | fromJson }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -9,7 +11,6 @@ metadata:
   labels:
     app: asr-{{ .name | replace "_" "-" }}
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: asr-{{ .name | replace "_" "-" }}
@@ -17,15 +18,21 @@ spec:
     metadata:
       labels:
         app: asr-{{ .name | replace "_" "-" }}
+{{- include "lumenvox-common.serviceMeshLabels" $ | indent 8 }}
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '5110'
 {{- include "lumenvox-common.serviceMeshAnnotations" $ | indent 8 }}
     spec:
+      terminationGracePeriodSeconds: 300
       containers:
         - name: asr
           image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/asr{{ $.Values.image.tag | default $.Values.global.image.tag }}
           imagePullPolicy: {{ $.Values.image.pullPolicy | default $.Values.global.image.pullPolicy }}
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "15"]
           ports:
             - name: http
               containerPort: 5110
@@ -55,14 +62,14 @@ spec:
               cpu: 1000m
               memory: 4000Mi
               {{- end }}
-            {{- if or $.Values.global.lumenvox.enforceLimits .enableFineTuned }}
+            {{- if or $.Values.global.lumenvox.enforceLimits .fineTuned $asrGpu.enabled }}
             limits:
               {{- if $.Values.global.lumenvox.enforceLimits }}
               cpu: 1500m
               memory: 8000Mi
               {{- end }}
-              {{- if .enableFineTuned }}
-              nvidia.com/gpu: "1"
+              {{- if or .fineTuned $asrGpu.enabled }}
+              nvidia.com/gpu: '{{ if $asrGpu.enabled }}{{ $asrGpu.count }}{{ else }}1{{ end }}'
               {{- end }}
             {{- end }}
           envFrom:
@@ -98,7 +105,7 @@ spec:
             - name: RMQ_CLIENT_KEY
               value: '{{ $.Values.global.rabbitmq.clientKey }}'
             - name: GLOBAL_SETTINGS__RABBITMQ_CONNECTION_STRING
-              value: 'amqp{{ if $.Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ $.Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ $.Values.global.rabbitmq.connection.url }}:{{ $.Values.global.rabbitmq.connection.port }}'
+              value: 'amqp{{ if $.Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ $.Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ $.Values.global.rabbitmq.connection.url }}:{{ $.Values.global.rabbitmq.connection.port }}/{{ $.Values.global.rabbitmq.connection.vhost | urlquery }}'
             - name: GLOBAL_SETTINGS__RMQ_QUEUE_EXPIRE_MS
               value: '{{ $.Values.global.lumenvox.rabbitmqQueueExpirationMs }}'
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
@@ -111,9 +118,21 @@ spec:
               value: '{{ $.Values.asr.cacheMaxEntries }}'
             - name: ASR_SETTINGS__CACHE_MAX_SIZE_MB
               value: '{{ $.Values.asr.cacheMaxSizeMb }}'
-            {{- if .enableFineTuned }}
+            - name: ASR_ENCODERS
+              value: '{{ template "lumenvox-speech.SERVICE_ASR_MODELS" (dict "root" $ "lang" . "service" "asr" "kind" "encoder") }}'
+            - name: ASR_DECODERS
+              value: '{{ template "lumenvox-speech.SERVICE_ASR_MODELS" (dict "root" $ "lang" . "service" "asr" "kind" "decoder") }}'
+            {{- if .fineTuned }}
             - name: ASR_SETTINGS__ENABLE_FINE_TUNED
               value: '1'
+            {{- end }}
+            {{- if $asrGpu.enabled }}
+            - name: ASR_SETTINGS__ENABLE_GPU
+              value: 'true'
+            {{- if $asrGpu.visibleDevices }}
+            - name: NVIDIA_VISIBLE_DEVICES
+              value: '{{ $asrGpu.visibleDevices }}'
+            {{- end }}
             {{- end }}
             - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
               value: 'ignore'
@@ -121,7 +140,7 @@ spec:
             - mountPath: /usr/local/lib/python3.12/dist-packages
               name: lang
               subPath: DistPackageModels/asr/dist-packages
-            {{- if .enableFineTuned }}
+            {{- if .fineTuned }}
             - mountPath: /finetuned/venv/lib/python3.8/site-packages
               name: lang
               subPath: DistPackageModels/finetuned/site-packages
@@ -139,6 +158,32 @@ spec:
       {{- range $.Values.global.imagePullSecrets }}
         - name: {{ . }}
       {{- end }}
+      {{- end }}
+      {{- if $asrGpu.enabled }}
+      tolerations:
+        - effect: NoSchedule
+          key: nvidia.com/gpu
+          operator: Exists
+        - effect: NoSchedule
+          key: kubernetes.azure.com/scalesetpriority
+          operator: Equal
+          value: spot
+      {{- end }}
+      {{- /* Opt-in: asr pods have no resource requests by default, so the
+             scheduler packs them onto a few nodes, which raises per-session
+             decode CPU. */}}
+      {{- $spread := dig "lumenvox" "decodeTopologySpread" dict $.Values.global }}
+      {{- if $spread.enabled }}
+      topologySpreadConstraints:
+        - maxSkew: {{ $spread.maxSkew | default 1 }}
+          topologyKey: {{ $spread.topologyKey | default "kubernetes.io/hostname" }}
+          whenUnsatisfiable: {{ $spread.whenUnsatisfiable | default "ScheduleAnyway" }}
+          {{- /* Don't count nodes with taints asr doesn't tolerate when
+                 computing skew; they'd count as empty and block scale-up. */}}
+          nodeTaintsPolicy: {{ $spread.nodeTaintsPolicy | default "Honor" }}
+          labelSelector:
+            matchLabels:
+              app: asr-{{ .name | replace "_" "-" }}
       {{- end }}
       initContainers:
         - name: wait-for-deployment-service
@@ -163,5 +208,11 @@ spec:
       {{- if $.Values.global.lumenvox.schedulerName }}
       schedulerName: {{ $.Values.global.lumenvox.schedulerName }}
       {{- end }}
+      {{- if $asrGpu.enabled }}
+      {{- if $asrGpu.runtimeClassName }}
+      runtimeClassName: {{ $asrGpu.runtimeClassName }}
+      {{- end }}
+      {{- end }}
+{{- end }}
 {{- end }}
 {{- end }}

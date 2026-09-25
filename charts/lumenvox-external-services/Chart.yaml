@@ -1,0 +1,18 @@
+apiVersion: v2
+name: lumenvox-external-services
+description: LumenVox External Services Helm chart for Kubernetes
+type: application
+version: 8.0.0
+appVersion: "8.0.0"
+home: https://lumenvox.com
+annotations:
+  artifacthub.io/containsSecurityUpdates: true
+  artifacthub.io/images: |
+    - name: mongodb
+      image: docker.io/mongo:8.2.12
+    - name: postgresql
+      image: docker.io/postgres:17.5
+    - name: rabbitmq
+      image: docker.io/rabbitmq:4.1.8-management
+    - name: redis
+      image: docker.io/redis:8.2.4-alpine

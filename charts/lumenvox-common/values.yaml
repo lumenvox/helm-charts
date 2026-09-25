@@ -26,13 +26,58 @@ linkerd:
 
 prometheus: {}
 
+probes:
+  # How many failed startup probes the resource service may accumulate before the
+  # kubelet restarts it. It installs models and voices before reporting healthy,
+  # and a first pass onto a shared (SMB/NFS) model volume runs for tens of minutes
+  # per package - a restart part way through discards the staged work and starts
+  # over. With periodSeconds set to 10 in the resource deployment, this default
+  # works out to 720 x 10s = 2 hours.
+  resourceStartupFailureThreshold: 720
+
 global:
   lumenvox:
+    # Controls the ingress mode. Supported values:
+    #   "nginx" - use traditional nginx Ingress resources
+    #   "istio" - use Kubernetes Gateway API with Istio (requires Istio installed)
     ingress:
-      disableTls: false
+      className: "nginx"
+      # Lists of {name, value} nginx annotations. Defaults and usage notes live in
+      # the parent lumenvox chart's values.yaml.
       commonAnnotations: []
       grpcAnnotations: []
       httpAnnotations: []
+    gateway:
+      className: istio
+      name: lumenvox-gateway
+      namespace: "istio-ingress"
+      createIstioNamespace: true
+      disableTls: false
+      tlsSecretName: speech-tls-secret
+      backendTimeout: "350s"
+      # Optional annotations applied to the Gateway resource.
+      # When using Istio, these are propagated to the generated LoadBalancer Service.
+      # Example for AWS NLB:
+      #   service.beta.kubernetes.io/aws-load-balancer-type: "external"
+      #   service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "ip"
+      #   service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+      annotations: {}
+      # Annotations placed on the Gateway's spec.infrastructure.annotations,
+      # which Istio propagates onto the auto-generated LoadBalancer Service.
+      # Use these - not gateway.annotations and not a manual patch on the
+      # Service - for anything the cloud load balancer reads: Istio's gateway
+      # controller owns that Service and reverts direct edits to it.
+      # Example (Azure internal LB):
+      #   service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+      infrastructureAnnotations: {}
+      # On provider "azure", point the LB health probe for the gateway's
+      # listener port at Istio's status port (15021 /healthz/ready). Azure
+      # otherwise probes HTTPS on the nodePort at path "/", which the gateway
+      # cannot answer - every backend reads unhealthy and the LB drops all
+      # traffic. Rendered as defaults so an upgrade cannot strip them by
+      # omitting infrastructureAnnotations; those still override key-by-key.
+      # Set false only when the LB probe is managed outside this chart.
+      azureHealthProbeDefaults: true
     schedulerName: ""
   lidVersion: "2.0.0"
   serviceMesh: # Service mesh dashboard configuration
@@ -49,7 +94,6 @@ global:
       ingressSecret: ""
       # Optional class name to assign to dashboard ingress (i.e. "nginx" for example)
       ingressClassName: ""
-
 # Enable default deployment creation job
 enableDefaultDeployment: false
 # Default deployment configuration

@@ -1,36 +1,49 @@
+{{- $ingressClassName := .Values.global.lumenvox.ingress.className -}}
+{{- if ne $ingressClassName "istio" }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: file-store-ingress
   namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
-  {{- if or .Values.global.lumenvox.ingress.commonAnnotations .Values.global.lumenvox.ingress.httpAnnotations }}
   annotations:
-    {{- range .Values.global.lumenvox.ingress.commonAnnotations }}
-      {{ .name }}: "{{ .value }}"
-    {{- end }}
-    {{- range .Values.global.lumenvox.ingress.httpAnnotations }}
-      {{ .name }}: "{{ .value }}"
-    {{- end }}
-  {{- end }}
+    # Internal staff route: internalAllowlist restricts it by source IP.
+    {{- include "lumenvox-common.nginxAnnotations" (dict "kind" "http" "root" $ "allowlist" .Values.global.lumenvox.ingress.internalAllowlist) }}
 spec:
-  {{- if .Values.global.lumenvox.ingress.className }}
-  ingressClassName: {{ .Values.global.lumenvox.ingress.className }}
+  {{- if $ingressClassName }}
+  ingressClassName: {{ $ingressClassName }}
   {{- end }}
-  rules:
-    - host: file-store{{ .Values.global.hostnameSuffix }}
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: file-store-service
-                port:
-                  name: public-http
   {{- if not .Values.global.lumenvox.ingress.disableTls }}
   tls:
-    - secretName: speech-tls-secret
-      hosts:
-        - file-store{{ .Values.global.hostnameSuffix }}
+  - hosts:
+    - "file-store{{ .Values.global.hostnameSuffix }}"
+    secretName: {{ .Values.global.lumenvox.gateway.tlsSecretName }}
   {{- end }}
-
+  rules:
+  - host: "file-store{{ .Values.global.hostnameSuffix }}"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: file-store-service
+            port:
+              name: public-http
+{{- else }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: file-store-httproute
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+spec:
+  parentRefs:
+    - name: {{ .Values.global.lumenvox.gateway.name }}
+      namespace: {{ include "lumenvox-common.gatewayNamespace" . }}
+      sectionName: web
+  hostnames:
+    - "file-store{{ .Values.global.hostnameSuffix }}"
+  rules:
+    - backendRefs:
+        - name: file-store-service
+          port: 9182
+{{- end }}

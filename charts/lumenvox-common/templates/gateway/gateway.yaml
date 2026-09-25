@@ -1,0 +1,69 @@
+{{- if eq .Values.global.lumenvox.ingress.className "istio" }}
+{{- $gateway := .Values.global.lumenvox.gateway }}
+{{- /*
+  Azure's cloud-provider defaults an HTTPS listener's LB health probe to
+  "HTTPS on the nodePort, path /", which the Istio gateway cannot answer -
+  every backend reads unhealthy and the LB silently drops all connections.
+  Point the probe at Istio's status port instead. These values are the same
+  on every Istio gateway (15021 /healthz/ready), so they are chart defaults
+  rather than something each values file has to remember: an upgrade run
+  with a values file that omits them used to strip spec.infrastructure and
+  take the endpoint down. User-supplied infrastructureAnnotations still win.
+*/}}
+{{- $probeDefaults := dict }}
+{{- if and (eq .Values.global.provider "azure") $gateway.azureHealthProbeDefaults }}
+{{- $listenerPort := ternary "80" "443" (default false $gateway.disableTls) }}
+{{- $probeDefaults = dict
+      (printf "service.beta.kubernetes.io/port_%s_health-probe_protocol" $listenerPort) "http"
+      (printf "service.beta.kubernetes.io/port_%s_health-probe_port" $listenerPort) "15021"
+      (printf "service.beta.kubernetes.io/port_%s_health-probe_request-path" $listenerPort) "/healthz/ready" }}
+{{- end }}
+{{- $infrastructureAnnotations := merge (deepCopy (default dict $gateway.infrastructureAnnotations)) $probeDefaults }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ $gateway.name }}
+  namespace: {{ include "lumenvox-common.gatewayNamespace" . }}
+  {{- with $gateway.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  gatewayClassName: {{ $gateway.className }}
+  {{- if or $gateway.serviceExtraPorts $infrastructureAnnotations }}
+  infrastructure:
+    {{- with $infrastructureAnnotations }}
+    # Propagated by Istio onto the auto-generated LoadBalancer Service. They
+    # must live here and not on the Service: Istio's gateway controller owns
+    # that Service and reverts anything patched onto it directly.
+    annotations:
+      {{- range $key, $value := . }}
+      {{ $key }}: {{ $value | quote }}
+      {{- end }}
+    {{- end }}
+    {{- if $gateway.serviceExtraPorts }}
+    # parametersRef points at ConfigMap gateway-service-options-configmap.yaml
+    # which adds extra ports to the auto-generated Service.
+    parametersRef:
+      group: ""
+      kind: ConfigMap
+      name: {{ $gateway.name }}-options
+    {{- end }}
+  {{- end }}
+  listeners:
+    - name: web
+      {{- if not $gateway.disableTls }}
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: {{ $gateway.tlsSecretName }}
+      {{- else }}
+      port: 80
+      protocol: HTTP
+      {{- end }}
+      allowedRoutes:
+        namespaces:
+          from: All
+{{- end }}

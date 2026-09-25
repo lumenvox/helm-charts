@@ -1,0 +1,27 @@
+{{- if eq .Values.global.lumenvox.ingress.className "istio" }}
+{{- if .Values.global.lumenvox.gateway.serviceExtraPorts }}
+# ConfigMap used by Gateway spec.infrastructure.parametersRef to strategic-merge-patch
+# the auto-generated Service. This is how we add port 443 to the Service so that
+# AWS Load Balancer Controller can attach the ACM cert (ssl-ports annotation
+# targets a port named "https" that must exist on the Service).
+#
+# Without this ConfigMap, the chart's Gateway listener only creates port 80 on
+# the Service (because disableTls=true and NLB terminates TLS externally). The
+# NLB then fails to provision because ssl-ports references a non-existent port.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.global.lumenvox.gateway.name }}-options
+  namespace: {{ include "lumenvox-common.gatewayNamespace" . }}
+data:
+  service: |
+    spec:
+      ports:
+        {{- range .Values.global.lumenvox.gateway.serviceExtraPorts }}
+        - name: {{ .name | quote }}
+          port: {{ .port }}
+          targetPort: {{ .targetPort }}
+          protocol: {{ .protocol | default "TCP" }}
+        {{- end }}
+{{- end }}
+{{- end }}

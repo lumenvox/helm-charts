@@ -1,0 +1,17 @@
+{{- if .Values.global.transcribeRealtime.enabled }}
+{{- range .Values.global.asrLanguages }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: transcribe-realtime-{{ .name | replace "_" "-" }}-service
+  namespace: {{ default $.Release.Namespace $.Values.global.defaultNamespace }}
+spec:
+  selector:
+    app: transcribe-realtime-{{ .name | replace "_" "-" }}
+  ports:
+    - name: http
+      port: 5110
+      targetPort: http
+{{- end }}
+{{- end }}

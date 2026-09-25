@@ -1,0 +1,128 @@
+{{- if and .Values.redis.enabled (not .Values.redis.clusterMode.enabled) }}
+{{- $r := .Values.redis }}
+{{- $memLimit := dig "resources" "limits" "memory" "" $r }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: external-services-redis-pvc
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+  labels:
+    {{- include "lumenvox-external-services.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/resource-policy": keep
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- with (default .Values.storage.className $r.storageClassName) }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ $r.storageSize }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: external-services-redis-master
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+  labels:
+    app: external-services-redis-master
+    {{- include "lumenvox-external-services.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: external-services-redis-master
+  template:
+    metadata:
+      labels:
+        app: external-services-redis-master
+      {{- $ann := include "lumenvox-external-services.podAnnotations" (dict "svc" $r "root" . "ports" "6379") }}
+      {{- if $ann | trim }}
+      annotations:
+        {{- $ann | trim | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- $sched := include "lumenvox-external-services.scheduling" $r }}
+      {{- if $sched | trim }}
+      {{- $sched | trim | nindent 6 }}
+      {{- end }}
+      containers:
+        - name: redis
+          image: "{{ .Values.redis.image.repository }}:{{ .Values.redis.image.tag }}"
+          imagePullPolicy: {{ .Values.redis.image.pullPolicy }}
+          ports:
+            - containerPort: 6379
+          command:
+            - sh
+            - -c
+            - |
+              echo "requirepass ${REDIS_PASSWORD}" > /tmp/redis-generated.conf
+              echo "maxclients {{ $r.maxClients }}" >> /tmp/redis-generated.conf
+              {{- if and $r.maxmemoryPercent (gt ($r.maxmemoryPercent | int) 0) $memLimit }}
+              # {{ $r.maxmemoryPercent }}% of the {{ $memLimit }} container limit, as bytes.
+              echo "maxmemory {{ include "lumenvox-external-services.maxmemory" (dict "limit" $memLimit "percent" $r.maxmemoryPercent) }}" >> /tmp/redis-generated.conf
+              echo "maxmemory-policy {{ $r.maxmemoryPolicy }}" >> /tmp/redis-generated.conf
+              {{- end }}
+              {{- if gt ($r.ioThreads | int) 1 }}
+              echo "io-threads {{ $r.ioThreads }}" >> /tmp/redis-generated.conf
+              {{- end }}
+              {{- range $r.extraConfig }}
+              echo {{ . | quote }} >> /tmp/redis-generated.conf
+              {{- end }}
+              exec redis-server /tmp/redis-generated.conf
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-existing-secret
+                  key: redis-password
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - redis-cli -a "$REDIS_PASSWORD" ping | grep -q PONG
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - redis-cli -a "$REDIS_PASSWORD" ping | grep -q PONG
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            {{- toYaml $r.resources | nindent 12 }}
+      volumes:
+        - name: redis-data
+          persistentVolumeClaim:
+            claimName: external-services-redis-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: external-services-redis-master
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+  labels:
+    app: external-services-redis-master
+    {{- include "lumenvox-external-services.labels" . | nindent 4 }}
+  {{- if .Values.linkerd.enabled }}
+  annotations:
+    config.linkerd.io/opaque-ports: "6379"
+  {{- end }}
+spec:
+  selector:
+    app: external-services-redis-master
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379
+  type: ClusterIP
+{{- end }}

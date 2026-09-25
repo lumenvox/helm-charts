@@ -1,3 +1,4 @@
+{{- if .Values.global.asr.enabled }}
 {{- range .Values.global.asrLanguages }}
 ---
 apiVersion: v1
@@ -12,4 +13,5 @@ spec:
     - name: http
       port: 5110
       targetPort: http
+{{- end }}
 {{- end }}

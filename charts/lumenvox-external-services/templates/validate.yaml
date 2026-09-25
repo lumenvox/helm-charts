@@ -1,0 +1,56 @@
+{{- /* istio.injectSidecar was renamed before 8.0 shipped; fail rather than let
+Helm ignore it and silently change the sidecar annotation. */}}
+{{- if hasKey (.Values.istio | default dict) "injectSidecar" }}
+{{- fail "\n\nistio.injectSidecar is no longer read: set global.serviceMesh.istio.injectDatabaseSidecars instead." }}
+{{- end }}
+# All four secrets must be pre-created by the customer (kubectl or external
+# tooling) before installing. This chart only references them, so a missing
+# secret or key would otherwise surface as a CreateContainerConfigError at pod
+# startup instead of a clear install-time failure.
+#
+# NB: the kube-system lookup gates this to a real cluster — `helm template`
+# reports IsInstall=true but lookup returns nothing, so without the gate
+# every offline render would fail.
+{{- if and (or .Release.IsInstall .Release.IsUpgrade) (lookup "v1" "Namespace" "" "kube-system") }}
+{{- $ns := default .Release.Namespace .Values.global.defaultNamespace }}
+{{- $required := dict }}
+{{- if .Values.mongodb.enabled }}
+  {{- $_ := set $required "mongodb-existing-secret" (list "mongodb-root-password") }}
+{{- end }}
+{{- if .Values.postgresql.enabled }}
+  {{- $_ := set $required "postgres-existing-secret" (list "postgresql-password") }}
+{{- end }}
+{{- if .Values.rabbitmq.enabled }}
+  {{- $_ := set $required "rabbitmq-existing-secret" (list "rabbitmq-password") }}
+{{- end }}
+{{- if .Values.redis.enabled }}
+  {{- /* Both the single-instance and cluster templates reference this secret. */}}
+  {{- $_ := set $required "redis-existing-secret" (list "redis-password") }}
+{{- end }}
+{{- if and .Values.redis.enabled .Values.redis.clusterMode.enabled }}
+  {{- if not (lookup "apiextensions.k8s.io/v1" "CustomResourceDefinition" "" "redisclusters.redis.redis.opstreelabs.in") }}
+    {{- fail "Redis Cluster mode requires the OT Redis Operator CRD (redisclusters.redis.redis.opstreelabs.in), which is not installed on this cluster. Install the operator before installing or upgrading this chart:\n  helm repo add ot-helm https://ot-container-kit.github.io/helm-charts/\n  helm install redis-operator ot-helm/redis-operator -n ot-operators --create-namespace --version 0.26.1 --set featureGates.GenerateConfigInInitContainer=true" }}
+  {{- end }}
+{{- end }}
+{{- range $name, $keys := $required }}
+  {{- $existing := lookup "v1" "Secret" $ns $name }}
+  {{- if not $existing }}
+    {{- $literals := list }}
+    {{- range $keys }}
+      {{- $literals = append $literals (printf "--from-literal=%s=<password>" .) }}
+    {{- end }}
+    {{- fail (printf "Secret %s/%s does not exist. It must be created before installing this chart:\n\n  kubectl create secret generic %s -n %s \\\n    %s\n" $ns $name $name $ns (join " \\\n    " $literals)) }}
+  {{- else }}
+    {{- $data := $existing.data | default dict }}
+    {{- $missing := list }}
+    {{- range $keys }}
+      {{- if not (hasKey $data .) }}
+        {{- $missing = append $missing . }}
+      {{- end }}
+    {{- end }}
+    {{- if $missing }}
+      {{- fail (printf "Secret %s/%s is missing required key(s): %s. Add the missing key(s) to the secret before installing." $ns $name (join ", " $missing)) }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- end }}

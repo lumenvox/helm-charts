@@ -1,0 +1,139 @@
+{{- if .Values.postgresql.enabled }}
+{{- $pg := .Values.postgresql }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: external-services-postgresql-pvc
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+  labels:
+    {{- include "lumenvox-external-services.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/resource-policy": keep
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- with (default .Values.storage.className $pg.storageClassName) }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ $pg.storageSize }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: external-services-postgresql
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+  labels:
+    app: external-services-postgresql
+    {{- include "lumenvox-external-services.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  # single replica on an RWO volume - the old pod must release the volume
+  # before the new one can start, so RollingUpdate deadlocks on upgrades
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: external-services-postgresql
+  template:
+    metadata:
+      labels:
+        app: external-services-postgresql
+      {{- $ann := include "lumenvox-external-services.podAnnotations" (dict "svc" $pg "root" . "ports" "5432") }}
+      {{- if $ann | trim }}
+      annotations:
+        {{- $ann | trim | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- $sched := include "lumenvox-external-services.scheduling" $pg }}
+      {{- if $sched | trim }}
+      {{- $sched | trim | nindent 6 }}
+      {{- end }}
+      containers:
+        - name: postgresql
+          image: "{{ $pg.image.repository }}:{{ $pg.image.tag }}"
+          imagePullPolicy: {{ $pg.image.pullPolicy }}
+          {{- if $pg.config }}
+          # Server settings as -c flags, which is what the official image
+          # documents. Deliberately NOT a mounted config_file: hba_file and
+          # ident_file default to the directory holding config_file, so
+          # relocating it would send postgres looking for pg_hba.conf in the
+          # wrong place and it would refuse to start. -c also applies to an
+          # already-initialised volume, which an initdb-time change would not.
+          args:
+            {{- range $k, $v := $pg.config }}
+            - "-c"
+            - "{{ $k }}={{ $v }}"
+            {{- end }}
+          {{- end }}
+          ports:
+            - containerPort: 5432
+          env:
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+            - name: POSTGRES_USER
+              value: {{ .Values.postgresql.username }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-existing-secret
+                  key: postgresql-password
+            - name: POSTGRES_DB
+              value: {{ .Values.postgresql.databaseName }}
+          {{- if dig "probes" "enabled" false $pg }}
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "{{ $pg.username }}", "-d", "{{ $pg.databaseName }}"]
+            {{- toYaml (dig "probes" "readiness" dict $pg) | nindent 12 }}
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "{{ $pg.username }}"]
+            {{- toYaml (dig "probes" "liveness" dict $pg) | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: postgresql-data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            {{- toYaml $pg.resources | nindent 12 }}
+      volumes:
+        - name: postgresql-data
+          persistentVolumeClaim:
+            claimName: external-services-postgresql-pvc
+{{- if dig "podDisruptionBudget" "enabled" false $pg }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: external-services-postgresql-pdb
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+  labels:
+    {{- include "lumenvox-external-services.labels" . | nindent 4 }}
+spec:
+  maxUnavailable: {{ dig "podDisruptionBudget" "maxUnavailable" 0 $pg }}
+  selector:
+    matchLabels:
+      app: external-services-postgresql
+{{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: external-services-postgresql
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+  labels:
+    app: external-services-postgresql
+    {{- include "lumenvox-external-services.labels" . | nindent 4 }}
+  {{- if .Values.linkerd.enabled }}
+  annotations:
+    config.linkerd.io/opaque-ports: "5432"
+  {{- end }}
+spec:
+  selector:
+    app: external-services-postgresql
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+  type: ClusterIP
+{{- end }}

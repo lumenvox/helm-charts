@@ -1,0 +1,269 @@
+{{- if and .Values.redis.enabled .Values.redis.clusterMode.enabled }}
+{{- $ns := default .Release.Namespace .Values.global.defaultNamespace }}
+{{- $crName := .Values.redis.clusterMode.operator.crName }}
+{{- $op := .Values.redis.clusterMode.operator }}
+{{- /* `helm upgrade --reuse-values` does not merge new chart defaults, so for a
+       release created before these settings existed every one of them is nil.
+       Resolve through dig so an upgrade cannot crash the render. */}}
+{{- $exporter := dig "redisExporter" dict $op }}
+{{- $opPdb := dig "podDisruptionBudget" dict $op }}
+{{- $persist := dig "persistenceEnabled" true $op }}
+{{- $maxClients := dig "maxClients" 0 $op }}
+{{- $mmPercent := dig "maxmemoryPercent" 0 .Values.redis }}
+{{- $mmPolicy := dig "maxmemoryPolicy" "allkeys-lru" .Values.redis }}
+{{- $ioThreads := dig "ioThreads" 1 .Values.redis }}
+{{- $extraConf := dig "extraConfig" list .Values.redis }}
+{{- /* Leaders and followers each hold a full copy of their shard, so maxmemory
+       must be derived from whichever limit is smaller -- sizing it off the
+       leader alone would let a follower OOM first. */}}
+{{- $leaderMem := dig "resources" "limits" "memory" "" $op.leader }}
+{{- $followerMem := dig "resources" "limits" "memory" "" $op.follower }}
+{{- $memLimit := $leaderMem }}
+{{- if and $followerMem (lt (include "lumenvox-external-services.toBytes" $followerMem | int64) (include "lumenvox-external-services.toBytes" $leaderMem | int64)) }}
+{{- $memLimit = $followerMem }}
+{{- end }}
+# =============================================================================
+# Redis Cluster (operator-managed)
+#
+# The client service is named external-services-redis-clustercfg. The name
+# contains "clustercfg" on purpose: the LumenVox chart auto-selects the
+# redis-cluster:// connection scheme when that substring appears in the Redis
+# URL (same convention as AWS ElastiCache).
+#
+# Prerequisite: OT Redis Operator (helm chart 0.26.1) installed with
+#   featureGates.GenerateConfigInInitContainer=true
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: external-services-redis-extra-config
+  namespace: {{ $ns }}
+  labels:
+    {{- include "lumenvox-external-services.labels" . | nindent 4 }}
+data:
+  redis-additional.conf: |
+    cluster-preferred-endpoint-type hostname
+    {{- if and $mmPercent (gt ($mmPercent | int) 0) $memLimit }}
+    # Derived from the smaller of the leader/follower memory limits ({{ $memLimit }})
+    # at {{ $mmPercent }}%. Without this redis has no boundary
+    # to respect and is OOM-killed instead of evicting; on a leader that is a
+    # shard failover, which every client sees as MOVED/CLUSTERDOWN.
+    maxmemory {{ include "lumenvox-external-services.maxmemory" (dict "limit" $memLimit "percent" $mmPercent) }}
+    maxmemory-policy {{ $mmPolicy }}
+    {{- end }}
+    {{- if $maxClients }}
+    maxclients {{ $maxClients }}
+    {{- end }}
+    {{- if gt ($ioThreads | int) 1 }}
+    # Moves socket reads/writes off the single command thread.
+    io-threads {{ $ioThreads }}
+    {{- end }}
+    {{- range $extraConf }}
+    {{ . }}
+    {{- end }}
+---
+apiVersion: redis.redis.opstreelabs.in/v1beta2
+kind: RedisCluster
+metadata:
+  name: {{ $crName }}
+  namespace: {{ $ns }}
+  {{- /* Annotations set on the CR are propagated by the operator to the pods
+         and PVCs it reconciles, which is the only way to reach pods the chart
+         does not template itself. NOTE: linkerd gets inject=disabled rather
+         than opaque-ports -- cluster nodes connect to each other before
+         passing readiness and the inbound proxy rejects that traffic, so the
+         proxy has to be skipped outright (linkerd/linkerd2#13247). */}}
+  annotations:
+    {{- if .Values.linkerd.enabled }}
+    linkerd.io/inject: disabled
+    {{- end }}
+    {{- if not .Values.global.serviceMesh.istio.injectDatabaseSidecars }}
+    sidecar.istio.io/inject: "false"
+    {{- end }}
+    {{- with .Values.redis.podAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  labels:
+    {{- include "lumenvox-external-services.labels" . | nindent 4 }}
+spec:
+  # clusterSize drives the number of master shards; set from leaderReplicas.
+  # Do not expose clusterSize as a user-facing value — per-role replica counts
+  # are the only scaling knob.
+  clusterSize: {{ .Values.redis.clusterMode.operator.leaderReplicas }}
+  clusterVersion: v7
+  persistenceEnabled: {{ $persist }}
+  podSecurityContext:
+    runAsUser: 1000
+    fsGroup: 1000
+  {{- if dig "enabled" false $exporter }}
+  {{- /* Container CPU averages redis's single busy thread across the container
+         and then across pods, which cannot show a saturated engine thread.
+         The exporter's redis_cpu_{sys,user}_seconds_total can, along with
+         evicted_keys and instantaneous_ops_per_sec. */}}
+  redisExporter:
+    enabled: true
+    image: "{{ dig "image" "repository" "quay.io/opstree/redis-exporter" $exporter }}:{{ dig "image" "tag" "v1.44.0" $exporter }}"
+    imagePullPolicy: {{ dig "image" "pullPolicy" "IfNotPresent" $exporter }}
+    port: {{ dig "port" 9121 $exporter }}
+    {{- with dig "resources" dict $exporter }}
+    resources:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+  {{- end }}
+  kubernetesConfig:
+    image: "{{ .Values.redis.clusterMode.operator.image.repository }}:{{ .Values.redis.clusterMode.operator.image.tag }}"
+    imagePullPolicy: {{ .Values.redis.clusterMode.operator.image.pullPolicy }}
+    redisSecret:
+      name: redis-existing-secret
+      key: redis-password
+  storage:
+    {{- if $persist }}
+    volumeClaimTemplate:
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        {{- if $op.storage.className }}
+        storageClassName: {{ $op.storage.className }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ $op.storage.size }}
+    {{- end }}
+    nodeConfVolume: true
+    nodeConfVolumeClaimTemplate:
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        {{- if .Values.redis.clusterMode.operator.storage.className }}
+        storageClassName: {{ .Values.redis.clusterMode.operator.storage.className }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.redis.clusterMode.operator.storage.nodeConfSize }}
+  redisLeader:
+    replicas: {{ .Values.redis.clusterMode.operator.leaderReplicas }}
+    redisConfig:
+      additionalRedisConfig: external-services-redis-extra-config
+    resources:
+      {{- toYaml .Values.redis.clusterMode.operator.leader.resources | nindent 6 }}
+    {{- with .Values.redis.nodeSelector }}
+    nodeSelector:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.redis.tolerations }}
+    tolerations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.redis.topologySpreadConstraints }}
+    topologySpreadConstraints:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.redis.priorityClassName }}
+    priorityClassName: {{ . }}
+    {{- end }}
+    {{- /*
+      Spread this shard's pods across hosts by default, and MERGE anything the
+      user supplies in redis.affinity on top. Previously this block was
+      hardcoded, so a user-supplied affinity was silently discarded -- a
+      nodeAffinity preferring a dedicated node pool never reached the CR while
+      appearing to be set in values, which is the same class of bug as the CR
+      dropping nodeSelector/tolerations entirely.
+
+      User keys overwrite defaults, so supplying podAntiAffinity replaces this
+      cluster-label spread. Prefer NOT to: matching on `cluster: <cr-name>` is
+      more precise than an app-label selector because it targets exactly this
+      cluster's pods.
+    */}}
+    {{- $defaultAff := dict "podAntiAffinity" (dict
+          "preferredDuringSchedulingIgnoredDuringExecution" (list (dict
+            "weight" 100
+            "podAffinityTerm" (dict
+              "labelSelector" (dict "matchLabels" (dict "cluster" $crName))
+              "topologyKey" "kubernetes.io/hostname")))) }}
+    affinity:
+      {{- toYaml (mergeOverwrite $defaultAff (deepCopy (dig "affinity" dict .Values.redis))) | nindent 6 }}
+  redisFollower:
+    replicas: {{ .Values.redis.clusterMode.operator.followerReplicas }}
+    redisConfig:
+      additionalRedisConfig: external-services-redis-extra-config
+    resources:
+      {{- toYaml .Values.redis.clusterMode.operator.follower.resources | nindent 6 }}
+    {{- with .Values.redis.nodeSelector }}
+    nodeSelector:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.redis.tolerations }}
+    tolerations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.redis.topologySpreadConstraints }}
+    topologySpreadConstraints:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.redis.priorityClassName }}
+    priorityClassName: {{ . }}
+    {{- end }}
+    {{- /*
+      Spread this shard's pods across hosts by default, and MERGE anything the
+      user supplies in redis.affinity on top. Previously this block was
+      hardcoded, so a user-supplied affinity was silently discarded -- a
+      nodeAffinity preferring a dedicated node pool never reached the CR while
+      appearing to be set in values, which is the same class of bug as the CR
+      dropping nodeSelector/tolerations entirely.
+
+      User keys overwrite defaults, so supplying podAntiAffinity replaces this
+      cluster-label spread. Prefer NOT to: matching on `cluster: <cr-name>` is
+      more precise than an app-label selector because it targets exactly this
+      cluster's pods.
+    */}}
+    {{- $defaultAff := dict "podAntiAffinity" (dict
+          "preferredDuringSchedulingIgnoredDuringExecution" (list (dict
+            "weight" 100
+            "podAffinityTerm" (dict
+              "labelSelector" (dict "matchLabels" (dict "cluster" $crName))
+              "topologyKey" "kubernetes.io/hostname")))) }}
+    affinity:
+      {{- toYaml (mergeOverwrite $defaultAff (deepCopy (dig "affinity" dict .Values.redis))) | nindent 6 }}
+{{- if dig "enabled" true $opPdb }}
+---
+# PDB for operator-managed pods. The OT operator ships no PDB of its own.
+# Selector matches all cluster pods regardless of role — cluster: <cr-name>
+# + redis_setup_type: cluster are the two labels stable across both leaders
+# and followers.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: external-services-redis-operator-pdb
+  namespace: {{ $ns }}
+  labels:
+    {{- include "lumenvox-external-services.labels" . | nindent 4 }}
+spec:
+  maxUnavailable: {{ dig "maxUnavailable" 1 $opPdb }}
+  selector:
+    matchLabels:
+      cluster: {{ $crName }}
+      redis_setup_type: cluster
+{{- end }}
+---
+# Headless shim Service named exactly external-services-redis-clustercfg so
+# that global.redis.connection.url and the "clustercfg" scheme-switch in
+# deployment-add-job.yaml require no change.
+# Selector: cluster + redis_setup_type are the two labels stable across both
+# leader and follower pods.
+apiVersion: v1
+kind: Service
+metadata:
+  name: external-services-redis-clustercfg
+  namespace: {{ $ns }}
+  labels:
+    {{- include "lumenvox-external-services.labels" . | nindent 4 }}
+spec:
+  clusterIP: None
+  ports:
+    - name: client
+      port: 6379
+      targetPort: 6379
+  selector:
+    cluster: {{ $crName }}
+    redis_setup_type: cluster
+{{- end }}

@@ -8,7 +8,6 @@ metadata:
   labels:
     app: nlu
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: nlu
@@ -16,15 +15,21 @@ spec:
     metadata:
       labels:
         app: nlu
+{{- include "lumenvox-common.serviceMeshLabels" . | indent 8 }}
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '5110'
 {{- include "lumenvox-common.serviceMeshAnnotations" . | indent 8 }}
     spec:
+      terminationGracePeriodSeconds: 90
       containers:
         - name: nlu
           image: {{ .Values.image.repository | default .Values.global.image.repository }}/nlu{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "15"]
           ports:
             - name: http
               containerPort: 5110
@@ -97,7 +102,7 @@ spec:
             - name: RMQ_CLIENT_KEY
               value: '{{ .Values.global.rabbitmq.clientKey }}'
             - name: GLOBAL_SETTINGS__RABBITMQ_CONNECTION_STRING
-              value: 'amqp{{ if .Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ .Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ .Values.global.rabbitmq.connection.url }}:{{ .Values.global.rabbitmq.connection.port }}'
+              value: 'amqp{{ if .Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ .Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ .Values.global.rabbitmq.connection.url }}:{{ .Values.global.rabbitmq.connection.port }}/{{ .Values.global.rabbitmq.connection.vhost | urlquery }}'
             - name: GLOBAL_SETTINGS__RMQ_QUEUE_EXPIRE_MS
               value: '{{ .Values.global.lumenvox.rabbitmqQueueExpirationMs }}'
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
@@ -123,8 +128,12 @@ spec:
       {{- end }}
       tolerations:
         - effect: NoSchedule
-          key: gpu
+          key: nvidia.com/gpu
           operator: Exists
+        - effect: NoSchedule
+          key: kubernetes.azure.com/scalesetpriority
+          operator: Equal
+          value: spot
       initContainers:
         - name: wait-for-deployment-service
           image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}

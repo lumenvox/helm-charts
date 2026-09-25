@@ -1,0 +1,189 @@
+{{- if not .Values.global.minimalInstall }}
+{{- if .Values.global.transcribeBatch.enabled }}
+{{- range .Values.global.asrLanguages }}
+{{- $tbGpu := include "lumenvox-speech.RESOLVE_SERVICE_GPU" (dict "root" $ "lang" . "service" "transcribeBatch") | fromJson }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: transcribe-batch-{{ .name | replace "_" "-" }}
+  namespace: {{ default $.Release.Namespace $.Values.global.defaultNamespace }}
+  labels:
+    app: transcribe-batch-{{ .name | replace "_" "-" }}
+spec:
+  selector:
+    matchLabels:
+      app: transcribe-batch-{{ .name | replace "_" "-" }}
+  template:
+    metadata:
+      labels:
+        app: transcribe-batch-{{ .name | replace "_" "-" }}
+{{- include "lumenvox-common.serviceMeshLabels" $ | indent 8 }}
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '5110'
+{{- include "lumenvox-common.serviceMeshAnnotations" $ | indent 8 }}
+    spec:
+      terminationGracePeriodSeconds: 300
+      containers:
+        - name: transcribe-batch
+          image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/transcribe-batch{{ $.Values.image.tag | default $.Values.global.image.tag }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy | default $.Values.global.image.pullPolicy }}
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "15"]
+          ports:
+            - name: http
+              containerPort: 5110
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ $.Values.global.lumenvox.service.startDelaySeconds }}
+            periodSeconds: {{ $.Values.global.lumenvox.probes.periodSeconds }}
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            failureThreshold: 12
+            periodSeconds: {{ $.Values.global.lumenvox.probes.periodSeconds }}
+          {{- if $.Values.global.lumenvox.service.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ $.Values.global.lumenvox.service.startDelaySeconds }}
+            periodSeconds: {{ $.Values.global.lumenvox.probes.periodSeconds }}
+          {{- end }}
+          resources:
+            requests:
+              {{- if $.Values.global.lumenvox.enforceReservations }}
+              cpu: 1000m
+              memory: 4000Mi
+              {{- end }}
+            {{- if or $.Values.global.lumenvox.enforceLimits $tbGpu.enabled }}
+            limits:
+              {{- if $.Values.global.lumenvox.enforceLimits }}
+              cpu: 1500m
+              memory: 8000Mi
+              {{- end }}
+              {{- if $tbGpu.enabled }}
+              nvidia.com/gpu: '{{ $tbGpu.count }}'
+              {{- end }}
+            {{- end }}
+          envFrom:
+            - configMapRef:
+                name: timezone-configmap
+            {{- if $.Values.global.rabbitmq.auth.existingPasswordSecret }}
+            - secretRef:
+                name: {{ $.Values.global.rabbitmq.auth.existingPasswordSecret }}
+            {{- end }}
+            {{- if $.Values.global.redis.auth.existingSecret }}
+            - secretRef:
+                name: {{ $.Values.global.redis.auth.existingSecret }}
+            {{- end }}
+          env:
+            {{- if not $.Values.global.rabbitmq.auth.existingPasswordSecret }}
+            - name: rabbitmq-password
+              value: '{{ $.Values.global.rabbitmq.auth.password }}'
+            {{- end }}
+            {{- if not $.Values.global.redis.auth.existingSecret }}
+            - name: redis-password
+              value: '{{ $.Values.global.redis.auth.password }}'
+            {{- end }}
+            - name: GLOBAL_SETTINGS__CLUSTER_LOG_VERBOSITY
+              value: '{{ $.Values.global.lumenvox.loggingVerbosity }}'
+            - name: LICENSE_SETTINGS__CLUSTER_GUID
+              value: '{{ $.Values.global.licensing.clusterGuid }}'
+            - name: REDIS_SETTINGS__DEFAULT_TTL
+              value: '{{ $.Values.global.lumenvox.redisTtl }}'
+            - name: RMQ_CA_CERTIFICATE
+              value: '{{ $.Values.global.rabbitmq.caCertificate }}'
+            - name: RMQ_CLIENT_CERTIFICATE
+              value: '{{ $.Values.global.rabbitmq.clientCertificate }}'
+            - name: RMQ_CLIENT_KEY
+              value: '{{ $.Values.global.rabbitmq.clientKey }}'
+            - name: GLOBAL_SETTINGS__RABBITMQ_CONNECTION_STRING
+              value: 'amqp{{ if $.Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ $.Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ $.Values.global.rabbitmq.connection.url }}:{{ $.Values.global.rabbitmq.connection.port }}/{{ $.Values.global.rabbitmq.connection.vhost | urlquery }}'
+            - name: GLOBAL_SETTINGS__RMQ_QUEUE_EXPIRE_MS
+              value: '{{ $.Values.global.lumenvox.rabbitmqQueueExpirationMs }}'
+            - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
+              value: 'configuration-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}:5000'
+            - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE
+              value: 'deployment-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}:5000'
+            - name: ASR_SETTINGS__SERVICE_LANGUAGE
+              value: '{{ .name }}'
+            - name: TRANS_BATCH_ENCODERS
+              value: '{{ template "lumenvox-speech.SERVICE_ASR_MODELS" (dict "root" $ "lang" . "service" "transcribeBatch" "kind" "encoder") }}'
+            - name: TRANS_BATCH_DECODERS
+              value: '{{ template "lumenvox-speech.SERVICE_ASR_MODELS" (dict "root" $ "lang" . "service" "transcribeBatch" "kind" "decoder") }}'
+            {{- if $tbGpu.enabled }}
+            - name: ASR_SETTINGS__ENABLE_GPU
+              value: 'true'
+            {{- if $tbGpu.visibleDevices }}
+            - name: NVIDIA_VISIBLE_DEVICES
+              value: '{{ $tbGpu.visibleDevices }}'
+            {{- end }}
+            {{- end }}
+            - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
+              value: 'ignore'
+          volumeMounts:
+            - mountPath: /usr/local/lib/python3.12/dist-packages
+              name: lang
+              subPath: DistPackageModels/asr/dist-packages
+            - mountPath: /EuropaAsrModels
+              name: lang
+              subPath: EuropaAsrModels
+            - mountPath: /var/lumenvox/cache
+              name: europa-cache
+            - mountPath: /BackendModels
+              name: lang
+              subPath: BackendModels
+      {{- if $.Values.global.imagePullSecrets }}
+      imagePullSecrets:
+      {{- range $.Values.global.imagePullSecrets }}
+        - name: {{ . }}
+      {{- end }}
+      {{- end }}
+      {{- if $tbGpu.enabled }}
+      tolerations:
+        - effect: NoSchedule
+          key: nvidia.com/gpu
+          operator: Exists
+        - effect: NoSchedule
+          key: kubernetes.azure.com/scalesetpriority
+          operator: Equal
+          value: spot
+      {{- end }}
+      initContainers:
+        - name: wait-for-deployment-service
+          image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/cloud-init-tools{{ $.Values.image.tag | default $.Values.global.image.tag }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy | default $.Values.global.image.pullPolicy }}
+          command: [ "curl2" ]
+          args: [ "http://deployment-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}:5110/health", "Deployment Service" ]
+        - name: wait-for-resource-manager
+          image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/cloud-init-tools{{ $.Values.image.tag | default $.Values.global.image.tag }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy | default $.Values.global.image.pullPolicy }}
+          command: [ "curl2" ]
+          args: [ "http://resource-service.{{ default $.Release.Namespace $.Values.global.defaultNamespace }}:5110/health", "Resource Manager Service" ]
+      volumes:
+        - name: lang
+          persistentVolumeClaim:
+            claimName: lang-claim
+            readOnly: false
+        - name: europa-cache
+          persistentVolumeClaim:
+            claimName: europa-cache-claim
+            readOnly: false
+      {{- if $.Values.global.lumenvox.schedulerName }}
+      schedulerName: {{ $.Values.global.lumenvox.schedulerName }}
+      {{- end }}
+      {{- if $tbGpu.enabled }}
+      {{- if $tbGpu.runtimeClassName }}
+      runtimeClassName: {{ $tbGpu.runtimeClassName }}
+      {{- end }}
+      {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

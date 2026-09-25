@@ -1,35 +1,223 @@
+{{- $ingress := .Values.global.lumenvox.ingress -}}
+{{- $ingressClassName := $ingress.className -}}
+{{- $jwt := $ingress.jwtAuth | default (dict) -}}
+{{- $jwtProvider := $jwt.provider | default "token-auth-service" -}}
+{{- $tokenAuth := not $ingress.disableTokenAuth -}}
+{{- $allowlist := $ingress.lumenvoxApiAllowlist | default (list) -}}
+{{- /*
+Customer-facing lumenvox-api route. Access control is opt-in and works the same in
+both modes: lumenvoxApiAllowlist restricts by source IP, disableTokenAuth=false
+requires a bearer token. When both are set, either one grants access.
+/health, /metrics and /ready on this hostname (lumenvox-api-http.yaml,
+lumenvox-api-health-check.yaml) stay reachable without either: on nginx they are
+separate Ingresses that don't carry these annotations, on Istio they are excluded
+from every policy below.
+*/ -}}
+{{- if ne $ingressClassName "istio" }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: lumenvox-api-ingress-grpc
   namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
-  {{- if or .Values.global.lumenvox.ingress.commonAnnotations .Values.global.lumenvox.ingress.grpcAnnotations }}
   annotations:
-    {{- range .Values.global.lumenvox.ingress.commonAnnotations }}
-      {{ .name }}: "{{ .value }}"
+    {{- if $tokenAuth }}
+    # Token auth: nginx calls the external auth service for each request and
+    # forwards the Authorization header it returns to lumenvox-api.
+    nginx.ingress.kubernetes.io/auth-method: "GET"
+    nginx.ingress.kubernetes.io/auth-url: {{ $jwt.tokenAuthUrl | quote }}
+    nginx.ingress.kubernetes.io/auth-response-headers: "Authorization"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header Authorization $http_authorization;
+    {{- if $allowlist }}
+    # An allowlisted source IP or a valid token is enough on its own.
+    nginx.ingress.kubernetes.io/satisfy: "any"
     {{- end }}
-    {{- range .Values.global.lumenvox.ingress.grpcAnnotations }}
-      {{ .name }}: "{{ .value }}"
     {{- end }}
-  {{- end }}
+    {{- include "lumenvox-common.nginxAnnotations" (dict "kind" "grpc" "root" $ "allowlist" $allowlist "skip" (ternary (list "nginx.ingress.kubernetes.io/configuration-snippet" "nginx.ingress.kubernetes.io/satisfy") (list) $tokenAuth) "skipPrefix" (ternary (list "nginx.ingress.kubernetes.io/auth-") (list) $tokenAuth)) }}
 spec:
-  {{- if .Values.global.lumenvox.ingress.className }}
-  ingressClassName: {{ .Values.global.lumenvox.ingress.className }}
+  {{- if $ingressClassName }}
+  ingressClassName: {{ $ingressClassName }}
+  {{- end }}
+  {{- if not $ingress.disableTls }}
+  tls:
+  - hosts:
+    - "lumenvox-api{{ .Values.global.hostnameSuffix }}"
+    secretName: {{ .Values.global.lumenvox.gateway.tlsSecretName }}
   {{- end }}
   rules:
-    - host: lumenvox-api{{ .Values.global.hostnameSuffix }}
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: lumenvox-api-service
-                port:
-                  name: grpc
-  {{- if not .Values.global.lumenvox.ingress.disableTls }}
-  tls:
-    - secretName: speech-tls-secret
-      hosts:
-        - lumenvox-api{{ .Values.global.hostnameSuffix }}
-  {{- end }}
+  - host: "lumenvox-api{{ .Values.global.hostnameSuffix }}"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: lumenvox-api-service
+            port:
+              name: grpc
+{{- else }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: lumenvox-api-grpcroute
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+spec:
+  parentRefs:
+    - name: {{ .Values.global.lumenvox.gateway.name }}
+      namespace: {{ include "lumenvox-common.gatewayNamespace" . }}
+      sectionName: web
+  hostnames:
+    - "lumenvox-api{{ .Values.global.hostnameSuffix }}"
+  rules:
+    - timeouts:
+        request: "0s"
+      backendRefs:
+        - name: lumenvox-api-service
+          port: 5000
+{{- if and $allowlist (not $tokenAuth) }}
+---
+# Source-IP allowlist on its own: reject anything outside lumenvoxApiAllowlist.
+# With token auth on, the allowlist is folded into the auth policies below instead,
+# so that either one grants access.
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: lumenvox-api-ip-allowlist
+  namespace: {{ include "lumenvox-common.gatewayNamespace" . }}
+spec:
+  selector:
+    matchLabels:
+      gateway.networking.k8s.io/gateway-name: {{ .Values.global.lumenvox.gateway.name }}
+  action: DENY
+  rules:
+    - from:
+        - source:
+            {{- toYaml (dict "notIpBlocks" $allowlist) | nindent 12 }}
+      to:
+        - operation:
+            hosts:
+              - "lumenvox-api{{ .Values.global.hostnameSuffix }}"
+              # gRPC clients set :authority to host:port; match that form too.
+              - "lumenvox-api{{ .Values.global.hostnameSuffix }}:*"
+            notPaths:
+              - "/health*"
+              - "/metrics*"
+              - "/ready*"
+{{- end }}
+{{- if $tokenAuth }}
+{{- if eq $jwtProvider "istio-native" }}
+{{- $issuer := required "global.lumenvox.ingress.jwtAuth.issuer must be set when jwtAuth.provider is \"istio-native\"" $jwt.issuer }}
+---
+# Native Istio JWT validation: the gateway checks each token against the identity
+# provider's JWKS itself; no external auth service is involved.
+apiVersion: security.istio.io/v1
+kind: RequestAuthentication
+metadata:
+  name: lumenvox-api-jwt
+  namespace: {{ include "lumenvox-common.gatewayNamespace" . }}
+spec:
+  selector:
+    matchLabels:
+      gateway.networking.k8s.io/gateway-name: {{ .Values.global.lumenvox.gateway.name }}
+  jwtRules:
+    - issuer: {{ $issuer | quote }}
+      {{- with $jwt.jwksUri }}
+      jwksUri: {{ . | quote }}
+      {{- end }}
+      {{- with $jwt.audiences }}
+      audiences:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      forwardOriginalToken: true
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: lumenvox-api-require-jwt
+  namespace: {{ include "lumenvox-common.gatewayNamespace" . }}
+spec:
+  selector:
+    matchLabels:
+      gateway.networking.k8s.io/gateway-name: {{ .Values.global.lumenvox.gateway.name }}
+  action: DENY
+  rules:
+    # Deny when no valid JWT was presented (health/metrics/ready stay open).
+    - from:
+        - source:
+            notRequestPrincipals: ["*"]
+            {{- if $allowlist }}
+            # Allowlisted source IPs don't need a token.
+            {{- toYaml (dict "notIpBlocks" $allowlist) | nindent 12 }}
+            {{- end }}
+      to:
+        - operation:
+            hosts:
+              - "lumenvox-api{{ .Values.global.hostnameSuffix }}"
+              # gRPC clients set :authority to host:port; match that form too.
+              - "lumenvox-api{{ .Values.global.hostnameSuffix }}:*"
+            notPaths:
+              - "/health*"
+              - "/metrics*"
+              - "/ready*"
+    {{- range $jwt.requiredClaims }}
+    {{- if not .values }}
+    {{- fail (printf "global.lumenvox.ingress.jwtAuth.requiredClaims: claim %q needs at least one entry in values" (toString .claim)) }}
+    {{- end }}
+    # Deny tokens whose "{{ .claim }}" claim is missing or not an accepted value.
+    - to:
+        - operation:
+            hosts:
+              - "lumenvox-api{{ $.Values.global.hostnameSuffix }}"
+              - "lumenvox-api{{ $.Values.global.hostnameSuffix }}:*"
+            notPaths:
+              - "/health*"
+              - "/metrics*"
+              - "/ready*"
+      {{- if $allowlist }}
+      from:
+        - source:
+            {{- toYaml (dict "notIpBlocks" $allowlist) | nindent 12 }}
+      {{- end }}
+      when:
+        - key: request.auth.claims[{{ .claim }}]
+          notValues:
+            {{- range .values }}
+            - {{ . | quote }}
+            {{- end }}
+    {{- end }}
+{{- else }}
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: lumenvox-api-authz
+  namespace: {{ include "lumenvox-common.gatewayNamespace" . }}
+spec:
+  selector:
+    matchLabels:
+      gateway.networking.k8s.io/gateway-name: {{ .Values.global.lumenvox.gateway.name }}
+  action: CUSTOM
+  provider:
+    name: {{ required "global.lumenvox.ingress.jwtAuth.tokenAuthProvider must be set when jwtAuth.provider is \"token-auth-service\"" $jwt.tokenAuthProvider }}
+  rules:
+    - to:
+        - operation:
+            hosts:
+              - "lumenvox-api{{ .Values.global.hostnameSuffix }}"
+              # gRPC clients set :authority to host:port; match that form too.
+              - "lumenvox-api{{ .Values.global.hostnameSuffix }}:*"
+            # health/metrics/ready live on this same hostname (lumenvox-api-http.yaml,
+            # lumenvox-api-health-check.yaml) and must stay reachable without a customer token.
+            notPaths:
+              - "/health*"
+              - "/metrics*"
+              - "/ready*"
+      {{- if $allowlist }}
+      # Allowlisted source IPs skip the external auth check.
+      from:
+        - source:
+            {{- toYaml (dict "notIpBlocks" $allowlist) | nindent 12 }}
+      {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

@@ -6,7 +6,6 @@ metadata:
   labels:
     app: binary-storage
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: binary-storage
@@ -14,6 +13,7 @@ spec:
     metadata:
       labels:
         app: binary-storage
+{{- include "lumenvox-common.serviceMeshLabels" . | indent 8 }}
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '5110'
@@ -78,7 +78,7 @@ spec:
             - name: RMQ_CLIENT_KEY
               value: '{{ .Values.global.rabbitmq.clientKey }}'
             - name: GLOBAL_SETTINGS__RABBITMQ_CONNECTION_STRING
-              value: 'amqp{{ if .Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ .Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ .Values.global.rabbitmq.connection.url }}:{{ .Values.global.rabbitmq.connection.port }}'
+              value: 'amqp{{ if .Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ .Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ .Values.global.rabbitmq.connection.url }}:{{ .Values.global.rabbitmq.connection.port }}/{{ .Values.global.rabbitmq.connection.vhost | urlquery }}'
             - name: GLOBAL_SETTINGS__RMQ_QUEUE_EXPIRE_MS
               value: '{{ .Values.global.lumenvox.rabbitmqQueueExpirationMs }}'
             - name: SERVICE_ADDRESSES__CONFIGURATION_SERVICE
@@ -95,6 +95,35 @@ spec:
       {{- end }}
       {{- end }}
       initContainers:
+        {{- if .Values.global.enabled.externalServices }}
+        - name: wait-for-redis-cluster
+          image: "docker.io/redis:8.2.4-alpine"
+          command:
+            - sh
+            - -c
+            - |
+              HOST="{{ .Values.global.redis.connection.url }}"
+              echo "Waiting for redis cluster to be formed..."
+              until [ "$(redis-cli -h "$HOST" -p {{ .Values.global.redis.connection.port }} {{ if .Values.global.redis.enableTLS }}--tls --insecure {{ end }}-a "$REDIS_PASSWORD" --no-auth-warning cluster info 2>/dev/null | tr -d '\r' | grep cluster_state | cut -d: -f2)" = "ok" ]; do
+                echo "  cluster not formed yet, retrying in 5s..."
+                sleep 5
+              done
+              echo "Redis cluster is ok."
+          env:
+            {{- if .Values.global.redis.auth.existingSecret }}
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.global.redis.auth.existingSecret }}
+                  key: redis-password
+            {{- else if .Values.global.redis.auth.password }}
+            - name: REDIS_PASSWORD
+              value: '{{ .Values.global.redis.auth.password }}'
+            {{- else }}
+            - name: REDIS_PASSWORD
+              value: ""
+            {{- end }}
+        {{- end }}
         - name: wait-for-deployment-service
           image: {{ .Values.image.repository | default .Values.global.image.repository }}/cloud-init-tools{{ .Values.image.tag | default .Values.global.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}

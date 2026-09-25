@@ -1,25 +1,27 @@
 {{- if .Values.linkerd.dashboard.enabled }}
-# apiVersion: networking.k8s.io/v1beta1 # for k8s < v1.19
+{{- $ingressClassName := .Values.global.lumenvox.ingress.className -}}
+{{- if ne $ingressClassName "istio" }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: web-ingress
+  name: linkerd-dashboard-ingress
   namespace: {{ .Values.linkerd.dashboard.namespace }}
   annotations:
-    nginx.ingress.kubernetes.io/upstream-vhost: $service_name.$namespace.svc.cluster.local:8084
+    nginx.ingress.kubernetes.io/upstream-vhost: "web.{{ .Values.linkerd.dashboard.namespace }}.svc.cluster.local:8084"
     nginx.ingress.kubernetes.io/configuration-snippet: |
       proxy_set_header Origin "";
       proxy_hide_header l5d-remote-ip;
       proxy_hide_header l5d-server-id;
+    {{- if .Values.global.serviceMesh.dashboard.ingressSecret }}
     nginx.ingress.kubernetes.io/auth-type: basic
-    nginx.ingress.kubernetes.io/auth-secret: web-ingress-auth
-    nginx.ingress.kubernetes.io/auth-realm: 'Authentication Required'
+    nginx.ingress.kubernetes.io/auth-secret: {{ .Values.global.serviceMesh.dashboard.ingressSecret }}
+    {{- end }}
 spec:
-  {{- if .Values.linkerd.ingressClassName }}
-  ingressClassName: {{ .Values.linkerd.ingressClassName }}
+  {{- if $ingressClassName }}
+  ingressClassName: {{ $ingressClassName }}
   {{- end }}
   rules:
-  - host: {{ .Values.linkerd.dashboard.hostPrefix }}{{ .Values.global.hostnameSuffix }}
+  - host: "{{ .Values.linkerd.dashboard.hostPrefix }}{{ .Values.global.hostnameSuffix }}"
     http:
       paths:
       - path: /
@@ -29,4 +31,44 @@ spec:
             name: web
             port:
               number: 8084
+{{- else }}
+# NOTE: Basic auth (previously nginx.ingress.kubernetes.io/auth-*) is not natively
+# supported in Kubernetes Gateway API. Implement authentication via an Istio
+# RequestAuthentication + AuthorizationPolicy or an external auth service.
+#
+# NOTE: The upstream-vhost annotation behaviour can be replicated using an Istio
+# VirtualService if needed. The Origin and l5d header manipulation below uses
+# the standard HTTPRoute RequestHeaderModifier filter.
+#
+# NOTE: This HTTPRoute is in namespace {{ .Values.linkerd.dashboard.namespace }} but
+# references the Gateway in the lumenvox namespace. The Gateway listener uses
+# allowedRoutes.namespaces.from: All to permit this cross-namespace attachment.
+# The backend (web service) is in the same namespace as this route, so no
+# ReferenceGrant is required.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: linkerd-dashboard-httproute
+  namespace: {{ .Values.linkerd.dashboard.namespace }}
+spec:
+  parentRefs:
+    - name: {{ .Values.global.lumenvox.gateway.name }}
+      namespace: {{ include "lumenvox-common.gatewayNamespace" . }}
+      sectionName: web
+  hostnames:
+    - "{{ .Values.linkerd.dashboard.hostPrefix }}{{ .Values.global.hostnameSuffix }}"
+  rules:
+    - filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            set:
+              - name: Origin
+                value: ""
+            remove:
+              - l5d-remote-ip
+              - l5d-server-id
+      backendRefs:
+        - name: web
+          port: 8084
+{{- end }}
 {{- end }}

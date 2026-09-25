@@ -1,0 +1,136 @@
+{{- if .Values.mongodb.enabled }}
+{{- $mdb := .Values.mongodb }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: external-services-mongodb-pvc
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+  labels:
+    {{- include "lumenvox-external-services.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/resource-policy": keep
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- with (default .Values.storage.className $mdb.storageClassName) }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ $mdb.storageSize }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: external-services-mongodb
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+  labels:
+    app: external-services-mongodb
+    {{- include "lumenvox-external-services.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  # single replica on an RWO volume - the old pod must release the volume
+  # before the new one can start, so RollingUpdate deadlocks on upgrades
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: external-services-mongodb
+  template:
+    metadata:
+      labels:
+        app: external-services-mongodb
+      {{- $ann := include "lumenvox-external-services.podAnnotations" (dict "svc" $mdb "root" . "ports" "27017") }}
+      {{- if $ann | trim }}
+      annotations:
+        {{- $ann | trim | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- $sched := include "lumenvox-external-services.scheduling" $mdb }}
+      {{- if $sched | trim }}
+      {{- $sched | trim | nindent 6 }}
+      {{- end }}
+      containers:
+        - name: mongodb
+          image: "{{ $mdb.image.repository }}:{{ $mdb.image.tag }}"
+          imagePullPolicy: {{ $mdb.image.pullPolicy }}
+          {{- if or $mdb.wiredTigerCacheSizeGB $mdb.extraArgs }}
+          args:
+            {{- if $mdb.wiredTigerCacheSizeGB }}
+            # Pinned rather than inferred. Left alone, WiredTiger sizes its
+            # cache at 50% of (memory limit - 1GB), which reserves more than
+            # `requests` promised the scheduler -- overcommit that surfaces as
+            # node memory pressure rather than as a mongod error.
+            - "--wiredTigerCacheSizeGB"
+            - "{{ $mdb.wiredTigerCacheSizeGB }}"
+            {{- end }}
+            {{- range $mdb.extraArgs }}
+            - {{ . | quote }}
+            {{- end }}
+          {{- end }}
+          ports:
+            - containerPort: 27017
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              value: {{ .Values.mongodb.username }}
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-existing-secret
+                  key: mongodb-root-password
+          {{- if dig "probes" "enabled" false $mdb }}
+          readinessProbe:
+            exec:
+              command: ["mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+            {{- toYaml (dig "probes" "readiness" dict $mdb) | nindent 12 }}
+          livenessProbe:
+            exec:
+              command: ["mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+            {{- toYaml (dig "probes" "liveness" dict $mdb) | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: mongodb-data
+              mountPath: /data/db
+          resources:
+            {{- toYaml $mdb.resources | nindent 12 }}
+      volumes:
+        - name: mongodb-data
+          persistentVolumeClaim:
+            claimName: external-services-mongodb-pvc
+{{- if dig "podDisruptionBudget" "enabled" false $mdb }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: external-services-mongodb-pdb
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+  labels:
+    {{- include "lumenvox-external-services.labels" . | nindent 4 }}
+spec:
+  maxUnavailable: {{ dig "podDisruptionBudget" "maxUnavailable" 0 $mdb }}
+  selector:
+    matchLabels:
+      app: external-services-mongodb
+{{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: external-services-mongodb
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+  labels:
+    app: external-services-mongodb
+    {{- include "lumenvox-external-services.labels" . | nindent 4 }}
+  {{- if .Values.linkerd.enabled }}
+  annotations:
+    config.linkerd.io/opaque-ports: "27017"
+  {{- end }}
+spec:
+  selector:
+    app: external-services-mongodb
+  ports:
+    - name: mongo
+      port: 27017
+      targetPort: 27017
+  type: ClusterIP
+{{- end }}

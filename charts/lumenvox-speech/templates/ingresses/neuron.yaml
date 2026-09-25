@@ -1,27 +1,47 @@
 {{- if .Values.global.enableNeuron }}
 {{- if .Values.global.lumenvox.metrics.enableEndpoints }}
+{{- $ingressClassName := $.Values.global.lumenvox.ingress.className -}}
 {{- range .Values.global.neuronLanguages }}
 ---
+{{- if ne $ingressClassName "istio" }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: neuron-{{ .name | replace "_" "-" }}-ingress
   namespace: {{ default $.Release.Namespace $.Values.global.defaultNamespace }}
 spec:
-  {{- if $.Values.global.lumenvox.ingress.className }}
-  ingressClassName: {{ $.Values.global.lumenvox.ingress.className }}
+  {{- if $ingressClassName }}
+  ingressClassName: {{ $ingressClassName }}
   {{- end }}
   rules:
-    - host: neuron-{{ .name | replace "_" "-" }}{{ $.Values.global.hostnameSuffix }}
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: neuron-{{ .name | replace "_" "-" }}-service
-                port:
-                  name: http
+  - host: "neuron-{{ .name | replace "_" "-" }}{{ $.Values.global.hostnameSuffix }}"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: neuron-{{ .name | replace "_" "-" }}-service
+            port:
+              name: http
+{{- else }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: neuron-{{ .name | replace "_" "-" }}-httproute
+  namespace: {{ default $.Release.Namespace $.Values.global.defaultNamespace }}
+spec:
+  parentRefs:
+    - name: {{ $.Values.global.lumenvox.gateway.name }}
+      namespace: {{ include "lumenvox-common.gatewayNamespace" $ }}
+      sectionName: web
+  hostnames:
+    - "neuron-{{ .name | replace "_" "-" }}{{ $.Values.global.hostnameSuffix }}"
+  rules:
+    - backendRefs:
+        - name: neuron-{{ .name | replace "_" "-" }}-service
+          port: 5110
+{{- end }}
 {{- end }}
 {{- end }}
 {{- end }}

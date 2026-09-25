@@ -1,42 +1,80 @@
 {{- if .Values.global.lumenvox.metrics.enableEndpoints }}
+{{- $ingressClassName := .Values.global.lumenvox.ingress.className -}}
+{{- if ne $ingressClassName "istio" }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: lumenvox-api-ingress-http
   namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
 spec:
-  {{- if .Values.global.lumenvox.ingress.className }}
-  ingressClassName: {{ .Values.global.lumenvox.ingress.className }}
+  {{- if $ingressClassName }}
+  ingressClassName: {{ $ingressClassName }}
   {{- end }}
-  rules:
-    - host: lumenvox-api{{ .Values.global.hostnameSuffix }}
-      http:
-        paths:
-          - path: /metrics
-            pathType: Prefix
-            backend:
-              service:
-                name: lumenvox-api-service
-                port:
-                  name: http
-          - path: /health
-            pathType: Prefix
-            backend:
-              service:
-                name: lumenvox-api-service
-                port:
-                  name: http
-          - path: /ready
-            pathType: Prefix
-            backend:
-              service:
-                name: lumenvox-api-service
-                port:
-                  name: http
   {{- if not .Values.global.lumenvox.ingress.disableTls }}
   tls:
-    - secretName: speech-tls-secret
-      hosts:
-        - lumenvox-api{{ .Values.global.hostnameSuffix }}
+  - hosts:
+    - "lumenvox-api{{ .Values.global.hostnameSuffix }}"
+    secretName: {{ .Values.global.lumenvox.gateway.tlsSecretName }}
   {{- end }}
+  rules:
+  - host: "lumenvox-api{{ .Values.global.hostnameSuffix }}"
+    http:
+      paths:
+      - path: /metrics
+        pathType: Prefix
+        backend:
+          service:
+            name: lumenvox-api-service
+            port:
+              name: http
+      - path: /health
+        pathType: Prefix
+        backend:
+          service:
+            name: lumenvox-api-service
+            port:
+              name: http
+      - path: /ready
+        pathType: Prefix
+        backend:
+          service:
+            name: lumenvox-api-service
+            port:
+              name: http
+{{- else }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: lumenvox-api-httproute-metrics
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+spec:
+  parentRefs:
+    - name: {{ .Values.global.lumenvox.gateway.name }}
+      namespace: {{ include "lumenvox-common.gatewayNamespace" . }}
+      sectionName: web
+  hostnames:
+    - "lumenvox-api{{ .Values.global.hostnameSuffix }}"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /metrics
+      backendRefs:
+        - name: lumenvox-api-service
+          port: 5110
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /health
+      backendRefs:
+        - name: lumenvox-api-service
+          port: 5110
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /ready
+      backendRefs:
+        - name: lumenvox-api-service
+          port: 5110
+{{- end }}
 {{- end }}

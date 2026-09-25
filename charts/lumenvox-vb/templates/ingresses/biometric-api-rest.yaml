@@ -1,26 +1,46 @@
+{{- $ingressClassName := .Values.global.lumenvox.ingress.className -}}
+{{- if ne $ingressClassName "istio" }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: biometric-api-ingress
   namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
 spec:
-  {{- if .Values.global.lumenvox.ingress.className }}
-  ingressClassName: {{ .Values.global.lumenvox.ingress.className }}
+  {{- if $ingressClassName }}
+  ingressClassName: {{ $ingressClassName }}
   {{- end }}
-  rules:
-    - host: biometric-api{{ .Values.global.hostnameSuffix }}
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: biometric-api-service
-                port:
-                  name: rest
   {{- if not .Values.global.lumenvox.ingress.disableTls }}
   tls:
-    - secretName: speech-tls-secret
-      hosts:
-        - biometric-api{{ .Values.global.hostnameSuffix }}
+  - hosts:
+    - "biometric-api{{ .Values.global.hostnameSuffix }}"
+    secretName: {{ .Values.global.lumenvox.gateway.tlsSecretName }}
   {{- end }}
+  rules:
+  - host: "biometric-api{{ .Values.global.hostnameSuffix }}"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: biometric-api-service
+            port:
+              name: rest
+{{- else }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: biometric-api-httproute
+  namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+spec:
+  parentRefs:
+    - name: {{ .Values.global.lumenvox.gateway.name }}
+      namespace: {{ default .Release.Namespace .Values.global.defaultNamespace }}
+      sectionName: web
+  hostnames:
+    - "biometric-api{{ .Values.global.hostnameSuffix }}"
+  rules:
+    - backendRefs:
+        - name: biometric-api-service
+          port: 81
+{{- end }}

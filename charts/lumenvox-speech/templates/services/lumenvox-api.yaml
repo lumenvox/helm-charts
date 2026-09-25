@@ -10,6 +10,7 @@ spec:
     - name: grpc
       port: 5000
       targetPort: grpc
+      appProtocol: kubernetes.io/h2c
     - name: http
       port: 5110
       targetPort: http

@@ -1,0 +1,38 @@
+{{- /*
+Gateway mode only: one DENY AuthorizationPolicy per internal-staff route, rejecting
+source IPs outside global.lumenvox.ingress.internalAllowlist. Nothing renders when
+the allowlist is empty, since an empty notIpBlocks would deny everyone. On nginx the
+allowlist is applied as whitelist-source-range on each Ingress instead.
+lumenvox-common renders the same policy for its own internal routes.
+*/}}
+{{- $root := . }}
+{{- $allowlist := .Values.global.lumenvox.ingress.internalAllowlist }}
+{{- if and (eq .Values.global.lumenvox.ingress.className "istio") $allowlist }}
+{{- range $routeName := list "reporting-api" }}
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ $routeName }}-ip-allowlist
+  namespace: {{ include "lumenvox-common.gatewayNamespace" $root }}
+spec:
+  selector:
+    matchLabels:
+      gateway.networking.k8s.io/gateway-name: {{ $root.Values.global.lumenvox.gateway.name }}
+  action: DENY
+  rules:
+    - to:
+        - operation:
+            hosts:
+              - "{{ $routeName }}{{ $root.Values.global.hostnameSuffix }}"
+              # gRPC/HTTP2 clients typically set :authority to host:port; the
+              # port-suffixed form must be matched too or gRPC bypasses this policy.
+              - "{{ $routeName }}{{ $root.Values.global.hostnameSuffix }}:*"
+      from:
+        - source:
+            notIpBlocks:
+              {{- range $allowlist }}
+              - {{ . | quote }}
+              {{- end }}
+{{- end }}
+{{- end }}

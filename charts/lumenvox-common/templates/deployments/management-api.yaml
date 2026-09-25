@@ -6,7 +6,6 @@ metadata:
   labels:
     app: management-api
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: management-api
@@ -14,6 +13,7 @@ spec:
     metadata:
       labels:
         app: management-api
+{{- include "lumenvox-common.serviceMeshLabels" . | indent 8 }}
         # No Prometheus scraping for now
       annotations:
 {{- include "lumenvox-common.serviceMeshAnnotations" . | indent 8 }}
@@ -75,7 +75,7 @@ spec:
             - name: RMQ_CLIENT_KEY
               value: '{{ .Values.global.rabbitmq.clientKey }}'
             - name: GLOBAL_SETTINGS__RABBITMQ_CONNECTION_STRING
-              value: 'amqp{{ if .Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ .Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ .Values.global.rabbitmq.connection.url }}:{{ .Values.global.rabbitmq.connection.port }}'
+              value: 'amqp{{ if .Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ .Values.global.rabbitmq.connection.user }}:$(rabbitmq-password)@{{ .Values.global.rabbitmq.connection.url }}:{{ .Values.global.rabbitmq.connection.port }}/{{ .Values.global.rabbitmq.connection.vhost | urlquery }}'
             - name: GLOBAL_SETTINGS__RMQ_QUEUE_EXPIRE_MS
               value: '{{ .Values.global.lumenvox.rabbitmqQueueExpirationMs }}'
             - name: SERVICE_ADDRESSES__DEPLOYMENT_SERVICE

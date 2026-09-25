@@ -1,0 +1,429 @@
+# =============================================================================
+# LumenVox External Services - Helm values
+#
+# Services: MongoDB, PostgreSQL, RabbitMQ, Redis
+#
+# Install into the same namespace as the LumenVox stack, with the release
+# name "external-services" so the in-cluster DNS names match the LumenVox
+# chart defaults (external-services-mongodb, external-services-postgresql,
+# external-services-rabbitmq, external-services-redis-master):
+#
+#   helm install external-services . -n lumenvox --create-namespace
+#
+# Default resources are sized for a POC per the LumenVox README minimums.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Storage
+# -----------------------------------------------------------------------------
+# className: "" uses the cluster's default storage class (recommended on
+# EKS/AKS/GKE). Set a name to pick a specific storage class.
+# If the cluster has NO storage class at all (bare-metal), set
+# localPathProvisioner.enabled: true and className: local-path — the chart
+# will then install the Rancher local-path provisioner.
+global:
+  defaultNamespace: ""
+  serviceMesh:
+    istio:
+      # When false (default), these pods are annotated sidecar.istio.io/inject:
+      # "false" to keep the databases and message broker out of the Istio mesh.
+      # Set true to allow sidecar injection. A global so the lumenvox chart can
+      # set it alongside its other global.serviceMesh settings.
+      injectDatabaseSidecars: false
+
+storage:
+  # On EKS, prefer an encrypted gp3 class on ebs.csi.aws.com with volume
+  # expansion over the default gp2 class, which uses the in-tree provisioner
+  # and can't be expanded later without recreating the volume.
+  className: ""
+
+localPathProvisioner:
+  enabled: false
+  namespace: local-path-storage
+  image: rancher/local-path-provisioner:v0.0.35
+  helperImage: busybox
+  # Host path where volumes are created on each node
+  nodePath: /opt/local-path-provisioner
+
+# -----------------------------------------------------------------------------
+# Service mesh
+# -----------------------------------------------------------------------------
+# If linkerd is installed in the cluster, set this to true. 
+# If there is no linkerd, leave it false.
+
+linkerd:
+  enabled: false
+
+# Istio sidecar injection for these pods is set by
+# global.serviceMesh.istio.injectDatabaseSidecars (top of this file).
+
+# -----------------------------------------------------------------------------
+# Credentials
+# -----------------------------------------------------------------------------
+# This chart does not create secrets. The four secrets it references
+# (mongodb-existing-secret, postgres-existing-secret, rabbitmq-existing-secret,
+# redis-existing-secret) must be pre-created in the release namespace with
+# kubectl or external tooling — the install fails with the exact kubectl
+# command if one is missing or incomplete. The secret names and keys match
+# what the LumenVox Helm chart expects.
+
+# -----------------------------------------------------------------------------
+# MongoDB
+# -----------------------------------------------------------------------------
+mongodb:
+  enabled: true
+  # username for the service; the LumenVox chart must use the same value
+  username: lvuser
+  image:
+    repository: docker.io/mongo
+    tag: "8.2.12"
+    pullPolicy: IfNotPresent
+  # Atlas M10 held 19 GiB at the measured load; 300Gi was never needed.
+  storageSize: 50Gi
+  # Storage class for this service only. Empty = fall back to storage.className
+  # (and, if that is empty too, the cluster default). Split out per service
+  # because the four have genuinely different needs: mongodb wants capacity,
+  # postgresql and rabbitmq want IOPS.
+  storageClassName: ""
+  resources:
+    requests:
+      memory: 4Gi
+      cpu: "2"
+    limits:
+      memory: 4Gi
+      cpu: "2"
+  # WiredTiger sizes its cache at 50% of (memory limit - 1GB) when left to
+  # infer, which reserves far more than `requests` promises the scheduler --
+  # silent overcommit that shows up as node memory pressure, not as a mongod
+  # error. Set this explicitly to roughly 50% of the memory REQUEST and the
+  # cache can never outgrow what was actually reserved.
+  # Empty = let mongod infer (previous behaviour).
+  wiredTigerCacheSizeGB: "1.5"
+  # Extra mongod command-line arguments, e.g. ["--slowms=200"]
+  extraArgs: []
+  probes:
+    enabled: true
+    readiness: {initialDelaySeconds: 10, periodSeconds: 10, timeoutSeconds: 5, failureThreshold: 6}
+    liveness: {initialDelaySeconds: 30, periodSeconds: 15, timeoutSeconds: 5, failureThreshold: 3}
+  # A single-replica database on an RWO volume cannot tolerate any voluntary
+  # eviction, so the budget is maxUnavailable: 0 -- a drain must be a decision,
+  # not a side effect of node consolidation.
+  podDisruptionBudget:
+    enabled: true
+    maxUnavailable: 0
+  # Scheduling. Empty by default so existing installs are unaffected.
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+  priorityClassName: ""
+  # Merged into the pod annotations alongside the mesh annotations. Set
+  # karpenter.sh/do-not-disrupt: "true" here to stop consolidation draining
+  # the node this pod is on.
+  podAnnotations: {}
+
+# -----------------------------------------------------------------------------
+# PostgreSQL
+# -----------------------------------------------------------------------------
+postgresql:
+  enabled: true
+  # username for the service; the LumenVox chart must use the same value
+  username: lvuser
+  image:
+    repository: docker.io/postgres
+    tag: "17.5"
+    pullPolicy: IfNotPresent
+  databaseName: lumenvox_single_db
+  storageSize: 30Gi
+  storageClassName: ""
+  resources:
+    requests:
+      memory: 2Gi
+      cpu: "1"
+    limits:
+      memory: 2Gi
+      cpu: "1"
+  # Server settings rendered into a postgresql.conf and passed via -c. The
+  # upstream image ships stock defaults (shared_buffers=128MB,
+  # max_connections=100, random_page_cost=4.0 -- a spinning-disk assumption),
+  # whereas a managed instance auto-tunes them to the instance size.
+  #
+  # Only the ten lumenvox-common control-plane services connect here; the
+  # speech fleet carries RabbitMQ and Redis connection strings only. So the
+  # connection count tracks control-plane replicas, not session concurrency.
+  # 22 connections were observed at peak under the 1500-concurrent-session
+  # load test; the stock 100 is already ample and 200 is pure headroom.
+  config:
+    max_connections: "200"
+    # The upstream image ships 128MB regardless of how much memory the
+    # container has, so nearly all of the limit above would otherwise go unused.
+    shared_buffers: "512MB"
+    effective_cache_size: "1536MB"
+    work_mem: "16MB"
+    maintenance_work_mem: "128MB"
+    # Default is 4.0, which assumes a spinning disk. EBS is SSD-backed.
+    random_page_cost: "1.1"
+  probes:
+    enabled: true
+    readiness: {initialDelaySeconds: 10, periodSeconds: 10, timeoutSeconds: 5, failureThreshold: 6}
+    liveness: {initialDelaySeconds: 30, periodSeconds: 15, timeoutSeconds: 5, failureThreshold: 3}
+  podDisruptionBudget:
+    enabled: true
+    maxUnavailable: 0
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+  priorityClassName: ""
+  podAnnotations: {}
+
+# -----------------------------------------------------------------------------
+# RabbitMQ
+# -----------------------------------------------------------------------------
+rabbitmq:
+  enabled: true
+  # username for the service; the LumenVox chart must use the same value
+  username: lvuser
+  image:
+    repository: docker.io/rabbitmq
+    tag: "4.1.8-management"
+    pullPolicy: IfNotPresent
+  storageSize: 10Gi
+  storageClassName: ""
+  diskFreeLimit: 2GB
+  # Memory high watermark. Above it RabbitMQ blocks publishers (flow control),
+  # which stalls every producer in the fleet and reads exactly like a platform
+  # bottleneck rather than a broker setting.
+  #
+  # Left unset, the watermark is inferred: 0.4 of whatever RabbitMQ believes
+  # total memory to be. If it reads the cgroup limit that is 0.4 x the limit
+  # below -- which can sit UNDER real steady-state usage. If it reads host
+  # memory instead, the watermark can exceed the container limit entirely and
+  # the pod is OOM-killed before flow control ever engages. Both are reachable
+  # from the same chart on different nodes, so it is set explicitly here as a
+  # percentage of the memory limit and rendered as an absolute byte count.
+  memoryHighWatermarkPercent: 60
+  # Erlang scheduler count. The Erlang VM sizes its scheduler pool from the
+  # number of ONLINE HOST CPUs and does not read the cgroup CPU quota, so on a
+  # 16-core node a pod limited to 1 CPU still starts 16 schedulers and they
+  # contend for that single slice. Busy-wait is disabled for the same reason:
+  # spinning schedulers burn quota the broker needs for real work.
+  #
+  # Empty = derived automatically from resources.limits.cpu (rounded up, min 1),
+  # so resizing the pod cannot leave a stale scheduler count behind. Set an
+  # integer here only to override that. 3: measured 1.04 cores at 1500
+  # concurrent with ready messages 0 throughout -- must match limits.cpu below.
+  schedulers: 3
+  # Prometheus metrics. The rabbitmq_prometheus plugin ships enabled in the
+  # official images, but its port is not exposed by default -- so without this
+  # there is no server-side view of the broker at all, and publish/ack rates,
+  # queue depth and flow-control state have to be inferred from container CPU.
+  # Adds containerPort 15692, a Service port, and the scrape annotations this
+  # cluster's Prometheus discovers on (same convention as the speech pods).
+  metrics:
+    enabled: true
+    port: 15692
+  # Extra environment variables, e.g. [{name: RABBITMQ_X, value: "y"}]
+  extraEnv: []
+  # Extra rabbitmq.conf lines, appended verbatim.
+  extraConfig: []
+  probes:
+    enabled: true
+    # A broker recovering a large queue topology takes real time. Without a
+    # readiness probe the Service endpoint is live immediately and every client
+    # pod's init container hammers a broker that cannot answer yet.
+    readiness: {initialDelaySeconds: 20, periodSeconds: 10, timeoutSeconds: 10, failureThreshold: 12}
+    liveness: {initialDelaySeconds: 60, periodSeconds: 20, timeoutSeconds: 15, failureThreshold: 3}
+  podDisruptionBudget:
+    enabled: true
+    maxUnavailable: 0
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+  priorityClassName: ""
+  podAnnotations: {}
+  # 1.38 of 8 vCPU consumed at 500 concurrent -> ~4.13 at 1500, then / 0.7 to
+  # hold steady-state utilisation at or below 70%; 3 CPU covers that with
+  # headroom (measured 1.04 cores at 1500 with ready 0 throughout).
+  resources:
+    requests:
+      memory: 4Gi
+      cpu: "3"
+    limits:
+      memory: 4Gi
+      cpu: "3"
+
+# -----------------------------------------------------------------------------
+# Redis
+# -----------------------------------------------------------------------------
+redis:
+  enabled: true
+  # Maximum simultaneous client connections per redis node (redis `maxclients`).
+  # Redis lowers this automatically if the container's file-descriptor limit is
+  # below maxClients + 32 (it logs a warning at startup when that happens).
+  maxClients: 65000
+  image:
+    repository: docker.io/redis
+    tag: "8.2.4-alpine"
+    pullPolicy: IfNotPresent
+  storageSize: 10Gi
+  storageClassName: ""
+  # `maxmemory` as a percentage of each pod's memory LIMIT, rendered into the
+  # config as an absolute byte count (see the toBytes helper). Without it redis
+  # has no boundary to respect: it allocates past the container limit and the
+  # kernel kills it rather than the eviction policy running. Set to 0 to omit
+  # maxmemory entirely.
+  #
+  # 60 rather than 75: maxmemory bounds the DATA SET only. Client output
+  # buffers, the replication backlog and allocator fragmentation all live
+  # outside it, and they scale with connection count. Measured 20260902 on
+  # cloud-speech-1: with maxmemory at 75% of a 1Gi limit and ~1,000 client
+  # connections under heavy eviction, a follower was still OOMKilled -- the
+  # data set sat exactly at maxmemory while the overhead pushed the container
+  # past its limit. Connection counts at full load are several times that, so
+  # the margin has to cover the overhead rather than just the keys.
+  maxmemoryPercent: 60
+  # allkeys-lru fails safe: it still evicts if some code path writes a key with
+  # no TTL. volatile-lru only evicts keys that have one, so a single untracked
+  # key pattern brings back the OOM-kill.
+  maxmemoryPolicy: allkeys-lru
+  # Redis serves its whole command path on one thread, and that thread also does
+  # the socket reads and writes. io-threads moves the socket work off it, which
+  # is what a managed cache does with its own enhanced-I/O threads. Only worth
+  # raising above 1 when the pod has more than one core. 2: measured egress
+  # ~68.7 MB/s per primary at 1500 concurrent sessions.
+  ioThreads: 2
+  # Extra redis.conf lines, appended verbatim. Applies to BOTH single-instance
+  # and cluster mode (cluster mode delivers them via the operator's
+  # additionalRedisConfig ConfigMap).
+  extraConfig: []
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+  priorityClassName: ""
+  podAnnotations: {}
+  resources:
+    requests:
+      memory: 1Gi
+      cpu: 100m
+    limits:
+      memory: 5Gi
+      cpu: 500m
+  # ---------------------------------------------------------------------------
+  # Redis Cluster mode
+  # ---------------------------------------------------------------------------
+  # The default deployment is a 6-node Redis Cluster (3 masters + 3 replicas)
+  # managed by the OT Redis Operator. The client service is named
+  # {{ .Release.Name }}-redis-clustercfg — the "clustercfg" substring makes
+  # the LumenVox chart auto-select the redis-cluster:// connection scheme
+  # (same convention as AWS ElastiCache). In the LumenVox chart values set:
+  #   global.redis.connection.url: "external-services-redis-clustercfg"
+  # Set enabled: false to use a single instance instead (small test
+  # environments only).
+  #
+  # The OT Redis Operator (helm chart 0.26.1) must be installed before
+  # installing or upgrading this chart — see the README.
+  clusterMode:
+    enabled: true
+    operator:
+      crName: external-services-redis-cluster
+      image:
+        repository: quay.io/opstree/redis
+        tag: "v8.2.5"
+        pullPolicy: IfNotPresent
+      leaderReplicas: 3
+      followerReplicas: 3
+      # Persistence writes an append-only file on every shard. For a cache with
+      # a TTL that repopulates on restart, the write volume is proportional to
+      # the SET rate while the value being protected is only the resident data
+      # set -- and a managed cluster cache typically runs without AOF, using
+      # scheduled snapshots instead.
+      #
+      # Default false: the disk is out of the command path, and only the
+      # nodeConf volume is provisioned per pod rather than nodeConf + data.
+      #
+      # UPGRADING AN EXISTING INSTALL: flipping this to false makes the
+      # operator recreate the StatefulSets without their data volumes, so the
+      # cache starts cold and the old data PVCs are left behind for you to
+      # delete by hand. Plan it as a maintenance window, and set this back to
+      # true if you need the previous behaviour.
+      persistenceEnabled: false
+      # Maximum client connections per node (redis `maxclients`). Note the
+      # top-level redis.maxClients only ever reached the single-instance
+      # deployment; cluster mode inherited the operator image default. Redis
+      # silently lowers this when the container's file-descriptor limit is
+      # below maxclients + 32, and logs it once at startup.
+      maxClients: 20000
+      podDisruptionBudget:
+        # The operator ships no PDB of its own. maxUnavailable: 1 permits a
+        # rolling node drain without ever taking two cluster members at once.
+        enabled: true
+        maxUnavailable: 1
+      # redis_exporter as a sidecar on every cluster pod. Worth enabling before
+      # any load test: container CPU averages redis's single busy thread across
+      # the container and then across pods, so it cannot show a saturated
+      # engine thread. redis_cpu_{sys,user}_seconds_total can, and
+      # evicted_keys is the only way to know the cache is smaller than the one
+      # it replaced.
+      redisExporter:
+        enabled: true
+        image:
+          repository: quay.io/opstree/redis-exporter
+          tag: "v1.44.0"
+          pullPolicy: IfNotPresent
+        port: 9121
+        # MUST be set. The exporter is a sidecar in the redis pods, and a
+        # container with no requests/limits drops the WHOLE POD from
+        # Guaranteed to Burstable QoS -- which silently undid the
+        # requests==limits sizing on the redis containers themselves.
+        # Observed on cloud-speech-1: with the exporter enabled, both
+        # shard-2 redis pods showed qosClass Burstable despite the redis
+        # container being Guaranteed. Burstable is CPU-throttled and evicted
+        # ahead of Guaranteed under node pressure, which is the wrong
+        # priority for the data tier the whole fleet depends on.
+        # 50m is enough. The exporter throttles on its scrape burst at any
+        # modest quota and raising it does NOT help: measured on cloud-speech-1
+        # 20260902, 50m throttled 36.75% of CFS periods and 200m throttled
+        # 33.94% -- a 4x quota bought 2.8 points, because the cost is one short
+        # INFO parse per scrape whose instantaneous demand exceeds any quota in
+        # this range. It is a low-duty-cycle burst, not a throughput shortfall.
+        #
+        # It is also harmless: the redis containers measured 0.00% throttling
+        # in the same windows, and a delayed scrape shifts a sample, it does not
+        # touch the command path. The reason it ever looked alarming is that
+        # pod-level throttle metrics SUM every container, so the sidecar's
+        # throttling read as redis throttling. The fix for that was scoping the
+        # gate to container=~".*redis-cluster.*" (see the es-redis
+        # redis_throttle query in the harness), not buying the sidecar CPU it
+        # cannot use. At 200m across six pods this reserved 1.2 CPU for no
+        # benefit.
+        resources:
+          requests: {cpu: 50m, memory: 64Mi}
+          limits:   {cpu: 50m, memory: 64Mi}
+      storage:
+        className: ""            # required; e.g. managed-csi on AKS, gp2 on EKS
+        size: 10Gi
+        nodeConfSize: 1Gi
+      # 2Gi, not 1Gi: at 1500 concurrent the hottest shard's data set was
+      # 317 MB against the 614 MB cap a 1Gi limit yields, with RSS 347 MB --
+      # so maxmemory bound before the cgroup did, meaning evictions rather
+      # than an OOMKill (see maxmemoryPercent above). 3 CPU: at 1500 the
+      # process drew 1.0426 cores (54.7% of a 2-core limit) and still
+      # throttled 4.44% of CFS periods -- CFS throttles on the per-period
+      # burst, not the average, and ioThreads 2 means the process uses more
+      # than one core so raising this limit buys real headroom.
+      #
+      # leader and follower are sized IDENTICALLY on purpose: redis cluster
+      # roles are dynamic while pod names are static, so after any failover
+      # the pods named follower-* can be the actual masters. Check roles with
+      # redis_instance_info{role=...}, not pod names.
+      leader:
+        resources:
+          requests: {cpu: "3", memory: 2Gi}
+          limits: {cpu: "3", memory: 2Gi}
+      follower:
+        resources:
+          requests: {cpu: "3", memory: 2Gi}
+          limits: {cpu: "3", memory: 2Gi}
