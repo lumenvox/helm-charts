@@ -206,7 +206,7 @@ global:
       startDelaySeconds: 5
       livenessProbe:
         enabled: true
-    # enforcement of resource limits applied to all services. Disabled by default.
+    # enforcement of the built-in default resource limits on all services. Disabled by default.
     enforceLimits: false
     # enforcement of resource reservations applied to all services. This is a requirement for autoscaling in cloud installs. Disabled by default for KubeAdm installs.
     enforceReservations: false
@@ -220,10 +220,29 @@ global:
     # Default expiration for RabbitMQ queues in milliseconds
     rabbitmqQueueExpirationMs: 180000
     schedulerName: ""
+    # Pod scheduling for the common and speech Deployments, rendered only when set.
+    # Override under global.<service> and per language under
+    # global.asrLanguages[].services.<asr|transcribeRealtime|transcribeBatch> or an
+    # itnLanguages / ttsLanguages entry. The most specific level that sets a key
+    # replaces it whole; `{}` or `[]` clears a wider setting. Tolerations are appended
+    # to the chart's own.
+    nodeSelector: {}
+    affinity: {}
+    tolerations: []
+    priorityClassName: ""
+    # Extra pod annotations, merged per key (service and language win). Keys the chart
+    # sets itself (prometheus.io/*, service mesh) fail the render.
+    podAnnotations: {}
+    # One topologySpreadConstraint over the Deployment's own pods; fields resolve
+    # language, then global.<service>.topologySpread, then here. Defaults: maxSkew 1,
+    # topologyKey kubernetes.io/hostname, whenUnsatisfiable ScheduleAnyway,
+    # nodeTaintsPolicy Honor. asr reads decodeTopologySpread first.
+    topologySpread:
+      enabled: false
   image:
     repository: "lumenvox"
     pullPolicy: IfNotPresent
-    tag: ":8.0"
+    tag: ":8.1"
   imagePullSecrets: []
   rabbitmq:
     enableTLS: false
@@ -275,6 +294,45 @@ global:
     commandTimeoutSeconds: 100
     runMigrations: 'true'
     exitAfterMigrations: 'false'
+  # OpenTelemetry export from the services. Emits no OTEL_* environment while
+  # disabled.
+  #
+  # With Istio and endpointMode "agent", add 4317 to
+  # global.serviceMesh.istio.excludeOutboundPorts (e.g. "443,4317"), or the
+  # sidecar drops traffic to $(NODE_IP):4317. endpointMode "gateway" does not
+  # need this.
+  otel:
+    enabled: false
+    # "agent"   - export to the node-local collector agent at $(NODE_IP).
+    # "gateway" - export to the collector gateway Service.
+    endpointMode: agent
+    port: 4317
+    protocol: grpc
+    # Base name of the collector workloads. Defaults to the release name.
+    collectorName: ""
+    # Set only when the collector is installed as a separate Helm release.
+    releaseName: ""
+    # Overrides the derived gateway address.
+    gatewayEndpoint: ""
+    # service.namespace resource attribute.
+    serviceNamespace: lumenvox
+    # deployment.environment resource attribute, e.g. "staging" or "prod".
+    environment: ""
+    # Additional resource attributes (key: value). k8s.* attributes are added
+    # by the collector.
+    resourceAttributes: {}
+    traces:
+      enabled: true
+      # Sampling is done by the collector gateway (tail sampling).
+      sampler: parentbased_always_on
+      samplerArg: ""
+    metrics:
+      enabled: true
+    logs:
+      # Leave false. Collect service logs with the collector's agent.filelog.
+      enabled: false
+    # Additional OTEL_* environment variables for every service.
+    extraEnv: {}
   # Service mesh configuration
   # Supported values: "linkerd", "istio", or "" (empty string for none)
   # If not specified, defaults to "linkerd" if global.linkerd.enabled is true, otherwise ""
@@ -306,6 +364,9 @@ global:
   linkerd:
     enabled: true
   enabled:
+    # Installs the OpenTelemetry Collector (lumenvox-otel-collector).
+    # Independent of global.otel.enabled.
+    otelCollector: false
     lumenvoxSpeech: false
     lumenvoxVb: false
     lumenvoxCommon: true
@@ -332,6 +393,16 @@ global:
   # plugin sets NVIDIA_VISIBLE_DEVICES=void.
   # runtimeClassName (optional) sets the pod RuntimeClass (e.g. "nvidia") when the
   # node's default container runtime is not the NVIDIA runtime.
+  # maxActiveRequests (optional) sets ASR_SETTINGS__MAX_ACTIVE_REQUESTS on GPU
+  # pods, overriding the service's own maxActiveRequests (lumenvox-speech
+  # values); empty falls back to that.
+  # resources (optional, transcribeRealtime and transcribeBatch) sets the pod's
+  # resources.requests when GPU is on; empty falls back to enforceReservations.
+  # resources.limits (optional) sets the GPU pod's limits; the enforceLimits defaults
+  # apply to CPU pods only.
+  #
+  # The transcribe defaults below are sized for one NVIDIA A10G per pod:
+  # about 96 realtime calls, or 8 concurrent batch jobs.
   # Requires GPU nodes with the NVIDIA device plugin installed.
   #
   # Every field here can be overridden per language via
@@ -345,16 +416,169 @@ global:
       count: 1
       visibleDevices: ""
       runtimeClassName: ""
+      maxActiveRequests: ""
     transcribeRealtime:
       enabled: false
       count: 1
       visibleDevices: ""
       runtimeClassName: ""
+      maxActiveRequests: "512"
+      resources:
+        requests:
+          cpu: 3000m
+          memory: 10Gi
     transcribeBatch:
       enabled: false
       count: 1
       visibleDevices: ""
       runtimeClassName: ""
+      # Requests above this queue outside the pod, where autoscaling can see
+      # them. A ceiling, not an exact limit.
+      maxActiveRequests: "16"
+      resources:
+        requests:
+          cpu: 5000m
+          memory: 14Gi
+  # Per-service pod requests and limits:
+  # global.<service>.resources.{requests,limits}.{cpu,memory}, unset by default. Services:
+  #   asr, transcribeRealtime, transcribeBatch, itn, grammar, vad, session, lumenvoxApi,
+  #   neuralTts, tts, lid, nlu, neuron, diarization, reportingApi (speech) and
+  #   adminPortal, archive, binaryStorage, configuration, deploymentPortal, deployment,
+  #   fileStore, license, managementApi, resource (common).
+  # Other keys, non-quantity values, unknown service keys and a limit below its request
+  # fail the render. Each field resolves separately, first match wins:
+  #   1. global.asrLanguages[].services.<asr|transcribeRealtime|transcribeBatch>.resources
+  #   2. global.<service>.resources
+  #   3. the built-in default, only when its flag is true: enforceReservations for
+  #      requests, enforceLimits for limits
+  # "" omits a field. A limit without a request makes Kubernetes request the limit.
+  # neural-tts always renders its defaults (requests 2000m / 4000Mi, limits 3000m /
+  # 8000Mi or 20000Mi on platform cloud); tts.neuralTtsResources (speech chart) is
+  # deprecated in favour of global.neuralTts.resources.
+  #
+  #   asr:
+  #     resources:
+  #       requests: { cpu: "1000m", memory: "8Gi" }
+  #       limits: { cpu: "2000m", memory: "10Gi" }
+  #   asrLanguages:
+  #     - name: "fr"
+  #       services:
+  #         asr:
+  #           resources:
+  #             requests: { memory: "6Gi" }   # cpu from global.asr.resources
+  #
+  # KEDA autoscaling (speech chart): one ScaledObject per language for asr,
+  # transcribeRealtime, transcribeBatch, itn and neuralTts, and one each for grammar,
+  # vad, session, lumenvoxApi, diarization and lid when enableDiarization /
+  # enableLanguageId is on. Requires KEDA, a Prometheus that scrapes the speech pods
+  # (see podMonitor), and resource requests (above).
+  keda:
+    enabled: false
+    prometheus:
+      # Required when enabled, e.g. "http://prometheus-server.monitoring.svc.cluster.local"
+      serverAddress: ""
+    # Omitted when empty (KEDA defaults: 30 s polling, 300 s cooldown). cooldownPeriod
+    # applies only to scaling to or from zero; above that, scaleDownStabilizationSeconds
+    # governs scale-down.
+    pollingInterval: ""
+    cooldownPeriod: ""
+    scaleDownStabilizationSeconds: ""
+    # Trigger metricType (e.g. AverageValue); omitted when empty.
+    metricType: ""
+    # Suffix for ScaledObject names, e.g. "-scaler".
+    nameSuffix: ""
+    # orVectorZero wraps each metric as `sum(m{...} or vector(0))`: a missing series
+    # reads as 0, which also masks a failed scrape. selector: app, namespace or
+    # appAndNamespace; empty uses app for per-language services, namespace otherwise.
+    query:
+      orVectorZero: true
+      selector: ""
+    # Applied after failureThreshold consecutive query failures. Rendered only when
+    # replicas (or fallbackReplicas per service or language) is set. behavior
+    # (fallbackBehavior per service or language; KEDA 2.17+, 2.20.1+ recommended):
+    #   "" or static             keep `replicas`
+    #   currentReplicas          keep the current count
+    #   currentReplicasIfHigher  the higher of the current count and `replicas`
+    #   currentReplicasIfLower   the lower of the current count and `replicas`
+    # Recommended: currentReplicasIfHigher with replicas = minReplicas.
+    fallback:
+      failureThreshold: 3
+      replicas: ""
+      behavior: ""
+    # true: the render fails when a scaler has no fallback replicas.
+    requireFallback: false
+  # global.<service>.autoscaling. A service scales when global.keda.enabled and its own
+  # enabled are true. minReplicas, maxReplicas and threshold are required. Per-language
+  # settings (asrLanguages[].services.<service>.autoscaling, or `autoscaling` on an
+  # itnLanguages / ttsLanguages entry) win over the service, which wins over global.keda.
+  #   enabled, minReplicas, maxReplicas
+  #   threshold               active units per pod before scaling out
+  #   gpuThreshold            asr, transcribeRealtime, transcribeBatch: replaces
+  #                           threshold when GPU is on; required then. About 0.75 x the
+  #                           pod's capacity, below its maxActiveRequests.
+  #   fallbackReplicas, failureThreshold, fallbackBehavior, pollingInterval,
+  #   cooldownPeriod, scaleDownStabilizationSeconds, metricName, metricType   optional
+  #   pausedReplicas          optional: pauses the scaler at that count
+  #   metric                  metric queried (default per service)
+  #   selector, selectorLabels, orVectorZero   query shape, see global.keda.query.
+  #                           selectorLabels is a label map; $(deployment),
+  #                           $(namespace) and $(language) are substituted.
+  #   pendingMetric, pendingSelector, pendingSelectorLabels   optional: adds
+  #                           `+ sum(<pendingMetric>{...})`, e.g.
+  #                           voice_metrics_transcribe_batch_pending_requests (non-zero
+  #                           only when clients POST to voice-metrics). Single-language
+  #                           deployments only. pendingSelector defaults to namespace.
+  #   extraTriggers           optional list of {metric, threshold, selector, selectorLabels,
+  #                           orVectorZero, metricName, metricType}, one trigger each
+  #   query                   optional: replaces the generated primary query
+  #
+  #   transcribeBatch:
+  #     autoscaling:
+  #       enabled: true
+  #       minReplicas: 0
+  #       maxReplicas: 6
+  #       threshold: 1.5        # CPU pods
+  #       gpuThreshold: 6       # GPU pods
+  #
+  # PodDisruptionBudgets for the same Deployments, named and selected like the
+  # Deployment. minAvailable: 1 on a single replica blocks node drains; pair it with
+  # minReplicas of 2 or more, or a node autoscaler that removes only empty nodes.
+  # Fields: enabled; minAvailable or maxUnavailable (integer or percentage, not both;
+  # default minAvailable 1); unhealthyPodEvictionPolicy (IfHealthyBudget or
+  # AlwaysAllow, omitted when empty). global.<service>.podDisruptionBudget and the
+  # per-language key (asrLanguages[].services.<service>, itnLanguages / ttsLanguages
+  # entry) override this block. lumenvox-speech.transcribeBatch.podDisruptionBudget is
+  # still read when enabled.
+  #
+  #   grammar:
+  #     podDisruptionBudget:
+  #       maxUnavailable: 1
+  podDisruptionBudget:
+    enabled: false
+  #
+  # PodMonitors (monitoring.coreos.com/v1) for the same Deployments, for a Prometheus
+  # Operator setup. Not needed when Prometheus scrapes the prometheus.io annotations;
+  # a second scrape of the same pods doubles every scaler query.
+  # Fields: enabled; target (auto, app or istio; auto selects istio when
+  # serviceMesh.type is "istio"); interval and scrapeTimeout ("" = Prometheus default);
+  # labels (added to each PodMonitor, e.g. for podMonitorSelector).
+  # global.<service>.podMonitor and the per-language key override this block.
+  #
+  #   podMonitor:
+  #     enabled: true
+  #     labels:
+  #       release: kube-prometheus-stack
+  podMonitor:
+    enabled: false
+  #
+  # global.<service>.drainTimeoutSeconds (asr, transcribeRealtime, transcribeBatch,
+  # session, lumenvoxApi; per language under asrLanguages[].services.<service>): whole
+  # seconds to finish in-flight work after SIGTERM. Unset uses the app default. Sets
+  # DRAIN_TIMEOUT_SECONDS and raises terminationGracePeriodSeconds to preStop (15 s) +
+  # drain + 30 s when that exceeds 300 s. 8.0 images read it in transcribe-batch only.
+  #
+  #   transcribeBatch:
+  #     drainTimeoutSeconds: 600    # grace period 645 s
   # enabling NLU allows for the NLU service to be installed and allows for NLU interactions to be called via the API.
   enableNlu: false
   # enabling Diarization allows for the Diarization service to be installed and allows for Diarization interactions to be called via the API.

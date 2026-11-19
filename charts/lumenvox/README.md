@@ -72,7 +72,7 @@ For typical deployments, enable `lumenvoxSpeech` along with `lumenvoxCommon`.
 | `global.lumenvox.enforceReservations`              | Whether to enforce resource reservations (required for autoscaling) | `false`                            |
 | `global.lumenvox.loggingVerbosity`                 | Cluster-level logging verbosity (debug, info, warn, error, etc.)    | `info`                             |
 | `global.image.pullPolicy`                          | Pull policy when installing cluster                                 | `IfNotPresent`                     |
-| `global.image.tag`                                 | Default image tag                                                   | `":8.0"`                           |
+| `global.image.tag`                                 | Default image tag                                                   | `":8.1"`                           |
 
 ## Persistent Volume Configuration
 
@@ -378,6 +378,9 @@ This renders, for the `en` language:
 | `global.gpu.<service>.count`        | `nvidia.com/gpu` device count requested when enabled       | `1`     |
 | `global.gpu.<service>.visibleDevices` | Sets `NVIDIA_VISIBLE_DEVICES`, e.g. `"all"`               | `""`    |
 | `global.gpu.<service>.runtimeClassName` | Pod `runtimeClassName` for GPU pods, e.g. `"nvidia"`  | `""`    |
+| `global.gpu.<service>.maxActiveRequests` | `ASR_SETTINGS__MAX_ACTIVE_REQUESTS` for GPU pods; overrides `lumenvox-speech.<service>.maxActiveRequests`. Empty leaves the service default | `"512"` for `transcribeRealtime`, `"16"` for `transcribeBatch`, `""` for `asr` |
+| `global.gpu.<transcribeRealtime\|transcribeBatch>.resources` | `resources.requests` for GPU transcribe pods, replacing the `enforceReservations` defaults when GPU is on. Optional `resources.limits` sets their CPU/memory limits (none by default). A per-language `services.<service>.gpu.resources` replaces this block as a whole. `{}` falls back to `enforceReservations` | realtime `requests: {cpu: 3000m, memory: 10Gi}`, batch `requests: {cpu: 5000m, memory: 14Gi}` |
+| `lumenvox-speech.transcribeBatch.podDisruptionBudget.enabled` / `.minAvailable` | PodDisruptionBudget per `transcribe-batch-<lang>`. With one replica it also blocks node drains and Karpenter drift; pair with `consolidationPolicy: WhenEmpty` on the GPU NodePool | `false` / `1` |
 
 `<service>` is one of `asr`, `transcribeRealtime`, `transcribeBatch`. GPU-accelerated inference is opt-in; when enabled it sets `ASR_SETTINGS__ENABLE_GPU=true`, requests `count` `nvidia.com/gpu` device(s), and exposes the NVIDIA driver capabilities. `visibleDevices` ensures the CUDA compute libraries (`libcuda.so`) are mounted; needed on clusters where the device plugin sets `NVIDIA_VISIBLE_DEVICES=void`. Requires GPU nodes with the NVIDIA device plugin installed.
 
@@ -407,6 +410,10 @@ global:
           gpu: { enabled: true, count: 2, visibleDevices: "all" }    # size it differently for Spanish
     - name: "fr"   # no gpu block -> uses the global.gpu default (off) for every service
 ```
+
+#### Sizing
+
+The GPU defaults are sized for one NVIDIA A10G per pod: about 96 concurrent transcribe-realtime calls, or 8 concurrent transcribe-batch jobs. A CPU transcribe-realtime pod handles about 48 calls with the default model, and a CPU transcribe-batch pod about 2 jobs; add batch pods rather than raising jobs per pod. A pod's capacity is set by the lowest-capacity model it serves. On CPU, `hidef` lowers realtime capacity to about 8 calls. On an A10G it handles about 128, so the default model's 96 sets the GPU figure. Capacity depends on instance type, models and audio, so validate these figures on your own deployment.
 
 ### ITN (Inverse Text Normalization)
 
@@ -1023,6 +1030,213 @@ global:
 
 **Resource Reservations** are required for Horizontal Pod Autoscaling (HPA) in cloud deployments. They are typically disabled for kubeadm-based installations.
 
+**Resource Limits** cap the CPU and memory each pod can use. They are disabled by default.
+
+With `enforceReservations`, transcribe-realtime requests `2000m` / `9Gi` and transcribe-batch `1500m` / `9Gi`. With `enforceLimits`, their limits are `3000m` / `12Gi` and `2000m` / `12Gi`. GPU transcribe pods get no CPU or memory limits by default.
+
+### Per-Service CPU and Memory Requests
+
+Every service accepts `global.<service>.resources.requests` and `global.<service>.resources.limits` (`cpu` and/or `memory`). Unset by default.
+
+| Service group | Keys under `global` |
+|---------------|---------------------|
+| Speech | `asr`, `transcribeRealtime`, `transcribeBatch`, `itn`, `grammar`, `vad`, `session`, `lumenvoxApi`, `neuralTts`, `tts`, `lid`, `nlu`, `neuron`, `diarization`, `reportingApi` |
+| Common | `adminPortal`, `archive`, `binaryStorage`, `configuration`, `deploymentPortal`, `deployment`, `fileStore`, `license`, `managementApi`, `resource` |
+
+Each field resolves independently; the first match wins:
+
+1. `global.asrLanguages[].services.<asr|transcribeRealtime|transcribeBatch>.resources.<requests|limits>` (one language)
+2. `global.<service>.resources.<requests|limits>`
+3. The built-in default, rendered only when its flag is `true`: `global.lumenvox.enforceReservations` for requests, `global.lumenvox.enforceLimits` for limits
+
+Explicit values render regardless of the flags. `""` omits a field. A pod with a limit but no request gets a request equal to the limit. The render fails if a limit is below its request, if a key other than `requests`/`limits` or `cpu`/`memory` is set, if a value is not a Kubernetes quantity, or if the service key is unknown. Voice biometrics services keep fixed resources.
+
+```yaml
+global:
+  asr:
+    resources:
+      requests: { cpu: "1000m", memory: "8Gi" }
+  asrLanguages:
+    - name: "en"
+    - name: "fr"
+      services:
+        asr:
+          resources:
+            requests: { memory: "6Gi" }   # cpu from global.asr
+  session:
+    resources:
+      requests: { cpu: "100m", memory: "200Mi" }
+      limits: { cpu: "1000m", memory: "500Mi" }
+```
+
+`neural-tts` always renders requests (default `2000m` / `4000Mi`) and limits (default `3000m` / `8000Mi`, `20000Mi` on platform `cloud`), set with `global.neuralTts.resources`. The deprecated speech-chart key `tts.neuralTtsResources` is still read; `global.neuralTts` wins per field.
+
+**GPU transcribe pods.** With GPU on, transcribe-realtime and transcribe-batch request `global.gpu.<transcribeRealtime|transcribeBatch>.resources.requests` (default `3000m` / `10Gi` and `5000m` / `14Gi`) regardless of `enforceReservations`. The built-in default limits apply to CPU pods only; set GPU pod limits with `global.gpu.<service>.resources.limits`, or `global.<service>.resources.limits` (CPU and GPU pods). The `nvidia.com/gpu` limit is always set.
+
+### KEDA Autoscaling
+
+With `global.keda.enabled: true`, the speech chart renders a KEDA `ScaledObject` with a Prometheus trigger per language for `asr`, `transcribeRealtime`, `transcribeBatch`, `itn` and `neuralTts`, and one each for `grammar`, `vad`, `session`, `lumenvoxApi`, `diarization` and `lid` when they are installed. Requires KEDA and a Prometheus that scrapes the speech pods (see [PodMonitors](#podmonitors)). A service is autoscaled only when `global.<service>.autoscaling.enabled` is `true`. Set [requests](#per-service-cpu-and-memory-requests) first so the scheduler and node autoscaler can size capacity.
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `global.keda.enabled` | Render ScaledObjects | `false` |
+| `global.keda.prometheus.serverAddress` | Prometheus URL (required when enabled) | `""` |
+| `global.keda.pollingInterval` / `cooldownPeriod` | Seconds; omitted when empty (KEDA defaults 30 / 300). `cooldownPeriod` applies only to scaling to or from zero | `""` |
+| `global.keda.scaleDownStabilizationSeconds` | HPA scale-down stabilization window; governs scale-down when `minReplicas` >= 1 | `""` |
+| `global.keda.metricType` | Trigger `metricType`; omitted when empty | `""` |
+| `global.keda.nameSuffix` | Suffix for ScaledObject names, e.g. `-scaler` | `""` |
+| `global.keda.query.orVectorZero` | Query `sum(m{...} or vector(0))` so a missing series reads as 0 | `true` |
+| `global.keda.query.selector` | `app`, `namespace` or `appAndNamespace`. Empty: `app` for per-language services, `namespace` for the rest | `""` |
+| `global.keda.fallback.replicas` | Fallback replica count. The `fallback` block renders only when this or `fallbackReplicas` is set | `""` |
+| `global.keda.fallback.failureThreshold` | Consecutive failed queries before fallback | `3` |
+| `global.keda.fallback.behavior` | `static` (empty), `currentReplicas`, `currentReplicasIfHigher` or `currentReplicasIfLower`. See **Fallback** | `""` |
+| `global.keda.requireFallback` | Fail the render when a scaler has no fallback replicas | `false` |
+
+Per-service fields go under `global.<service>.autoscaling`; per-language under `asrLanguages[].services.<service>.autoscaling` or `autoscaling` on an `itnLanguages` / `ttsLanguages` entry. Language wins over service, which wins over `global.keda`.
+
+| Field | Description |
+|-------|-------------|
+| `enabled`, `minReplicas`, `maxReplicas`, `threshold` | No defaults for `minReplicas`, `maxReplicas` or `threshold`; the render fails if one is missing. Size them from the sizing calculator |
+| `gpuThreshold` | asr, transcribeRealtime, transcribeBatch: threshold when GPU is on. Required then |
+| `metric` | Metric in the query; per-service default below |
+| `metricName`, `metricType` | Trigger fields; omitted unless set |
+| `selector`, `selectorLabels`, `orVectorZero` | Query shape |
+| `pendingMetric`, `pendingSelector`, `pendingSelectorLabels` | Adds `+ sum(<pendingMetric>{...})` to the query |
+| `extraTriggers` | List of `{metric, threshold, selector, selectorLabels, orVectorZero, metricName, metricType}`; one trigger per entry |
+| `query` | Replaces the generated primary query |
+| `fallbackReplicas`, `failureThreshold`, `fallbackBehavior`, `pollingInterval`, `cooldownPeriod`, `scaleDownStabilizationSeconds` | As in `global.keda` (`fallbackBehavior` = `fallback.behavior`) |
+| `pausedReplicas` | Pause the scaler at this replica count |
+
+**Selector.** The query is `sum(<metric>{<selector>})`. `app` matches `app="<deployment>"`; `namespace` matches the release namespace; `selectorLabels` is a label map in which `$(deployment)`, `$(namespace)` and `$(language)` are substituted. asr, transcribeRealtime, transcribeBatch and neuralTts default to `app`; itn defaults to `namespace` because its default metric comes from the transcribe pods. `namespace` on a per-language service with more than one language fails the render.
+
+**Pending requests.** `pendingMetric: voice_metrics_transcribe_batch_pending_requests` adds the voice-metrics pending gauge, which clients set by POSTing to `/api/v1/pending-requests` and which holds its last value. The gauge has no language label, so it is only allowed with a single language; `pendingSelector` defaults to `namespace`.
+
+**GPU threshold.** For asr, transcribeRealtime and transcribeBatch with GPU enabled, the threshold is the language's `threshold`, else `gpuThreshold` (language, then service). It does not fall back to the service `threshold`. Set `gpuThreshold` to about 0.75 x the pod's capacity (see [Sizing](#sizing)) and below `maxActiveRequests`.
+
+**Fallback.** After `failureThreshold` consecutive query failures, KEDA applies the fallback according to `behavior`:
+
+- `static` (or empty): `replicas`.
+- `currentReplicas`: the current count.
+- `currentReplicasIfHigher` (recommended, with `replicas` = `minReplicas`): the current count, or `replicas` if higher.
+- `currentReplicasIfLower`: the current count, or `replicas` if lower.
+
+`behavior` requires KEDA 2.17+; 2.20.1+ is recommended for scalers with more than one trigger. The render fails on an unknown value or when `behavior` is set without fallback replicas.
+
+```yaml
+global:
+  keda:
+    enabled: true
+    prometheus:
+      serverAddress: "http://prometheus-server.monitoring.svc.cluster.local"
+    fallback:
+      replicas: 2
+  transcribeBatch:
+    autoscaling:
+      enabled: true
+      minReplicas: 0
+      maxReplicas: 6
+      threshold: 1.5      # CPU pods
+      gpuThreshold: 6     # GPU pods
+  itn:
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 40
+      threshold: 48
+      extraTriggers:
+        - metric: itn_requests_current
+          threshold: 2.3
+          selector: namespace
+  enableDiarization: true
+  diarization:
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 6
+      threshold: 3
+```
+
+**Metric names.** Defaults: `asr_active_asr_requests` (asr), `transcribe_realtime_active_requests`, `transcribe_batch_active_requests`, `transcribe_realtime_active_transcription_requests` (itn), `tts_active_requests`, `grammar_active_grammars`, `vad_active_requests`, `session_active_streams`, `lumenvox_api_active_requests`, `diarization_active_requests` and `lid_active_requests`. Names can differ between service versions; check each service's `/metrics` and set `metric` where needed. itn scales on the transcription gauge because `itn_requests_current` stays low under load; add it as an `extraTrigger` if required.
+
+### PodDisruptionBudgets
+
+With `global.podDisruptionBudget.enabled: true`, the speech chart renders a `policy/v1` `PodDisruptionBudget` per language for `asr`, `transcribeRealtime`, `transcribeBatch`, `itn` and `neuralTts`, and one each for `grammar`, `vad`, `session`, `lumenvoxApi`, `diarization` and `lid` when they are installed. Each PDB takes the Deployment's name and selects `app: <name>`. PDBs do not require KEDA.
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `global.podDisruptionBudget.enabled` | Render PDBs | `false` |
+| `minAvailable` / `maxUnavailable` | Integer or percentage (e.g. `"50%"`). Set one per level; both fails the render. `minAvailable: 1` when neither is set | not set |
+| `unhealthyPodEvictionPolicy` | `IfHealthyBudget` or `AlwaysAllow`; omitted when empty | not set |
+
+Fields can be set at `global.podDisruptionBudget`, `global.<service>.podDisruptionBudget`, and per language (`asrLanguages[].services.<asr|transcribeRealtime|transcribeBatch>.podDisruptionBudget`, or `podDisruptionBudget` on an `itnLanguages` / `ttsLanguages` entry). The most specific wins; `minAvailable` and `maxUnavailable` are taken together from the most specific level that sets either. The legacy `lumenvox-speech.transcribeBatch.podDisruptionBudget` is still read when its `enabled` is `true`, with lower precedence.
+
+```yaml
+global:
+  podDisruptionBudget:
+    enabled: true
+  grammar:
+    podDisruptionBudget:
+      maxUnavailable: 1
+  asrLanguages:
+    - name: en
+      services:
+        asr:
+          podDisruptionBudget:
+            enabled: false
+```
+
+> **Note**: With `minAvailable: 1` and one replica, the PDB blocks node drains until a second pod runs. Use it with two or more replicas, or with a node autoscaler that removes only empty nodes (Karpenter `consolidationPolicy: WhenEmpty`).
+
+### PodMonitors
+
+A Prometheus that scrapes by `prometheus.io/scrape` / `prometheus.io/port` annotations already collects the metrics KEDA queries. A Prometheus Operator installation (such as kube-prometheus-stack) needs `PodMonitor`s.
+
+With `global.podMonitor.enabled: true`, the speech chart renders a `monitoring.coreos.com/v1` `PodMonitor` for the same Deployments as the PDBs, named after the Deployment and selecting `app: <name>`. The PodMonitor CRD must be installed.
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `global.podMonitor.enabled` | Render PodMonitors | `false` |
+| `target` | `app`: container `http` port, `/metrics`. `istio`: sidecar merged metrics (`:15020/stats/prometheus`), for strict mTLS. `auto`: `istio` when `global.serviceMesh.type` is `istio`, else `app` | `auto` |
+| `interval` / `scrapeTimeout` | Duration such as `15s`; omitted when empty | not set |
+| `labels` | Labels added to each PodMonitor to match the Prometheus `podMonitorSelector` (kube-prometheus-stack: `release: <release name>`) | `{}` |
+
+Fields can be set at `global.podMonitor`, `global.<service>.podMonitor`, and per language (`asrLanguages[].services.<asr|transcribeRealtime|transcribeBatch>.podMonitor`, or `podMonitor` on an `itnLanguages` / `ttsLanguages` entry). The most specific wins; `labels` merge by key.
+
+```yaml
+global:
+  podMonitor:
+    enabled: true
+    interval: 15s
+    labels:
+      release: kube-prometheus-stack
+  vad:
+    podMonitor:
+      enabled: false
+```
+
+> **Warning**: Enable PodMonitors only if nothing else scrapes these pods. A second scrape duplicates every series and doubles the scaler queries.
+
+Keep the scrape interval close to the KEDA polling interval.
+
+### Shutdown Drain Time
+
+On termination, `asr`, `transcribeRealtime`, `transcribeBatch`, `session` and `lumenvoxApi` stop accepting work and finish in-flight requests until the drain time (`DRAIN_TIMEOUT_SECONDS`) or `terminationGracePeriodSeconds` (300 s) expires, whichever is first. Requests still running are lost.
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `global.<service>.drainTimeoutSeconds` | Drain time in whole seconds. Sets `DRAIN_TIMEOUT_SECONDS` and raises `terminationGracePeriodSeconds` to at least 15 s `preStop` + drain + 30 s | not set (app default; 30 s for transcribe-batch on 8.0) |
+| `asrLanguages[].services.<asr\|transcribeRealtime\|transcribeBatch>.drainTimeoutSeconds` | Per language; overrides `global.<service>` | not set |
+
+```yaml
+global:
+  transcribeBatch:
+    drainTimeoutSeconds: 600    # terminationGracePeriodSeconds: 645
+  session:
+    drainTimeoutSeconds: 120    # terminationGracePeriodSeconds stays 300
+```
+
+> **Note**: 8.0 images read `DRAIN_TIMEOUT_SECONDS` in transcribe-batch only; the other services from 8.1.0. Size the drain time to the longest request to finish. Node removal waits for the drain, bounded by the Karpenter NodePool `terminationGracePeriod` or the drain timeout.
+
 ### Scheduler Configuration
 
 To use a custom Kubernetes scheduler:
@@ -1032,6 +1246,61 @@ global:
   lumenvox:
     schedulerName: "my-custom-scheduler"
 ```
+
+### Pod Scheduling
+
+The common and speech Deployments accept the following scheduling fields. Each renders only when set.
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `global.lumenvox.nodeSelector` | Pod `nodeSelector` | `{}` |
+| `global.lumenvox.affinity` | Pod `affinity` | `{}` |
+| `global.lumenvox.tolerations` | Pod `tolerations`, appended to the chart's own (GPU pods, nlu) | `[]` |
+| `global.lumenvox.priorityClassName` | Pod `priorityClassName` | `""` |
+| `global.lumenvox.podAnnotations` | Extra pod annotations | `{}` |
+| `global.lumenvox.topologySpread.enabled` | One `topologySpreadConstraint` per Deployment, selecting `app=<name>` | `false` |
+| `global.lumenvox.topologySpread.maxSkew` / `topologyKey` / `whenUnsatisfiable` / `nodeTaintsPolicy` | Constraint fields | `1` / `kubernetes.io/hostname` / `ScheduleAnyway` / `Honor` |
+| `global.gpu.<service>.tolerations` | Tolerations for GPU pods (`asr`, `transcribeRealtime`, `transcribeBatch`) | `nvidia.com/gpu` (Exists) and `kubernetes.azure.com/scalesetpriority=spot` |
+
+**Overrides.** Each field can also be set under `global.<service>` (e.g. `global.grammar.nodeSelector`) and per language under `global.asrLanguages[].services.<asr|transcribeRealtime|transcribeBatch>` or on an `itnLanguages` / `ttsLanguages` entry. `<service>` is one of: `asr`, `transcribeRealtime`, `transcribeBatch`, `itn`, `neuralTts`, `tts`, `grammar`, `vad`, `session`, `lumenvoxApi`, `lid`, `nlu`, `neuron`, `diarization`, `reportingApi`, `adminPortal`, `archive`, `binaryStorage`, `configuration`, `deploymentPortal`, `deployment`, `fileStore`, `license`, `managementApi`, `resource`.
+
+- `nodeSelector`, `affinity`, `tolerations`, `priorityClassName`: the most specific level that sets the key replaces the others; `{}`, `[]` or `""` clears a wider setting.
+- `podAnnotations`: merged by key, most specific wins. `prometheus.io/scrape`, `prometheus.io/port` and service mesh annotations are reserved; setting one fails the render.
+- `topologySpread`: resolved per field (language, service, `global.lumenvox.topologySpread`). For asr, `global.lumenvox.decodeTopologySpread` is read before `global.lumenvox.topologySpread`.
+- GPU tolerations: `global.gpu.<service>.tolerations` (or `services.<service>.gpu.tolerations` per language) replaces the default pair; `[]` removes it. Set it when GPU nodes use a different taint, e.g. `sku=gpu:NoSchedule` on AKS.
+
+```yaml
+global:
+  lumenvox:
+    nodeSelector: {pool: speech}
+    priorityClassName: speech-default
+    podAnnotations: {team: speech}
+  grammar:
+    topologySpread: {enabled: true}
+  license:
+    priorityClassName: speech-critical
+  gpu:
+    transcribeBatch:
+      enabled: true
+      tolerations:
+        - {key: sku, operator: Equal, value: gpu, effect: NoSchedule}
+  asrLanguages:
+    - name: en
+      services:
+        asr:
+          nodeSelector: {pool: asr-en}      # replaces pool: speech for asr-en
+```
+
+On Karpenter, `karpenter.sh/do-not-disrupt` prevents voluntary disruption of a node while the pod runs:
+
+```yaml
+global:
+  transcribeBatch:
+    podAnnotations:
+      karpenter.sh/do-not-disrupt: "true"
+```
+
+> **Note**: The node is kept (and billed) until the pod exits, bounded by the NodePool `terminationGracePeriod`. The annotation does not prevent node failures or spot interruptions, and other node autoscalers ignore it.
 
 ## Troubleshooting
 
