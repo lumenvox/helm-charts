@@ -1,0 +1,9 @@
+{{- /*
+Fails the render on unsupported resources values for the common services, and on
+global.<key>.resources where <key> is not a known service.
+*/}}
+{{- $problems := include "lumenvox-common.VALIDATE_SERVICE_RESOURCES" (dict "root" $ "services" (list "adminPortal" "archive" "binaryStorage" "configuration" "deploymentPortal" "deployment" "fileStore" "license" "managementApi" "resource")) | fromJsonArray }}
+{{- $problems = concat $problems (include "lumenvox-common.UNKNOWN_RESOURCE_SERVICES" (dict "root" $ "services" (list "asr" "transcribeRealtime" "transcribeBatch" "itn" "grammar" "vad" "session" "lumenvoxApi" "neuralTts" "tts" "lid" "nlu" "neuron" "diarization" "reportingApi" "adminPortal" "archive" "binaryStorage" "configuration" "deploymentPortal" "deployment" "fileStore" "license" "managementApi" "resource")) | fromJsonArray) }}
+{{- if $problems }}
+{{- fail (printf "\n\nThese resources values can't be used:\n  - %s\n\nSee \"Per-Service CPU and Memory Requests\" in the lumenvox chart README." (join "\n  - " $problems)) }}
+{{- end }}

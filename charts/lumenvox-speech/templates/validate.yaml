@@ -36,6 +36,10 @@ GPU, fine-tuned or extra-model settings would silently stop applying.
 {{- if $problems }}
 {{- fail (printf "\n\nThese speech values use keys this chart no longer reads, so they would be ignored:\n  - %s\n\nSee \"Per-service model loading\" in the lumenvox chart README for the current layout." (join "\n  - " $problems)) }}
 {{- end }}
+{{- $resources := include "lumenvox-common.VALIDATE_SERVICE_RESOURCES" (dict "root" $ "services" (list "asr" "transcribeRealtime" "transcribeBatch" "itn" "grammar" "vad" "session" "lumenvoxApi" "neuralTts" "tts" "lid" "nlu" "neuron" "diarization" "reportingApi")) | fromJsonArray }}
+{{- if $resources }}
+{{- fail (printf "\n\nThese resources values can't be used:\n  - %s\n\nSee \"Per-Service CPU and Memory Requests\" in the lumenvox chart README." (join "\n  - " $resources)) }}
+{{- end }}
 {{- /*
 Ingress keys this chart no longer reads. The SaaS-only lumenvox-api-cognito and
 lumenvox-api-internal routes moved out of the chart in 8.0 and are applied

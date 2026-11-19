@@ -1,0 +1,240 @@
+{{- if .Values.gateway.enabled }}
+{{- include "otelcol.validate" . }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "otelcol.gatewayName" . }}
+  namespace: {{ include "otelcol.namespace" . }}
+  labels:
+{{ include "otelcol.labels" . | indent 4 }}
+data:
+  config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:{{ .Values.ports.grpc }}
+          http:
+            endpoint: 0.0.0.0:{{ .Values.ports.http }}
+    {{- if .Values.gateway.clusterMetrics.enabled }}
+      # Must run as a singleton.
+      k8s_cluster:
+        auth_type: serviceAccount
+        collection_interval: {{ .Values.gateway.clusterMetrics.collectionInterval }}
+        node_conditions_to_report: [Ready, MemoryPressure, DiskPressure]
+        allocatable_types_to_report: [cpu, memory]
+    {{- end }}
+    {{- if .Values.gateway.infraReceivers.redis.enabled }}
+      redis:
+        endpoint: {{ .Values.gateway.infraReceivers.redis.endpoint }}
+        collection_interval: {{ .Values.gateway.infraReceivers.collectionInterval }}
+        password: ${env:REDIS_PASSWORD}
+        tls:
+          insecure: {{ .Values.gateway.infraReceivers.redis.tlsInsecure }}
+    {{- end }}
+    {{- if .Values.gateway.infraReceivers.postgresql.enabled }}
+      postgresql:
+        endpoint: {{ .Values.gateway.infraReceivers.postgresql.endpoint }}
+        collection_interval: {{ .Values.gateway.infraReceivers.collectionInterval }}
+        username: {{ .Values.gateway.infraReceivers.postgresql.username }}
+        password: ${env:POSTGRES_PASSWORD}
+        databases: {{ toJson .Values.gateway.infraReceivers.postgresql.databases }}
+        tls:
+          insecure: {{ .Values.gateway.infraReceivers.postgresql.tlsInsecure }}
+    {{- end }}
+    {{- if .Values.gateway.infraReceivers.mongodb.enabled }}
+      mongodb:
+        hosts:
+          - endpoint: {{ .Values.gateway.infraReceivers.mongodb.endpoint }}
+        collection_interval: {{ .Values.gateway.infraReceivers.collectionInterval }}
+        username: {{ .Values.gateway.infraReceivers.mongodb.username }}
+        password: ${env:MONGODB_PASSWORD}
+        tls:
+          insecure: {{ .Values.gateway.infraReceivers.mongodb.tlsInsecure }}
+    {{- end }}
+
+    processors:
+      memory_limiter:
+        check_interval: 5s
+        limit_percentage: {{ .Values.gateway.memoryLimiter.limitPercentage }}
+        spike_limit_percentage: {{ .Values.gateway.memoryLimiter.spikeLimitPercentage }}
+    {{- if .Values.gateway.tailSampling.enabled }}
+      # Traces still open after decision_wait are decided on the spans received so far.
+      tail_sampling:
+        decision_wait: {{ .Values.gateway.tailSampling.decisionWait }}
+        num_traces: {{ .Values.gateway.tailSampling.numTraces }}
+        expected_new_traces_per_sec: {{ .Values.gateway.tailSampling.expectedNewTracesPerSec }}
+        policies:
+          - name: keep-all-errors
+            type: status_code
+            status_code:
+              status_codes: [ERROR]
+      {{- if .Values.gateway.tailSampling.slowThresholdMs }}
+          - name: keep-slow
+            type: latency
+            latency:
+              threshold_ms: {{ .Values.gateway.tailSampling.slowThresholdMs }}
+      {{- end }}
+          - name: baseline-sample
+            type: probabilistic
+            probabilistic:
+              sampling_percentage: {{ .Values.gateway.tailSampling.baselinePercentage }}
+    {{- end }}
+      batch:
+        send_batch_size: {{ .Values.gateway.batch.sendBatchSize }}
+        send_batch_max_size: {{ .Values.gateway.batch.sendBatchMaxSize }}
+        timeout: {{ .Values.gateway.batch.timeout }}
+
+    exporters:
+    {{- if eq .Values.gateway.backend "datadog" }}
+      datadog:
+        api:
+          key: ${env:DD_API_KEY}
+          site: {{ .Values.gateway.datadog.site }}
+        {{- if .Values.gateway.datadog.hostname }}
+        hostname: {{ .Values.gateway.datadog.hostname }}
+        {{- end }}
+        traces:
+          trace_buffer: {{ .Values.gateway.datadog.traceBuffer }}
+    {{- else if eq .Values.gateway.backend "otlp" }}
+      otlp/backend:
+        endpoint: {{ .Values.gateway.otlp.endpoint }}
+        tls:
+          insecure: {{ .Values.gateway.otlp.tlsInsecure }}
+        {{- if .Values.gateway.otlp.headers }}
+        headers:
+{{ toYaml .Values.gateway.otlp.headers | indent 10 }}
+        {{- end }}
+    {{- else if eq .Values.gateway.backend "split" }}
+      {{- /*
+        Endpoint formats:
+          Tempo       OTLP/gRPC host:4317
+          Prometheus  OTLP/HTTP .../api/v1/otlp (requires --web.enable-otlp-receiver)
+          Loki        OTLP/HTTP .../otlp
+      */}}
+      {{- range $signal := (list "traces" "metrics" "logs") }}
+      {{- $cfg := index $.Values.gateway.split $signal }}
+      {{- if $cfg.endpoint }}
+      {{- $type := include "otelcol.signalExporterType" (dict "root" $ "signal" $signal) }}
+      {{ $type }}/{{ $signal }}:
+        endpoint: {{ $cfg.endpoint }}
+      {{- if eq $type "splunk_hec" }}
+        {{- /* splunk_hec uses tls.insecure_skip_verify, not tls.insecure. */}}
+        token: ${env:{{ default "SPLUNK_HEC_TOKEN" $cfg.tokenEnvVar }}}
+        source: {{ default "otel" $cfg.source | quote }}
+        sourcetype: {{ default "otel" $cfg.sourcetype | quote }}
+        {{- if $cfg.index }}
+        index: {{ $cfg.index | quote }}
+        {{- end }}
+        tls:
+          insecure_skip_verify: {{ default true $cfg.tlsInsecure }}
+        max_connections: {{ default 20 $cfg.maxConnections }}
+        disable_compression: {{ default false $cfg.disableCompression }}
+        timeout: {{ default "10s" $cfg.timeout }}
+      {{- else }}
+        tls:
+          insecure: {{ default true $cfg.tlsInsecure }}
+      {{- end }}
+        {{- if $cfg.headers }}
+        headers:
+{{ toYaml $cfg.headers | indent 10 }}
+        {{- end }}
+        retry_on_failure:
+          enabled: true
+        sending_queue:
+          enabled: true
+          queue_size: {{ default 1000 $cfg.queueSize }}
+      {{- end }}
+      {{- end }}
+    {{- end }}
+    {{- if .Values.debug.verboseExporter }}
+      debug:
+        verbosity: detailed
+    {{- end }}
+
+    {{- $spanMetrics := and .Values.gateway.spanMetrics.enabled (include "otelcol.signalEnabled" (dict "root" $ "signal" "metrics")) }}
+    {{- $serviceGraph := and .Values.gateway.serviceGraph.enabled (include "otelcol.signalEnabled" (dict "root" $ "signal" "metrics")) }}
+    {{- if or $spanMetrics $serviceGraph }}
+
+    connectors:
+    {{- if $spanMetrics }}
+      # Dimensions must be low-cardinality; each combination is a new series.
+      # Do not use per-request IDs such as sessionId.
+      spanmetrics:
+        histogram:
+          explicit:
+            buckets: {{ toJson .Values.gateway.spanMetrics.latencyBuckets }}
+        dimensions:
+        {{- range .Values.gateway.spanMetrics.dimensions }}
+          - name: {{ .name }}
+            {{- if .default }}
+            default: {{ .default | quote }}
+            {{- end }}
+        {{- end }}
+        exemplars:
+          enabled: {{ .Values.gateway.spanMetrics.exemplars }}
+        metrics_flush_interval: {{ .Values.gateway.spanMetrics.flushInterval }}
+        namespace: {{ .Values.gateway.spanMetrics.namespace }}
+    {{- end }}
+    {{- if $serviceGraph }}
+      servicegraph:
+        latency_histogram_buckets: {{ toJson .Values.gateway.serviceGraph.latencyBuckets }}
+        dimensions:
+        {{- range .Values.gateway.serviceGraph.dimensions }}
+          - {{ . }}
+        {{- end }}
+        store:
+          # Must exceed the gap between a client span and its server span.
+          ttl: {{ .Values.gateway.serviceGraph.storeTtl }}
+          max_items: {{ .Values.gateway.serviceGraph.storeMaxItems }}
+    {{- end }}
+    {{- end }}
+
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:{{ .Values.ports.health }}
+
+    service:
+      extensions: [health_check]
+      telemetry:
+        logs:
+          level: {{ .Values.logLevel }}
+        {{- if .Values.selfTelemetry.enabled }}
+        metrics:
+          level: {{ .Values.selfTelemetry.level }}
+          address: 0.0.0.0:{{ .Values.ports.selfMetrics }}
+        {{- end }}
+      pipelines:
+      {{- if include "otelcol.signalEnabled" (dict "root" $ "signal" "traces") }}
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter{{ if .Values.gateway.tailSampling.enabled }}, tail_sampling{{ end }}, batch]
+          exporters: [{{ include "otelcol.signalExporter" (dict "root" $ "signal" "traces") }}{{ if .Values.debug.verboseExporter }}, debug{{ end }}]
+      {{- end }}
+      {{- if include "otelcol.signalEnabled" (dict "root" $ "signal" "metrics") }}
+        metrics:
+          receivers: [otlp{{ if .Values.gateway.clusterMetrics.enabled }}, k8s_cluster{{ end }}{{ if .Values.gateway.infraReceivers.redis.enabled }}, redis{{ end }}{{ if .Values.gateway.infraReceivers.postgresql.enabled }}, postgresql{{ end }}{{ if .Values.gateway.infraReceivers.mongodb.enabled }}, mongodb{{ end }}]
+          processors: [memory_limiter, batch]
+          exporters: [{{ include "otelcol.signalExporter" (dict "root" $ "signal" "metrics") }}{{ if .Values.debug.verboseExporter }}, debug{{ end }}]
+      {{- end }}
+      {{- if or $spanMetrics $serviceGraph }}
+      {{- /*
+        Unsampled traces feed the connectors, so derived metrics count every
+        span, not the tail-sampled subset.
+      */}}
+        traces/metricsgen:
+          receivers: [otlp]
+          processors: [memory_limiter]
+          exporters: [{{ if $spanMetrics }}spanmetrics{{ end }}{{ if and $spanMetrics $serviceGraph }}, {{ end }}{{ if $serviceGraph }}servicegraph{{ end }}]
+        metrics/metricsgen:
+          receivers: [{{ if $spanMetrics }}spanmetrics{{ end }}{{ if and $spanMetrics $serviceGraph }}, {{ end }}{{ if $serviceGraph }}servicegraph{{ end }}]
+          processors: [memory_limiter, batch]
+          exporters: [{{ include "otelcol.signalExporter" (dict "root" $ "signal" "metrics") }}{{ if .Values.debug.verboseExporter }}, debug{{ end }}]
+      {{- end }}
+      {{- if include "otelcol.signalEnabled" (dict "root" $ "signal" "logs") }}
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [{{ include "otelcol.signalExporter" (dict "root" $ "signal" "logs") }}{{ if .Values.debug.verboseExporter }}, debug{{ end }}]
+      {{- end }}
+{{- end }}

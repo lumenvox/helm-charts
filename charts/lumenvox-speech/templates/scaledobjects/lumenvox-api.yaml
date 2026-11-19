@@ -1,0 +1,3 @@
+{{- if .Values.global.keda.enabled }}
+{{- include "lumenvox-speech.SCALEDOBJECT" (dict "root" $ "service" "lumenvoxApi" "name" "lumenvox-api") }}
+{{- end }}

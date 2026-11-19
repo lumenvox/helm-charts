@@ -23,8 +23,10 @@ spec:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '5110'
 {{- include "lumenvox-common.serviceMeshAnnotations" $ | indent 8 }}
+{{- include "lumenvox-common.POD_ANNOTATIONS" (dict "root" $ "service" "transcribeBatch" "name" (printf "transcribe-batch-%s" (.name | replace "_" "-")) "langCfg" (dig "services" "transcribeBatch" (dict) .)) }}
+{{- $drain := include "lumenvox-speech.DRAIN" (dict "root" $ "service" "transcribeBatch" "name" (printf "transcribe-batch-%s" (.name | replace "_" "-")) "langCfg" (dig "services" "transcribeBatch" (dict) .) "grace" 300) | fromJson }}
     spec:
-      terminationGracePeriodSeconds: 300
+      terminationGracePeriodSeconds: {{ $drain.grace }}
       containers:
         - name: transcribe-batch
           image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/transcribe-batch{{ $.Values.image.tag | default $.Values.global.image.tag }}
@@ -46,7 +48,7 @@ spec:
             httpGet:
               path: /health
               port: http
-            failureThreshold: 12
+            failureThreshold: {{ $.Values.probes.transcribeBatchStartupFailureThreshold }}
             periodSeconds: {{ $.Values.global.lumenvox.probes.periodSeconds }}
           {{- if $.Values.global.lumenvox.service.livenessProbe.enabled }}
           livenessProbe:
@@ -56,17 +58,31 @@ spec:
             initialDelaySeconds: {{ $.Values.global.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ $.Values.global.lumenvox.probes.periodSeconds }}
           {{- end }}
+          {{- /* With GPU on, the GPU resources.requests replace the built-in default and
+                 render regardless of enforceReservations. */}}
+          {{- $tbGpuRequests := dig "requests" (dict) ($tbGpu.resources | default dict) }}
+          {{- $tbGpuReq := and $tbGpu.enabled (not (empty $tbGpuRequests)) }}
+          {{- $res := include "lumenvox-common.RESOLVE_SERVICE_RESOURCES" (dict "root" $ "lang" . "service" "transcribeBatch" "cpu" (ternary (toString (dig "cpu" "" $tbGpuRequests)) "1500m" $tbGpuReq) "memory" (ternary (toString (dig "memory" "" $tbGpuRequests)) "9Gi" $tbGpuReq) "always" $tbGpuReq) | fromJson }}
+          {{- /* Default limits (enforceLimits) apply to CPU pods only; GPU pods use
+                 global.gpu.transcribeBatch.resources.limits. */}}
+          {{- $tbGpuLimits := dig "limits" (dict) ($tbGpu.resources | default dict) }}
+          {{- $tbGpuLim := and $tbGpu.enabled (not (empty $tbGpuLimits)) }}
+          {{- $lim := include "lumenvox-common.RESOLVE_SERVICE_RESOURCES" (dict "root" $ "lang" . "service" "transcribeBatch" "kind" "limits" "cpu" (ternary (toString (dig "cpu" "" $tbGpuLimits)) "2000m" $tbGpu.enabled) "memory" (ternary (toString (dig "memory" "" $tbGpuLimits)) "12Gi" $tbGpu.enabled) "always" $tbGpuLim "requests" $res) | fromJson }}
           resources:
             requests:
-              {{- if $.Values.global.lumenvox.enforceReservations }}
-              cpu: 1000m
-              memory: 4000Mi
+              {{- if $res.cpu }}
+              cpu: {{ $res.cpu }}
               {{- end }}
-            {{- if or $.Values.global.lumenvox.enforceLimits $tbGpu.enabled }}
+              {{- if $res.memory }}
+              memory: {{ $res.memory }}
+              {{- end }}
+            {{- if or $lim.cpu $lim.memory $tbGpu.enabled }}
             limits:
-              {{- if $.Values.global.lumenvox.enforceLimits }}
-              cpu: 1500m
-              memory: 8000Mi
+              {{- if $lim.cpu }}
+              cpu: {{ $lim.cpu }}
+              {{- end }}
+              {{- if $lim.memory }}
+              memory: {{ $lim.memory }}
               {{- end }}
               {{- if $tbGpu.enabled }}
               nvidia.com/gpu: '{{ $tbGpu.count }}'
@@ -84,6 +100,7 @@ spec:
                 name: {{ $.Values.global.redis.auth.existingSecret }}
             {{- end }}
           env:
+            {{- with (include "lumenvox-common.otelEnv" (dict "root" $ "service" "transcribe-batch") | trim) }}{{ . | nindent 12 }}{{- end }}
             {{- if not $.Values.global.rabbitmq.auth.existingPasswordSecret }}
             - name: rabbitmq-password
               value: '{{ $.Values.global.rabbitmq.auth.password }}'
@@ -118,6 +135,14 @@ spec:
               value: '{{ template "lumenvox-speech.SERVICE_ASR_MODELS" (dict "root" $ "lang" . "service" "transcribeBatch" "kind" "encoder") }}'
             - name: TRANS_BATCH_DECODERS
               value: '{{ template "lumenvox-speech.SERVICE_ASR_MODELS" (dict "root" $ "lang" . "service" "transcribeBatch" "kind" "decoder") }}'
+            {{- $maxActiveRequests := $.Values.transcribeBatch.maxActiveRequests }}
+            {{- if and $tbGpu.enabled $tbGpu.maxActiveRequests }}
+            {{- $maxActiveRequests = $tbGpu.maxActiveRequests }}
+            {{- end }}
+            {{- if $maxActiveRequests }}
+            - name: ASR_SETTINGS__MAX_ACTIVE_REQUESTS
+              value: '{{ $maxActiveRequests }}'
+            {{- end }}
             {{- if $tbGpu.enabled }}
             - name: ASR_SETTINGS__ENABLE_GPU
               value: 'true'
@@ -128,6 +153,10 @@ spec:
             {{- end }}
             - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
               value: 'ignore'
+            {{- if $drain.seconds }}
+            - name: DRAIN_TIMEOUT_SECONDS
+              value: '{{ $drain.seconds }}'
+            {{- end }}
           volumeMounts:
             - mountPath: /usr/local/lib/python3.12/dist-packages
               name: lang
@@ -146,16 +175,7 @@ spec:
         - name: {{ . }}
       {{- end }}
       {{- end }}
-      {{- if $tbGpu.enabled }}
-      tolerations:
-        - effect: NoSchedule
-          key: nvidia.com/gpu
-          operator: Exists
-        - effect: NoSchedule
-          key: kubernetes.azure.com/scalesetpriority
-          operator: Equal
-          value: spot
-      {{- end }}
+      {{- include "lumenvox-common.POD_SCHEDULING" (dict "root" $ "service" "transcribeBatch" "name" (printf "transcribe-batch-%s" (.name | replace "_" "-")) "langCfg" (dig "services" "transcribeBatch" (dict) .) "baseTolerations" (ternary $tbGpu.tolerations (list) $tbGpu.enabled)) }}
       initContainers:
         - name: wait-for-deployment-service
           image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/cloud-init-tools{{ $.Values.image.tag | default $.Values.global.image.tag }}

@@ -1,0 +1,1 @@
+{{- include "lumenvox-speech.PODMONITOR" (dict "root" $ "service" "vad" "name" "vad") }}

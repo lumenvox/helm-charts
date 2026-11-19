@@ -1,0 +1,12 @@
+apiVersion: v2
+name: lumenvox-otel-collector
+description: OpenTelemetry Collector (agent + gateway) for the LumenVox platform
+type: application
+version: 8.1.0
+appVersion: "0.115.1"
+home: https://lumenvox.com
+annotations:
+  artifacthub.io/containsSecurityUpdates: "false"
+  artifacthub.io/images: |
+    - name: opentelemetry-collector-contrib
+      image: otel/opentelemetry-collector-contrib:0.115.1

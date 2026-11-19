@@ -23,8 +23,10 @@ spec:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '5110'
 {{- include "lumenvox-common.serviceMeshAnnotations" $ | indent 8 }}
+{{- include "lumenvox-common.POD_ANNOTATIONS" (dict "root" $ "service" "asr" "name" (printf "asr-%s" (.name | replace "_" "-")) "langCfg" (dig "services" "asr" (dict) .)) }}
+{{- $drain := include "lumenvox-speech.DRAIN" (dict "root" $ "service" "asr" "name" (printf "asr-%s" (.name | replace "_" "-")) "langCfg" (dig "services" "asr" (dict) .) "grace" 300) | fromJson }}
     spec:
-      terminationGracePeriodSeconds: 300
+      terminationGracePeriodSeconds: {{ $drain.grace }}
       containers:
         - name: asr
           image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/asr{{ $.Values.image.tag | default $.Values.global.image.tag }}
@@ -46,7 +48,7 @@ spec:
             httpGet:
               path: /health
               port: http
-            failureThreshold: 12
+            failureThreshold: {{ $.Values.probes.asrStartupFailureThreshold }}
             periodSeconds: {{ $.Values.global.lumenvox.probes.periodSeconds }}
           {{- if $.Values.global.lumenvox.service.livenessProbe.enabled }}
           livenessProbe:
@@ -56,17 +58,23 @@ spec:
             initialDelaySeconds: {{ $.Values.global.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ $.Values.global.lumenvox.probes.periodSeconds }}
           {{- end }}
+          {{- $res := include "lumenvox-common.RESOLVE_SERVICE_RESOURCES" (dict "root" $ "lang" . "service" "asr" "cpu" "1000m" "memory" "4000Mi") | fromJson }}
+          {{- $lim := include "lumenvox-common.RESOLVE_SERVICE_RESOURCES" (dict "root" $ "lang" . "service" "asr" "kind" "limits" "cpu" "1500m" "memory" "8000Mi" "requests" $res) | fromJson }}
           resources:
             requests:
-              {{- if $.Values.global.lumenvox.enforceReservations }}
-              cpu: 1000m
-              memory: 4000Mi
+              {{- if $res.cpu }}
+              cpu: {{ $res.cpu }}
               {{- end }}
-            {{- if or $.Values.global.lumenvox.enforceLimits .fineTuned $asrGpu.enabled }}
+              {{- if $res.memory }}
+              memory: {{ $res.memory }}
+              {{- end }}
+            {{- if or $lim.cpu $lim.memory .fineTuned $asrGpu.enabled }}
             limits:
-              {{- if $.Values.global.lumenvox.enforceLimits }}
-              cpu: 1500m
-              memory: 8000Mi
+              {{- if $lim.cpu }}
+              cpu: {{ $lim.cpu }}
+              {{- end }}
+              {{- if $lim.memory }}
+              memory: {{ $lim.memory }}
               {{- end }}
               {{- if or .fineTuned $asrGpu.enabled }}
               nvidia.com/gpu: '{{ if $asrGpu.enabled }}{{ $asrGpu.count }}{{ else }}1{{ end }}'
@@ -84,6 +92,7 @@ spec:
                 name: {{ $.Values.global.redis.auth.existingSecret }}
             {{- end }}
           env:
+            {{- with (include "lumenvox-common.otelEnv" (dict "root" $ "service" "asr") | trim) }}{{ . | nindent 12 }}{{- end }}
             {{- if not $.Values.global.rabbitmq.auth.existingPasswordSecret }}
             - name: rabbitmq-password
               value: '{{ $.Values.global.rabbitmq.auth.password }}'
@@ -126,6 +135,14 @@ spec:
             - name: ASR_SETTINGS__ENABLE_FINE_TUNED
               value: '1'
             {{- end }}
+            {{- $maxActiveRequests := $.Values.asr.maxActiveRequests }}
+            {{- if and $asrGpu.enabled $asrGpu.maxActiveRequests }}
+            {{- $maxActiveRequests = $asrGpu.maxActiveRequests }}
+            {{- end }}
+            {{- if $maxActiveRequests }}
+            - name: ASR_SETTINGS__MAX_ACTIVE_REQUESTS
+              value: '{{ $maxActiveRequests }}'
+            {{- end }}
             {{- if $asrGpu.enabled }}
             - name: ASR_SETTINGS__ENABLE_GPU
               value: 'true'
@@ -136,6 +153,10 @@ spec:
             {{- end }}
             - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
               value: 'ignore'
+            {{- if $drain.seconds }}
+            - name: DRAIN_TIMEOUT_SECONDS
+              value: '{{ $drain.seconds }}'
+            {{- end }}
           volumeMounts:
             - mountPath: /usr/local/lib/python3.12/dist-packages
               name: lang
@@ -159,32 +180,7 @@ spec:
         - name: {{ . }}
       {{- end }}
       {{- end }}
-      {{- if $asrGpu.enabled }}
-      tolerations:
-        - effect: NoSchedule
-          key: nvidia.com/gpu
-          operator: Exists
-        - effect: NoSchedule
-          key: kubernetes.azure.com/scalesetpriority
-          operator: Equal
-          value: spot
-      {{- end }}
-      {{- /* Opt-in: asr pods have no resource requests by default, so the
-             scheduler packs them onto a few nodes, which raises per-session
-             decode CPU. */}}
-      {{- $spread := dig "lumenvox" "decodeTopologySpread" dict $.Values.global }}
-      {{- if $spread.enabled }}
-      topologySpreadConstraints:
-        - maxSkew: {{ $spread.maxSkew | default 1 }}
-          topologyKey: {{ $spread.topologyKey | default "kubernetes.io/hostname" }}
-          whenUnsatisfiable: {{ $spread.whenUnsatisfiable | default "ScheduleAnyway" }}
-          {{- /* Don't count nodes with taints asr doesn't tolerate when
-                 computing skew; they'd count as empty and block scale-up. */}}
-          nodeTaintsPolicy: {{ $spread.nodeTaintsPolicy | default "Honor" }}
-          labelSelector:
-            matchLabels:
-              app: asr-{{ .name | replace "_" "-" }}
-      {{- end }}
+      {{- include "lumenvox-common.POD_SCHEDULING" (dict "root" $ "service" "asr" "name" (printf "asr-%s" (.name | replace "_" "-")) "langCfg" (dig "services" "asr" (dict) .) "baseTolerations" (ternary $asrGpu.tolerations (list) $asrGpu.enabled)) }}
       initContainers:
         - name: wait-for-deployment-service
           image: {{ $.Values.image.repository | default $.Values.global.image.repository }}/cloud-init-tools{{ $.Values.image.tag | default $.Values.global.image.tag }}

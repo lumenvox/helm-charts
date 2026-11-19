@@ -1,0 +1,1 @@
+{{- include "lumenvox-speech.PODMONITOR" (dict "root" $ "service" "lumenvoxApi" "name" "lumenvox-api") }}

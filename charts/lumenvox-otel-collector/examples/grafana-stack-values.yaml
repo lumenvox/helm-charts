@@ -1,0 +1,87 @@
+# Example: traces, metrics and logs to Tempo, Prometheus and Loki.
+#   helm upgrade lumenvox ./charts/lumenvox -n lumenvox -f <your values> \
+#     -f charts/lumenvox-otel-collector/examples/grafana-stack-values.yaml
+#
+# Endpoints assume releases "tempo", "prometheus" and "loki" in namespace
+# "monitoring". Prerequisites:
+#   - Tempo; for Traces Drilldown also examples/backends/tempo-traceql-metrics.yaml.
+#   - Prometheus with --web.enable-otlp-receiver and
+#     --enable-feature=exemplar-storage (examples/backends/prometheus-otlp-receiver.yaml).
+#   - Loki 3.x (OTLP ingest at /otlp).
+#   - Exclude the LumenVox namespace from any other log shipper to the same Loki.
+# Grafana datasources: examples/backends/grafana-tempo-datasource.yaml.
+
+global:
+  enabled:
+    otelCollector: true
+
+  otel:
+    # Adds OTEL_* environment to every LumenVox deployment, restarting them.
+    enabled: false
+    endpointMode: agent
+    environment: staging
+    serviceNamespace: lumenvox
+    # Keep false while agent.filelog is enabled.
+    logs:
+      enabled: false
+
+lumenvox-otel-collector:
+
+  agent:
+    # Disable when the cluster's Prometheus already scrapes prometheus.io/* pods.
+    prometheusScrape:
+      enabled: false
+
+    kubeletstats:
+      enabled: true
+
+    filelog:
+      enabled: true
+      minLevel: ""
+
+  gateway:
+    backend: split
+
+    split:
+      traces:
+        endpoint: "tempo.monitoring.svc.cluster.local:4317"
+        type: otlp
+        tlsInsecure: true
+
+      metrics:
+        endpoint: "http://prometheus-server.monitoring.svc.cluster.local:80/api/v1/otlp"
+        type: otlphttp
+        tlsInsecure: true
+
+      logs:
+        endpoint: "http://loki.monitoring.svc.cluster.local:3100/otlp"
+        type: otlphttp
+        tlsInsecure: true
+
+    spanMetrics:
+      enabled: true
+
+    serviceGraph:
+      enabled: true
+
+    tailSampling:
+      enabled: true
+      # Keep below 30s for Tempo's metrics-generator.
+      decisionWait: 15s
+      # Percentage of healthy traces kept; error and slow traces are always kept.
+      baselinePercentage: 10
+      slowThresholdMs: 5000
+
+    clusterMetrics:
+      enabled: false
+
+    infraReceivers:
+      redis:
+        enabled: false
+      postgresql:
+        enabled: false
+      mongodb:
+        enabled: false
+
+  debug:
+    verboseExporter: false

@@ -18,6 +18,7 @@ spec:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '5110'
 {{- include "lumenvox-common.serviceMeshAnnotations" . | indent 8 }}
+{{- include "lumenvox-common.POD_ANNOTATIONS" (dict "root" $ "service" "grammar" "name" "grammar") }}
     spec:
       terminationGracePeriodSeconds: 90
       containers:
@@ -45,16 +46,24 @@ spec:
             initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
           {{- end }}
+          {{- $res := include "lumenvox-common.RESOLVE_SERVICE_RESOURCES" (dict "root" $ "service" "grammar" "cpu" "500m" "memory" "1000Mi") | fromJson }}
+          {{- $lim := include "lumenvox-common.RESOLVE_SERVICE_RESOURCES" (dict "root" $ "service" "grammar" "kind" "limits" "cpu" "1000m" "memory" "2000Mi" "requests" $res) | fromJson }}
           resources:
             requests:
-              {{- if .Values.global.lumenvox.enforceReservations }}
-              cpu: 500m
-              memory: 1000Mi
+              {{- if $res.cpu }}
+              cpu: {{ $res.cpu }}
               {{- end }}
-            {{- if .Values.global.lumenvox.enforceLimits }}
+              {{- if $res.memory }}
+              memory: {{ $res.memory }}
+              {{- end }}
+            {{- if or $lim.cpu $lim.memory }}
             limits:
-              cpu: 1000m
-              memory: 2000Mi
+              {{- if $lim.cpu }}
+              cpu: {{ $lim.cpu }}
+              {{- end }}
+              {{- if $lim.memory }}
+              memory: {{ $lim.memory }}
+              {{- end }}
             {{- end }}
           envFrom:
             - configMapRef:
@@ -72,6 +81,7 @@ spec:
                 name: extra-root-ca-secret
             {{- end }}
           env:
+            {{- with (include "lumenvox-common.otelEnv" (dict "root" $ "service" "grammar") | trim) }}{{ . | nindent 12 }}{{- end }}
             {{- if not .Values.global.rabbitmq.auth.existingPasswordSecret }}
             - name: rabbitmq-password
               value: '{{ .Values.global.rabbitmq.auth.password }}'
@@ -163,6 +173,7 @@ spec:
           persistentVolumeClaim:
             claimName: grammarlogs-claim
             readOnly: false
+      {{- include "lumenvox-common.POD_SCHEDULING" (dict "root" $ "service" "grammar" "name" "grammar") }}
       {{- if .Values.global.lumenvox.schedulerName }}
       schedulerName: {{ .Values.global.lumenvox.schedulerName }}
       {{- end }}

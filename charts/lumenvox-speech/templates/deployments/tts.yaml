@@ -22,6 +22,7 @@ spec:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '5110'
 {{- include "lumenvox-common.serviceMeshAnnotations" $ | indent 8 }}
+{{- include "lumenvox-common.POD_ANNOTATIONS" (dict "root" $ "service" "tts" "name" (printf "tts-%s" (.name | replace "_" "-"))) }}
     spec:
       terminationGracePeriodSeconds: 120
       containers:
@@ -49,16 +50,24 @@ spec:
             initialDelaySeconds: {{ $.Values.global.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ $.Values.global.lumenvox.probes.periodSeconds }}
           {{- end }}
+          {{- $res := include "lumenvox-common.RESOLVE_SERVICE_RESOURCES" (dict "root" $ "service" "tts" "cpu" "5m" "memory" "30Mi") | fromJson }}
+          {{- $lim := include "lumenvox-common.RESOLVE_SERVICE_RESOURCES" (dict "root" $ "service" "tts" "kind" "limits" "cpu" "100m" "memory" "50Mi" "requests" $res) | fromJson }}
           resources:
             requests:
-              {{- if $.Values.global.lumenvox.enforceReservations }}
-              cpu: 5m
-              memory: 30Mi
+              {{- if $res.cpu }}
+              cpu: {{ $res.cpu }}
               {{- end }}
-            {{- if $.Values.global.lumenvox.enforceLimits }}
+              {{- if $res.memory }}
+              memory: {{ $res.memory }}
+              {{- end }}
+            {{- if or $lim.cpu $lim.memory }}
             limits:
-              cpu: 100m
-              memory: 50Mi
+              {{- if $lim.cpu }}
+              cpu: {{ $lim.cpu }}
+              {{- end }}
+              {{- if $lim.memory }}
+              memory: {{ $lim.memory }}
+              {{- end }}
             {{- end }}
           envFrom:
             - configMapRef:
@@ -72,6 +81,7 @@ spec:
                 name: {{ $.Values.global.redis.auth.existingSecret }}
             {{- end }}
           env:
+            {{- with (include "lumenvox-common.otelEnv" (dict "root" $ "service" "tts") | trim) }}{{ . | nindent 12 }}{{- end }}
             {{- if not $.Values.global.rabbitmq.auth.existingPasswordSecret }}
             - name: rabbitmq-password
               value: '{{ $.Values.global.rabbitmq.auth.password }}'
@@ -174,6 +184,7 @@ spec:
             readOnly: false
         - name: logs
           emptyDir: {}
+      {{- include "lumenvox-common.POD_SCHEDULING" (dict "root" $ "service" "tts" "name" (printf "tts-%s" (.name | replace "_" "-"))) }}
       {{- if $.Values.global.lumenvox.schedulerName }}
       schedulerName: {{ $.Values.global.lumenvox.schedulerName }}
       {{- end }}

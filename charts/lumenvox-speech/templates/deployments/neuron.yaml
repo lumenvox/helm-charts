@@ -21,6 +21,7 @@ spec:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '5110'
 {{- include "lumenvox-common.serviceMeshAnnotations" $ | indent 8 }}
+{{- include "lumenvox-common.POD_ANNOTATIONS" (dict "root" $ "service" "neuron" "name" (printf "neuron-%s" (.name | replace "_" "-"))) }}
     spec:
       terminationGracePeriodSeconds: 90
       containers:
@@ -54,17 +55,23 @@ spec:
             initialDelaySeconds: {{ $.Values.global.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ $.Values.global.lumenvox.probes.periodSeconds }}
           {{- end }}
+          {{- $res := include "lumenvox-common.RESOLVE_SERVICE_RESOURCES" (dict "root" $ "service" "neuron" "cpu" "100m" "memory" "500Mi") | fromJson }}
+          {{- $lim := include "lumenvox-common.RESOLVE_SERVICE_RESOURCES" (dict "root" $ "service" "neuron" "kind" "limits" "cpu" "500m" "memory" "750Mi" "requests" $res) | fromJson }}
           resources:
             requests:
-              {{- if $.Values.global.lumenvox.enforceReservations }}
-              cpu: 100m
-              memory: 500Mi
+              {{- if $res.cpu }}
+              cpu: {{ $res.cpu }}
               {{- end }}
-            {{- if or $.Values.global.lumenvox.enforceLimits $.Values.global.enableNeuron }}
+              {{- if $res.memory }}
+              memory: {{ $res.memory }}
+              {{- end }}
+            {{- if or $lim.cpu $lim.memory $.Values.global.enableNeuron }}
             limits:
-              {{- if $.Values.global.lumenvox.enforceLimits }}
-              cpu: 500m
-              memory: 750Mi
+              {{- if $lim.cpu }}
+              cpu: {{ $lim.cpu }}
+              {{- end }}
+              {{- if $lim.memory }}
+              memory: {{ $lim.memory }}
               {{- end }}
             {{- end }}
           envFrom:
@@ -79,6 +86,7 @@ spec:
                 name: {{ $.Values.global.redis.auth.existingSecret }}
             {{- end }}
           env:
+            {{- with (include "lumenvox-common.otelEnv" (dict "root" $ "service" "neuron") | trim) }}{{ . | nindent 12 }}{{- end }}
             {{- if not $.Values.global.rabbitmq.auth.existingPasswordSecret }}
             - name: rabbitmq-password
               value: '{{ $.Values.global.rabbitmq.auth.password }}'
@@ -136,6 +144,7 @@ spec:
           persistentVolumeClaim:
             claimName: neuronmodels-claim
             readOnly: false
+      {{- include "lumenvox-common.POD_SCHEDULING" (dict "root" $ "service" "neuron" "name" (printf "neuron-%s" (.name | replace "_" "-"))) }}
       {{- if $.Values.global.lumenvox.schedulerName }}
       schedulerName: {{ $.Values.global.lumenvox.schedulerName }}
       {{- end }}

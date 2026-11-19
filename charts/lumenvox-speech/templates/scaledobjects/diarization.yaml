@@ -1,0 +1,3 @@
+{{- if and .Values.global.keda.enabled .Values.global.enableDiarization }}
+{{- include "lumenvox-speech.SCALEDOBJECT" (dict "root" $ "service" "diarization" "name" "diarization") }}
+{{- end }}

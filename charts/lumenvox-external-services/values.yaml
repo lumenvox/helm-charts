@@ -269,30 +269,12 @@ redis:
     pullPolicy: IfNotPresent
   storageSize: 10Gi
   storageClassName: ""
-  # `maxmemory` as a percentage of each pod's memory LIMIT, rendered into the
-  # config as an absolute byte count (see the toBytes helper). Without it redis
-  # has no boundary to respect: it allocates past the container limit and the
-  # kernel kills it rather than the eviction policy running. Set to 0 to omit
-  # maxmemory entirely.
-  #
-  # 60 rather than 75: maxmemory bounds the DATA SET only. Client output
-  # buffers, the replication backlog and allocator fragmentation all live
-  # outside it, and they scale with connection count. Measured 20260902 on
-  # cloud-speech-1: with maxmemory at 75% of a 1Gi limit and ~1,000 client
-  # connections under heavy eviction, a follower was still OOMKilled -- the
-  # data set sat exactly at maxmemory while the overhead pushed the container
-  # past its limit. Connection counts at full load are several times that, so
-  # the margin has to cover the overhead rather than just the keys.
+  # maxmemory as a percentage of the pod's memory limit; 0 omits it. Leave
+  # headroom for client buffers and fragmentation, which sit outside it.
   maxmemoryPercent: 60
-  # allkeys-lru fails safe: it still evicts if some code path writes a key with
-  # no TTL. volatile-lru only evicts keys that have one, so a single untracked
-  # key pattern brings back the OOM-kill.
   maxmemoryPolicy: allkeys-lru
-  # Redis serves its whole command path on one thread, and that thread also does
-  # the socket reads and writes. io-threads moves the socket work off it, which
-  # is what a managed cache does with its own enhanced-I/O threads. Only worth
-  # raising above 1 when the pod has more than one core. 2: measured egress
-  # ~68.7 MB/s per primary at 1500 concurrent sessions.
+  # Redis io-threads (socket I/O off the main thread). Set above 1 only when
+  # the pod has more than one core.
   ioThreads: 2
   # Extra redis.conf lines, appended verbatim. Applies to BOTH single-instance
   # and cluster mode (cluster mode delivers them via the operator's
@@ -374,31 +356,11 @@ redis:
           tag: "v1.44.0"
           pullPolicy: IfNotPresent
         port: 9121
-        # MUST be set. The exporter is a sidecar in the redis pods, and a
-        # container with no requests/limits drops the WHOLE POD from
-        # Guaranteed to Burstable QoS -- which silently undid the
-        # requests==limits sizing on the redis containers themselves.
-        # Observed on cloud-speech-1: with the exporter enabled, both
-        # shard-2 redis pods showed qosClass Burstable despite the redis
-        # container being Guaranteed. Burstable is CPU-throttled and evicted
-        # ahead of Guaranteed under node pressure, which is the wrong
-        # priority for the data tier the whole fleet depends on.
-        # 50m is enough. The exporter throttles on its scrape burst at any
-        # modest quota and raising it does NOT help: measured on cloud-speech-1
-        # 20260902, 50m throttled 36.75% of CFS periods and 200m throttled
-        # 33.94% -- a 4x quota bought 2.8 points, because the cost is one short
-        # INFO parse per scrape whose instantaneous demand exceeds any quota in
-        # this range. It is a low-duty-cycle burst, not a throughput shortfall.
-        #
-        # It is also harmless: the redis containers measured 0.00% throttling
-        # in the same windows, and a delayed scrape shifts a sample, it does not
-        # touch the command path. The reason it ever looked alarming is that
-        # pod-level throttle metrics SUM every container, so the sidecar's
-        # throttling read as redis throttling. The fix for that was scoping the
-        # gate to container=~".*redis-cluster.*" (see the es-redis
-        # redis_throttle query in the harness), not buying the sidecar CPU it
-        # cannot use. At 200m across six pods this reserved 1.2 CPU for no
-        # benefit.
+        # Required. Requests must equal limits or the redis pods drop from
+        # Guaranteed to Burstable QoS. The exporter shows CPU throttling during
+        # scrapes at any small quota; this does not affect redis. Pod-level
+        # throttle metrics include the sidecar, so scope throttle alerts to the
+        # redis container.
         resources:
           requests: {cpu: 50m, memory: 64Mi}
           limits:   {cpu: 50m, memory: 64Mi}
@@ -406,19 +368,8 @@ redis:
         className: ""            # required; e.g. managed-csi on AKS, gp2 on EKS
         size: 10Gi
         nodeConfSize: 1Gi
-      # 2Gi, not 1Gi: at 1500 concurrent the hottest shard's data set was
-      # 317 MB against the 614 MB cap a 1Gi limit yields, with RSS 347 MB --
-      # so maxmemory bound before the cgroup did, meaning evictions rather
-      # than an OOMKill (see maxmemoryPercent above). 3 CPU: at 1500 the
-      # process drew 1.0426 cores (54.7% of a 2-core limit) and still
-      # throttled 4.44% of CFS periods -- CFS throttles on the per-period
-      # burst, not the average, and ioThreads 2 means the process uses more
-      # than one core so raising this limit buys real headroom.
-      #
-      # leader and follower are sized IDENTICALLY on purpose: redis cluster
-      # roles are dynamic while pod names are static, so after any failover
-      # the pods named follower-* can be the actual masters. Check roles with
-      # redis_instance_info{role=...}, not pod names.
+      # Size leader and follower identically: after a failover, follower-*
+      # pods can be masters.
       leader:
         resources:
           requests: {cpu: "3", memory: 2Gi}

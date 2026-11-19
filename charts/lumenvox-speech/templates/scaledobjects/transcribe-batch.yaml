@@ -1,0 +1,5 @@
+{{- if and .Values.global.keda.enabled (not .Values.global.minimalInstall) .Values.global.transcribeBatch.enabled }}
+{{- range .Values.global.asrLanguages }}
+{{- include "lumenvox-speech.SCALEDOBJECT" (dict "root" $ "service" "transcribeBatch" "name" (printf "transcribe-batch-%s" (.name | replace "_" "-")) "looped" true "langCount" (len $.Values.global.asrLanguages) "lang" . "langCfg" (dig "services" "transcribeBatch" "autoscaling" (dict) .)) }}
+{{- end }}
+{{- end }}

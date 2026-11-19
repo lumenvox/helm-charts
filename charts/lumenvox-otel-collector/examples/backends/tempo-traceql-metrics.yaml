@@ -1,0 +1,32 @@
+# Values for grafana/tempo: metrics-generator for TraceQL metrics (Traces Drilldown).
+#   helm upgrade tempo grafana/tempo -n monitoring --reuse-values \
+#     -f charts/lumenvox-otel-collector/examples/backends/tempo-traceql-metrics.yaml
+#
+# Do not enable Tempo's span_metrics or service_graphs processors while the
+# collector's spanMetrics/serviceGraph are on; the series would be duplicated.
+
+tempo:
+  metricsGenerator:
+    enabled: true
+
+    processor:
+      local_blocks:
+        flush_to_storage: true
+        # false includes non-server spans.
+        filter_server_spans: false
+        max_block_duration: 1m
+
+    storage:
+      path: "/var/tempo/generator/blocks"
+    traces_storage:
+      path: "/var/tempo/generator/traces"
+
+    # Unused by local-blocks.
+    remoteWriteUrl: "http://prometheus-server.monitoring.svc.cluster.local/api/v1/write"
+
+  # Required: the generator runs no processors unless they are listed here.
+  overrides:
+    defaults:
+      metrics_generator:
+        processors:
+          - local-blocks

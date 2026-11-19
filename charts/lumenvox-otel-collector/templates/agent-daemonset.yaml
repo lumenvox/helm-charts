@@ -1,0 +1,136 @@
+{{- if .Values.agent.enabled }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "otelcol.agentName" . }}
+  namespace: {{ include "otelcol.namespace" . }}
+  labels:
+    app: {{ include "otelcol.agentName" . }}
+{{ include "otelcol.labels" . | indent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ include "otelcol.agentName" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "otelcol.agentName" . }}
+{{ include "otelcol.labels" . | indent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/agent-configmap.yaml") . | sha256sum }}
+        linkerd.io/inject: disabled
+        sidecar.istio.io/inject: "false"
+        {{- if and .Values.selfTelemetry.enabled .Values.selfTelemetry.prometheusAnnotations }}
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "{{ .Values.ports.selfMetrics }}"
+        prometheus.io/path: "/metrics"
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "otelcol.serviceAccountName" . }}
+      terminationGracePeriodSeconds: 30
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.global.imagePullSecrets }}
+        - name: {{ . }}
+      {{- end }}
+      {{- end }}
+      containers:
+        - name: otel-collector
+          image: {{ include "otelcol.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: ["--config=/conf/config.yaml"]
+          {{- if .Values.agent.filelog.enabled }}
+          # Pod log files are root-owned, mode 0640.
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+          {{- end }}
+          ports:
+            # hostPort backs the $(NODE_IP) endpoint used in endpointMode: agent.
+            - name: otlp-grpc
+              containerPort: {{ .Values.ports.grpc }}
+              hostPort: {{ .Values.ports.grpc }}
+              protocol: TCP
+            - name: otlp-http
+              containerPort: {{ .Values.ports.http }}
+              hostPort: {{ .Values.ports.http }}
+              protocol: TCP
+            - name: health
+              containerPort: {{ .Values.ports.health }}
+              protocol: TCP
+            {{- if .Values.selfTelemetry.enabled }}
+            - name: self-metrics
+              containerPort: {{ .Values.ports.selfMetrics }}
+              protocol: TCP
+            {{- end }}
+          env:
+            - name: K8S_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            # Default kubeletstats target; node names do not resolve on every platform.
+            - name: K8S_NODE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            - name: K8S_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: K8S_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            {{- with include "otelcol.goMemLimit" (dig "limits" "memory" "" (.Values.agent.resources | default dict)) }}
+            # See otelcol.goMemLimit.
+            - name: GOMEMLIMIT
+              value: {{ . | quote }}
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.ports.health }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.ports.health }}
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+{{ toYaml .Values.agent.resources | indent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /conf
+            {{- if .Values.agent.filelog.enabled }}
+            - name: varlogpods
+              mountPath: /var/log/pods
+              readOnly: true
+            - name: filelog-checkpoints
+              mountPath: /var/lib/otelcol/filelog
+            {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "otelcol.agentName" . }}
+            items:
+              - key: config.yaml
+                path: config.yaml
+        {{- if .Values.agent.filelog.enabled }}
+        - name: varlogpods
+          hostPath:
+            path: /var/log/pods
+        - name: filelog-checkpoints
+          hostPath:
+            path: {{ .Values.agent.filelog.checkpointPath }}
+            type: DirectoryOrCreate
+        {{- end }}
+      tolerations:
+{{ toYaml .Values.agent.tolerations | indent 8 }}
+      {{- if .Values.global.lumenvox }}
+      {{- if .Values.global.lumenvox.schedulerName }}
+      schedulerName: {{ .Values.global.lumenvox.schedulerName }}
+      {{- end }}
+      {{- end }}
+{{- end }}

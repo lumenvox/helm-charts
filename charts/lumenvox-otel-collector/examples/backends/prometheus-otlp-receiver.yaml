@@ -1,0 +1,10 @@
+# Values for prometheus-community/prometheus: OTLP receiver and exemplar storage.
+#   helm upgrade prometheus prometheus-community/prometheus -n monitoring --reuse-values \
+#     -f charts/lumenvox-otel-collector/examples/backends/prometheus-otlp-receiver.yaml
+
+server:
+  # Helm replaces lists: include web.enable-lifecycle and any existing flags.
+  extraFlags:
+    - web.enable-lifecycle
+    - web.enable-otlp-receiver
+    - enable-feature=exemplar-storage

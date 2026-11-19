@@ -61,6 +61,7 @@ spec:
                 name: {{ .Values.global.rabbitmq.auth.existingPasswordSecret }}
             {{- end }}
           env:
+            {{- with (include "lumenvox-common.otelEnv" (dict "root" $ "service" "reporting") | trim) }}{{ . | nindent 12 }}{{- end }}
             {{- if not .Values.global.rabbitmq.auth.existingPasswordSecret }}
             - name: rabbitmq-password
               value: '{{ .Values.global.rabbitmq.auth.password }}'

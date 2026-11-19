@@ -36,6 +36,45 @@ probes:
   resourceStartupFailureThreshold: 720
 
 global:
+  # OpenTelemetry export from the services. Emits no OTEL_* environment while
+  # disabled.
+  #
+  # With Istio and endpointMode "agent", add 4317 to
+  # global.serviceMesh.istio.excludeOutboundPorts (e.g. "443,4317"), or the
+  # sidecar drops traffic to $(NODE_IP):4317. endpointMode "gateway" does not
+  # need this.
+  otel:
+    enabled: false
+    # "agent"   - export to the node-local collector agent at $(NODE_IP).
+    # "gateway" - export to the collector gateway Service.
+    endpointMode: agent
+    port: 4317
+    protocol: grpc
+    # Base name of the collector workloads. Defaults to the release name.
+    collectorName: ""
+    # Set only when the collector is installed as a separate Helm release.
+    releaseName: ""
+    # Overrides the derived gateway address.
+    gatewayEndpoint: ""
+    # service.namespace resource attribute.
+    serviceNamespace: lumenvox
+    # deployment.environment resource attribute, e.g. "staging" or "prod".
+    environment: ""
+    # Additional resource attributes (key: value). k8s.* attributes are added
+    # by the collector.
+    resourceAttributes: {}
+    traces:
+      enabled: true
+      # Sampling is done by the collector gateway (tail sampling).
+      sampler: parentbased_always_on
+      samplerArg: ""
+    metrics:
+      enabled: true
+    logs:
+      # Leave false. Collect service logs with the collector's agent.filelog.
+      enabled: false
+    # Additional OTEL_* environment variables for every service.
+    extraEnv: {}
   lumenvox:
     # Controls the ingress mode. Supported values:
     #   "nginx" - use traditional nginx Ingress resources

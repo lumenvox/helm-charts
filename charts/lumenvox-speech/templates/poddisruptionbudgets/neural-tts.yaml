@@ -1,0 +1,7 @@
+{{- if and (not .Values.global.minimalInstall) .Values.global.neuralTts.enabled }}
+{{- range .Values.global.ttsLanguages }}
+{{- if not .legacyEnabled }}
+{{- include "lumenvox-speech.PDB" (dict "root" $ "service" "neuralTts" "name" (printf "neural-tts-%s" (.name | replace "_" "-")) "langCfg" (.podDisruptionBudget | default (dict))) }}
+{{- end }}
+{{- end }}
+{{- end }}

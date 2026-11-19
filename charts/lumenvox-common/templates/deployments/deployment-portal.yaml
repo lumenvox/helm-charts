@@ -18,6 +18,7 @@ spec:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '5110'
 {{- include "lumenvox-common.serviceMeshAnnotations" . | indent 8 }}
+{{- include "lumenvox-common.POD_ANNOTATIONS" (dict "root" $ "service" "deploymentPortal" "name" "deployment-portal") }}
     spec:
       containers:
         - name: deployment-portal
@@ -34,16 +35,24 @@ spec:
               port: http
             initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
+          {{- $res := include "lumenvox-common.RESOLVE_SERVICE_RESOURCES" (dict "root" $ "service" "deploymentPortal" "cpu" "50m" "memory" "50Mi") | fromJson }}
+          {{- $lim := include "lumenvox-common.RESOLVE_SERVICE_RESOURCES" (dict "root" $ "service" "deploymentPortal" "kind" "limits" "cpu" "100m" "memory" "100Mi" "requests" $res) | fromJson }}
           resources:
             requests:
-              {{- if .Values.global.lumenvox.enforceReservations }}
-              cpu: 50m
-              memory: 50Mi
+              {{- if $res.cpu }}
+              cpu: {{ $res.cpu }}
               {{- end }}
-            {{- if .Values.global.lumenvox.enforceLimits }}
+              {{- if $res.memory }}
+              memory: {{ $res.memory }}
+              {{- end }}
+            {{- if or $lim.cpu $lim.memory }}
             limits:
-              cpu: 100m
-              memory: 100Mi
+              {{- if $lim.cpu }}
+              cpu: {{ $lim.cpu }}
+              {{- end }}
+              {{- if $lim.memory }}
+              memory: {{ $lim.memory }}
+              {{- end }}
             {{- end }}
           envFrom:
             - configMapRef:
@@ -55,6 +64,7 @@ spec:
                 name: {{ .Values.global.rabbitmq.auth.existingPasswordSecret }}
             {{- end }}
           env:
+            {{- with (include "lumenvox-common.otelEnv" (dict "root" $ "service" "deployment-portal") | trim) }}{{ . | nindent 12 }}{{- end }}
             {{- if not .Values.global.rabbitmq.auth.existingPasswordSecret }}
             - name: rabbitmq-password
               value: '{{ .Values.global.rabbitmq.auth.password }}'
@@ -123,6 +133,7 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy | default .Values.global.image.pullPolicy }}
           command: ["curl2"]
           args: ["http://deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5110/health", "Deployment Service"]
+      {{- include "lumenvox-common.POD_SCHEDULING" (dict "root" $ "service" "deploymentPortal" "name" "deployment-portal") }}
       {{- if .Values.global.lumenvox.schedulerName }}
       schedulerName: {{ .Values.global.lumenvox.schedulerName }}
       {{- end }}

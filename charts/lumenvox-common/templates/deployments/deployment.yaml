@@ -18,6 +18,7 @@ spec:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '5110'
 {{- include "lumenvox-common.serviceMeshAnnotations" . | indent 8 }}
+{{- include "lumenvox-common.POD_ANNOTATIONS" (dict "root" $ "service" "deployment" "name" "deployment") }}
     spec:
       containers:
         - name: deployment
@@ -44,16 +45,24 @@ spec:
             initialDelaySeconds: {{ .Values.lumenvox.deploymentStartDelaySeconds }}
             periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
           {{- end }}
+          {{- $res := include "lumenvox-common.RESOLVE_SERVICE_RESOURCES" (dict "root" $ "service" "deployment" "cpu" "50m" "memory" "50Mi") | fromJson }}
+          {{- $lim := include "lumenvox-common.RESOLVE_SERVICE_RESOURCES" (dict "root" $ "service" "deployment" "kind" "limits" "cpu" "100m" "memory" "100Mi" "requests" $res) | fromJson }}
           resources:
             requests:
-              {{- if .Values.global.lumenvox.enforceReservations }}
-              cpu: 50m
-              memory: 50Mi
+              {{- if $res.cpu }}
+              cpu: {{ $res.cpu }}
               {{- end }}
-            {{- if .Values.global.lumenvox.enforceLimits }}
+              {{- if $res.memory }}
+              memory: {{ $res.memory }}
+              {{- end }}
+            {{- if or $lim.cpu $lim.memory }}
             limits:
-              cpu: 100m
-              memory: 100Mi
+              {{- if $lim.cpu }}
+              cpu: {{ $lim.cpu }}
+              {{- end }}
+              {{- if $lim.memory }}
+              memory: {{ $lim.memory }}
+              {{- end }}
             {{- end }}
           envFrom:
             - configMapRef:
@@ -77,6 +86,7 @@ spec:
                 name: {{ .Values.global.redis.auth.existingSecret }}
             {{- end }}
           env:
+            {{- with (include "lumenvox-common.otelEnv" (dict "root" $ "service" "deployment") | trim) }}{{ . | nindent 12 }}{{- end }}
             {{- if not .Values.global.mongodb.auth.existingSecret }}
             - name: mongodb-root-password
               value: '{{ .Values.global.mongodb.auth.rootPassword }}'
@@ -159,6 +169,7 @@ spec:
           command: ["curl2"]
           args: ["http{{ if .Values.global.rabbitmq.enableTLS }}s{{ end }}://{{ .Values.global.rabbitmq.connection.url }}{{ if not .Values.global.rabbitmq.enableTLS }}:15672{{ end }}", "RabbitMQ Management Page"]
         {{- end }}
+      {{- include "lumenvox-common.POD_SCHEDULING" (dict "root" $ "service" "deployment" "name" "deployment") }}
       {{- if .Values.global.lumenvox.schedulerName }}
       schedulerName: {{ .Values.global.lumenvox.schedulerName }}
       {{- end }}

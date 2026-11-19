@@ -1,0 +1,251 @@
+# OpenTelemetry Collector for the LumenVox platform.
+#   agent   - DaemonSet; receives on hostPort 4317/4318 at http://$(NODE_IP).
+#   gateway - Deployment; tail sampling and export to the backend.
+# Application charts send nothing here until global.otel.enabled is true.
+
+global:
+  defaultNamespace: ""
+  imagePullSecrets: []
+
+image:
+  repository: otel/opentelemetry-collector-contrib
+  # Receiver configuration can change between contrib minor versions.
+  tag: "0.115.1"
+  pullPolicy: IfNotPresent
+
+ports:
+  grpc: 4317
+  http: 4318
+  health: 13133
+  # Collector's internal metrics (see selfTelemetry).
+  selfMetrics: 8888
+
+logLevel: info
+
+rbac:
+  create: true
+
+serviceAccount:
+  name: ""
+
+debug:
+  # Adds the debug exporter to every pipeline. Very noisy; for troubleshooting only.
+  verboseExporter: false
+
+# Collector internal metrics (accepted, sampled, exported, failed, queue usage),
+# served on a Prometheus endpoint independent of the OTLP pipeline.
+selfTelemetry:
+  enabled: true
+  # none | basic | normal | detailed. detailed adds per-processor histograms.
+  level: normal
+  # Adds prometheus.io/* scrape annotations to the collector pods.
+  prometheusAnnotations: true
+
+agent:
+  enabled: true
+
+  prometheusScrape:
+    # Scrapes pods annotated with prometheus.io/* and forwards the metrics.
+    enabled: true
+    interval: 30s
+
+  kubeletstats:
+    enabled: true
+    collectionInterval: 30s
+    insecureSkipVerify: true
+    # nodeIP   - status.hostIP. Works on all clusters.
+    # nodeName - spec.nodeName. Requires node names resolvable in DNS; use when
+    #            the kubelet certificate has the node name but not the IP as a SAN.
+    endpointHost: nodeIP
+
+  # Collects container stdout/stderr from node log files and sends it to the
+  # gateway's logs destination. JSON lines are parsed for timestamp, level,
+  # trace.id and span.id; the original line is kept as the body.
+  # Requires gateway.split.logs.endpoint (or backend otlp/datadog). The agent
+  # runs as root while enabled. Keep global.otel.logs.enabled false and exclude
+  # these namespaces from any other log shipper, or lines arrive twice.
+  filelog:
+    enabled: false
+    # Empty means the release namespace.
+    namespaces: []
+    excludeContainers:
+      - istio-proxy
+      - istio-init
+      - linkerd-proxy
+      - linkerd-init
+    # "", DEBUG, INFO, WARN or ERROR. Empty keeps everything; lines without a
+    # recognisable level are always kept.
+    minLevel: ""
+    # end | beginning. Applies to files not yet checkpointed.
+    startAt: end
+    checkpointPath: /var/lib/otelcol-lumenvox
+
+  memoryLimiter:
+    limitPercentage: 80
+    spikeLimitPercentage: 25
+
+  batch:
+    sendBatchSize: 1024
+    sendBatchMaxSize: 2048
+    timeout: 5s
+
+  sendingQueueSize: 1000
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 192Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  tolerations:
+    - operator: Exists
+
+gateway:
+  enabled: true
+
+  # Tail sampling requires trace affinity; more than 1 replica needs a
+  # loadbalancing exporter tier.
+  replicaCount: 1
+
+  # datadog | otlp | split (one destination per signal).
+  backend: otlp
+
+  datadog:
+    site: datadoghq.com
+    hostname: ""
+    traceBuffer: 1000
+    # Secret containing DD_API_KEY.
+    existingSecret: ""
+
+  otlp:
+    endpoint: ""
+    tlsInsecure: true
+    headers: {}
+
+  # Used when backend is "split". A signal with an empty endpoint is dropped.
+  # type: otlp (gRPC) | otlphttp | splunk_hec. If empty, protocol is used
+  # (grpc -> otlp, http -> otlphttp). otlphttp appends /v1/<signal>:
+  #   Tempo       otlp,       host:4317
+  #   Prometheus  otlphttp,   .../api/v1/otlp (requires --web.enable-otlp-receiver)
+  #   Loki        otlphttp,   .../otlp
+  #   Splunk HEC  splunk_hec, https://host:8088/services/collector
+  # See examples/grafana-stack-values.yaml and examples/splunk-values.yaml.
+  split:
+    traces:
+      endpoint: ""
+      type: ""            # otlp | otlphttp | splunk_hec  (falls back to protocol)
+      protocol: grpc
+      tlsInsecure: true
+      headers: {}
+      queueSize: 1000
+    metrics:
+      endpoint: ""
+      type: ""
+      protocol: http
+      tlsInsecure: true
+      headers: {}
+      queueSize: 1000
+    logs:
+      endpoint: ""
+      type: ""
+      protocol: http
+      tlsInsecure: true
+      headers: {}
+      queueSize: 1000
+      # splunk_hec only. The token is read from this environment variable,
+      # supplied through gateway.extraEnvFromSecrets (required).
+      tokenEnvVar: SPLUNK_HEC_TOKEN
+      source: otel
+      sourcetype: otel
+      index: ""           # empty uses the token's default index
+      maxConnections: 20
+      disableCompression: false
+      timeout: 10s
+
+  tailSampling:
+    enabled: true
+    # Traces still open after this window are decided on the spans received.
+    # Keep below 30s when using Tempo's metrics-generator: it discards spans
+    # older than its 30s ingestion slack, leaving TraceQL metrics empty.
+    decisionWait: 15s
+    numTraces: 100000
+    expectedNewTracesPerSec: 200
+    baselinePercentage: 10
+    slowThresholdMs: 5000
+
+  clusterMetrics:
+    enabled: true
+    collectionInterval: 60s
+
+  # RED metrics derived from all spans (before tail sampling) by the
+  # spanmetrics connector. Requires a metrics destination.
+  spanMetrics:
+    enabled: false
+    namespace: lumenvox.spanmetrics
+    flushInterval: 60s
+    # Attaches trace IDs to metric samples.
+    exemplars: true
+    latencyBuckets: [2ms, 5ms, 10ms, 25ms, 50ms, 100ms, 250ms, 500ms, 1s, 2s, 5s, 10s, 30s]
+    # Low-cardinality attributes only. Each combination is a new series; never
+    # add session or correlation IDs.
+    dimensions:
+      - name: service.namespace
+      - name: deployment.environment
+      - name: rpc.grpc.status_code
+      - name: http.response.status_code
+
+  # Edge metrics between service pairs for Grafana's Service Graph. Requires
+  # at least two instrumented services propagating context.
+  serviceGraph:
+    enabled: false
+    latencyBuckets: [10ms, 50ms, 100ms, 250ms, 500ms, 1s, 2s, 5s, 10s]
+    dimensions:
+      - service.namespace
+      - deployment.environment
+    # Must exceed the delay between client and server spans of a call.
+    storeTtl: 10s
+    storeMaxItems: 10000
+
+  # Receivers for the backing stores. Confirm endpoints and credentials against
+  # the external-services release before enabling; see the chart README.
+  # RabbitMQ is covered by agent.prometheusScrape.
+  infraReceivers:
+    collectionInterval: 60s
+    redis:
+      enabled: false
+      endpoint: "external-services-redis:6379"
+      tlsInsecure: true
+    postgresql:
+      enabled: false
+      endpoint: "external-services-postgresql:5432"
+      username: postgres
+      databases: []
+      tlsInsecure: true
+    mongodb:
+      enabled: false
+      endpoint: "external-services-mongodb:27017"
+      username: ""
+      tlsInsecure: true
+
+  # Secrets mounted as environment, e.g. REDIS_PASSWORD, POSTGRES_PASSWORD,
+  # MONGODB_PASSWORD, SPLUNK_HEC_TOKEN.
+  extraEnvFromSecrets: []
+
+  memoryLimiter:
+    limitPercentage: 80
+    spikeLimitPercentage: 25
+
+  batch:
+    sendBatchSize: 1024
+    sendBatchMaxSize: 2048
+    timeout: 5s
+
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 2000m
+      memory: 2Gi

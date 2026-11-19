@@ -23,6 +23,7 @@ spec:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '5110'
 {{- include "lumenvox-common.serviceMeshAnnotations" $ | indent 8 }}
+{{- include "lumenvox-common.POD_ANNOTATIONS" (dict "root" $ "service" "neuralTts" "name" (printf "neural-tts-%s" (.name | replace "_" "-")) "langCfg" .) }}
     spec:
       terminationGracePeriodSeconds: 120
       containers:
@@ -50,13 +51,37 @@ spec:
             initialDelaySeconds: {{ $.Values.global.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ $.Values.global.lumenvox.probes.periodSeconds }}
           {{- end }}
+          {{- /* Requests and limits: global.neuralTts.resources, then the deprecated
+                 tts.neuralTtsResources (empty values use the default), then the
+                 built-in default, rendered regardless of enforceReservations and
+                 enforceLimits. */}}
+          {{- $legacyRequests := dict }}
+          {{- range $k, $v := ($.Values.tts.neuralTtsResources.requests | default dict) }}
+          {{- if $v }}{{ $_ := set $legacyRequests $k $v }}{{ end }}
+          {{- end }}
+          {{- $res := include "lumenvox-common.RESOLVE_SERVICE_RESOURCES" (dict "root" $ "service" "neuralTts" "cpu" "2000m" "memory" "4000Mi" "always" true "legacy" $legacyRequests) | fromJson }}
+          {{- $legacyLimits := dict }}
+          {{- range $k, $v := ($.Values.tts.neuralTtsResources.limits | default dict) }}
+          {{- if $v }}{{ $_ := set $legacyLimits $k $v }}{{ end }}
+          {{- end }}
+          {{- $lim := include "lumenvox-common.RESOLVE_SERVICE_RESOURCES" (dict "root" $ "service" "neuralTts" "kind" "limits" "cpu" "3000m" "memory" (ternary "20000Mi" "8000Mi" (eq (toString ($.Values.global.platform | default "")) "cloud")) "always" true "legacy" $legacyLimits "requests" $res) | fromJson }}
           resources:
             requests:
-              cpu: {{ (index ($.Values.tts.neuralTtsResources.requests | default dict) "cpu") | default "2000m" }}
-              memory: {{ (index ($.Values.tts.neuralTtsResources.requests | default dict) "memory") | default "4000Mi" }}
+              {{- if $res.cpu }}
+              cpu: {{ $res.cpu }}
+              {{- end }}
+              {{- if $res.memory }}
+              memory: {{ $res.memory }}
+              {{- end }}
+            {{- if or $lim.cpu $lim.memory }}
             limits:
-              cpu: {{ (index ($.Values.tts.neuralTtsResources.limits | default dict) "cpu") | default "3000m" }}
-              memory: {{ (index ($.Values.tts.neuralTtsResources.limits | default dict) "memory") | default (ternary "20000Mi" "8000Mi" (eq (toString ($.Values.global.platform | default "")) "cloud")) }}
+              {{- if $lim.cpu }}
+              cpu: {{ $lim.cpu }}
+              {{- end }}
+              {{- if $lim.memory }}
+              memory: {{ $lim.memory }}
+              {{- end }}
+            {{- end }}
           envFrom:
             - configMapRef:
                 name: timezone-configmap
@@ -69,6 +94,7 @@ spec:
                 name: {{ $.Values.global.redis.auth.existingSecret }}
             {{- end }}
           env:
+            {{- with (include "lumenvox-common.otelEnv" (dict "root" $ "service" "neural-tts") | trim) }}{{ . | nindent 12 }}{{- end }}
             {{- if not $.Values.global.rabbitmq.auth.existingPasswordSecret }}
             - name: rabbitmq-password
               value: '{{ $.Values.global.rabbitmq.auth.password }}'
@@ -159,6 +185,7 @@ spec:
           persistentVolumeClaim:
             claimName: tts-cache-claim
             readOnly: false
+      {{- include "lumenvox-common.POD_SCHEDULING" (dict "root" $ "service" "neuralTts" "name" (printf "neural-tts-%s" (.name | replace "_" "-")) "langCfg" .) }}
       {{- if $.Values.global.lumenvox.schedulerName }}
       schedulerName: {{ $.Values.global.lumenvox.schedulerName }}
       {{- end }}

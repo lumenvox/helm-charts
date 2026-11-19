@@ -1,0 +1,75 @@
+# Values for grafana/grafana: Prometheus, Loki and Tempo datasources linked together.
+#   helm upgrade grafana grafana/grafana -n monitoring --reuse-values \
+#     -f charts/lumenvox-otel-collector/examples/backends/grafana-tempo-datasource.yaml
+#
+# Replace <PROMETHEUS_UID> and <LOKI_UID> with the UIDs of the existing
+# datasources (last segment of the datasource page URL, or
+# /api/datasources/name/<name>). Do not add a uid to existing datasources.
+# "$$" is a literal "$" in Grafana provisioning.
+
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        isDefault: true
+        url: http://prometheus-server.monitoring.svc.cluster.local
+        jsonData:
+          timeInterval: 10s
+          # Requires Prometheus exemplar storage.
+          exemplarTraceIdDestinations:
+            - name: trace_id
+              datasourceUid: tempo
+
+      - name: Loki
+        type: loki
+        access: proxy
+        url: http://loki.monitoring.svc.cluster.local:3100
+        jsonData:
+          maxLines: 1000
+          derivedFields:
+            - name: TraceID
+              matcherRegex: '"trace\.id":"(\w+)"'
+              url: '$${__value.raw}'
+              datasourceUid: tempo
+              urlDisplayLabel: View trace
+
+      # Tempo query API port.
+      - name: Tempo
+        type: tempo
+        uid: tempo
+        access: proxy
+        url: http://tempo.monitoring.svc.cluster.local:3200
+        jsonData:
+          nodeGraph:
+            enabled: true
+          serviceMap:
+            datasourceUid: <PROMETHEUS_UID>
+          lokiSearch:
+            datasourceUid: <LOKI_UID>
+          # Filters on trace_id structured metadata set by agent.filelog.
+          tracesToLogsV2:
+            datasourceUid: <LOKI_UID>
+            spanStartTimeShift: "-1m"
+            spanEndTimeShift: "1m"
+            tags:
+              - key: service.name
+                value: service_name
+            customQuery: true
+            query: '{$${__tags}} | trace_id="$${__trace.traceId}"'
+          tracesToMetrics:
+            datasourceUid: <PROMETHEUS_UID>
+            spanStartTimeShift: "-15m"
+            spanEndTimeShift: "15m"
+            tags:
+              - key: service.name
+                value: service_name
+            queries:
+              - name: Span rate
+                query: 'sum(rate(lumenvox_spanmetrics_calls_total{$$__tags, span_name="$${__span.name}"}[5m]))'
+              - name: Span p95 latency (ms)
+                query: 'histogram_quantile(0.95, sum by (le) (rate(lumenvox_spanmetrics_duration_milliseconds_bucket{$$__tags, span_name="$${__span.name}"}[5m])))'
+              - name: Service error rate
+                query: 'sum(rate(lumenvox_spanmetrics_calls_total{$$__tags, status_code="STATUS_CODE_ERROR"}[5m]))'

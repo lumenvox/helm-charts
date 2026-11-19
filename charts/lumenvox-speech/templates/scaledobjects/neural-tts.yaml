@@ -1,0 +1,9 @@
+{{- if and .Values.global.keda.enabled (not .Values.global.minimalInstall) .Values.global.neuralTts.enabled }}
+{{- $ttsCount := 0 }}
+{{- range .Values.global.ttsLanguages }}{{ if not .legacyEnabled }}{{ $ttsCount = add1 $ttsCount }}{{ end }}{{ end }}
+{{- range .Values.global.ttsLanguages }}
+{{- if not .legacyEnabled }}
+{{- include "lumenvox-speech.SCALEDOBJECT" (dict "root" $ "service" "neuralTts" "name" (printf "neural-tts-%s" (.name | replace "_" "-")) "looped" true "langCount" $ttsCount "lang" . "langCfg" (.autoscaling | default (dict))) }}
+{{- end }}
+{{- end }}
+{{- end }}

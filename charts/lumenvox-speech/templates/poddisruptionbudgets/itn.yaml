@@ -1,0 +1,3 @@
+{{- range .Values.global.itnLanguages }}
+{{- include "lumenvox-speech.PDB" (dict "root" $ "service" "itn" "name" (printf "itn-%s" (.name | replace "_" "-")) "langCfg" (.podDisruptionBudget | default (dict))) }}
+{{- end }}

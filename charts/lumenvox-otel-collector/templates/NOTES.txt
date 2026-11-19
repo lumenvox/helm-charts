@@ -1,0 +1,67 @@
+{{ .Chart.Name }} {{ .Chart.Version }} installed into namespace {{ include "otelcol.namespace" . }}.
+
+Tiers:
+{{- if .Values.agent.enabled }}
+  agent    DaemonSet {{ include "otelcol.agentName" . }}
+           receiving on hostPort {{ .Values.ports.grpc }} (gRPC) and {{ .Values.ports.http }} (HTTP)
+           prometheus bridge: {{ if .Values.agent.prometheusScrape.enabled }}on{{ else }}off{{ end }}
+{{- else }}
+  agent    disabled (requires global.otel.endpointMode: gateway)
+{{- end }}
+{{- if .Values.gateway.enabled }}
+  gateway  Deployment {{ include "otelcol.gatewayName" . }} ({{ .Values.gateway.replicaCount }} replica)
+           backend: {{ .Values.gateway.backend }}
+           tail sampling: {{ if .Values.gateway.tailSampling.enabled }}on, decision_wait {{ .Values.gateway.tailSampling.decisionWait }}{{ else }}off{{ end }}
+{{- else }}
+  gateway  disabled
+{{- end }}
+
+Export is off until enabled on the LumenVox release:
+
+  global:
+    otel:
+      enabled: true
+      endpointMode: {{ if .Values.agent.enabled }}agent{{ else }}gateway{{ end }}
+
+{{- if and .Values.gateway.enabled (eq .Values.gateway.backend "datadog") (not .Values.gateway.datadog.existingSecret) }}
+
+WARNING: backend "datadog" requires gateway.datadog.existingSecret (DD_API_KEY).
+{{- end }}
+{{- if and .Values.gateway.enabled (eq .Values.gateway.backend "otlp") (not .Values.gateway.otlp.endpoint) }}
+
+WARNING: backend is "otlp" but gateway.otlp.endpoint is empty.
+{{- end }}
+{{- if and .Values.gateway.enabled (eq .Values.gateway.backend "split") }}
+
+Split backend routing:
+{{- range $signal := (list "traces" "metrics" "logs") }}
+{{- $cfg := index $.Values.gateway.split $signal }}
+  {{ printf "%-8s" $signal }} {{ if $cfg.endpoint }}{{ $cfg.protocol }} -> {{ $cfg.endpoint }}{{ else }}no endpoint, dropped{{ end }}
+{{- end }}
+{{- if not (or .Values.gateway.split.traces.endpoint (or .Values.gateway.split.metrics.endpoint .Values.gateway.split.logs.endpoint)) }}
+
+WARNING: backend "split" has no endpoints; the gateway will not start.
+{{- end }}
+{{- if .Values.gateway.split.metrics.endpoint }}
+
+NOTE: Prometheus must run with --web.enable-otlp-receiver to accept OTLP metrics.
+{{- end }}
+{{- $otel := default dict .Values.global.otel }}
+{{- if $otel.enabled }}
+{{- range $signal := (list "traces" "metrics" "logs") }}
+{{- $sdkOn := dig $signal "enabled" (ne $signal "logs") $otel }}
+{{- $dest := (index $.Values.gateway.split $signal).endpoint }}
+{{- if and $sdkOn (not $dest) }}
+
+WARNING: global.otel.{{ $signal }}.enabled is true but gateway.split.{{ $signal }}.endpoint
+is empty; {{ $signal }} will be dropped.
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if gt (int .Values.gateway.replicaCount) 1 }}
+
+WARNING: gateway.replicaCount is {{ .Values.gateway.replicaCount }}. Tail sampling requires all spans of a
+trace on one replica: add a loadbalancing exporter tier keyed on traceID, or
+set replicaCount: 1.
+{{- end }}

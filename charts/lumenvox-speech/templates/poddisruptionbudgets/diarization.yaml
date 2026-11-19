@@ -1,0 +1,3 @@
+{{- if .Values.global.enableDiarization }}
+{{- include "lumenvox-speech.PDB" (dict "root" $ "service" "diarization" "name" "diarization") }}
+{{- end }}

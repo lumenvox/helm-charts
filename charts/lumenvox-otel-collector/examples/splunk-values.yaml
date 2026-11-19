@@ -1,0 +1,69 @@
+# Example: traces and metrics to Splunk Observability Cloud over OTLP, logs to
+# Splunk Enterprise / Splunk Cloud over HEC.
+#
+# The HEC token must be in a Secret referenced by gateway.extraEnvFromSecrets:
+#   kubectl create secret generic splunk-hec-token -n <release-ns> \
+#     --from-literal=SPLUNK_HEC_TOKEN='<token>'
+
+global:
+  enabled:
+    otelCollector: true
+  otel:
+    enabled: true
+    endpointMode: agent
+    environment: production
+    serviceNamespace: lumenvox
+    collectorName: otel-collector
+    traces:
+      enabled: true
+    metrics:
+      enabled: true
+    logs:
+      # Services do not export logs over OTLP; use agent.filelog for service logs.
+      enabled: false
+
+lumenvox-otel-collector:
+  gateway:
+    backend: split
+
+    extraEnvFromSecrets:
+      - splunk-hec-token
+
+    split:
+      # Replace <realm> with the Splunk Observability realm.
+      traces:
+        type: otlphttp
+        endpoint: "https://ingest.<realm>.signalfx.com/v2/trace/otlp"
+        tlsInsecure: false
+        headers:
+          X-SF-Token: "<access-token>"
+
+      metrics:
+        type: otlphttp
+        endpoint: "https://ingest.<realm>.signalfx.com/v2/datapoint/otlp"
+        tlsInsecure: false
+        headers:
+          X-SF-Token: "<access-token>"
+
+      logs:
+        type: splunk_hec
+        endpoint: "https://splunk.internal.example.com:8088/services/collector"
+        tokenEnvVar: SPLUNK_HEC_TOKEN
+        source: lumenvox
+        sourcetype: otel:logs
+        index: lumenvox
+        # Set false and supply a trusted CA in production.
+        tlsInsecure: true
+        maxConnections: 20
+        timeout: 10s
+
+    spanMetrics:
+      enabled: true
+    serviceGraph:
+      enabled: true
+
+  agent:
+    prometheusScrape:
+      enabled: true
+    kubeletstats:
+      enabled: true

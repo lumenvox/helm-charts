@@ -5,6 +5,45 @@
 image: {}
 
 global:
+  # OpenTelemetry export from the services. Emits no OTEL_* environment while
+  # disabled.
+  #
+  # With Istio and endpointMode "agent", add 4317 to
+  # global.serviceMesh.istio.excludeOutboundPorts (e.g. "443,4317"), or the
+  # sidecar drops traffic to $(NODE_IP):4317. endpointMode "gateway" does not
+  # need this.
+  otel:
+    enabled: false
+    # "agent"   - export to the node-local collector agent at $(NODE_IP).
+    # "gateway" - export to the collector gateway Service.
+    endpointMode: agent
+    port: 4317
+    protocol: grpc
+    # Base name of the collector workloads. Defaults to the release name.
+    collectorName: ""
+    # Set only when the collector is installed as a separate Helm release.
+    releaseName: ""
+    # Overrides the derived gateway address.
+    gatewayEndpoint: ""
+    # service.namespace resource attribute.
+    serviceNamespace: lumenvox
+    # deployment.environment resource attribute, e.g. "staging" or "prod".
+    environment: ""
+    # Additional resource attributes (key: value). k8s.* attributes are added
+    # by the collector.
+    resourceAttributes: {}
+    traces:
+      enabled: true
+      # Sampling is done by the collector gateway (tail sampling).
+      sampler: parentbased_always_on
+      samplerArg: ""
+    metrics:
+      enabled: true
+    logs:
+      # Leave false. Collect service logs with the collector's agent.filelog.
+      enabled: false
+    # Additional OTEL_* environment variables for every service.
+    extraEnv: {}
   # asr/transcribe-realtime/transcribe-batch each load only the models listed
   # in their own mandatory ASR_ENCODERS/ASR_DECODERS-style env var (they don't
   # glob-load every model under /EuropaAsrModels). Everything about a single
@@ -79,6 +118,24 @@ global:
   neuronModels: []
   # Neuron languages - one deployment per language (same pattern as asrLanguages)
   neuronLanguages: []
+  # KEDA autoscaling defaults, see global.keda in the lumenvox chart's values.yaml.
+  keda:
+    enabled: false
+    prometheus:
+      serverAddress: ""
+    pollingInterval: ""
+    cooldownPeriod: ""
+    scaleDownStabilizationSeconds: ""
+    metricType: ""
+    nameSuffix: ""
+    query:
+      orVectorZero: true
+      selector: ""
+    fallback:
+      failureThreshold: 3
+      replicas: ""
+      behavior: ""
+    requireFallback: false
   lumenvox:
     ingress:
       disableTls: false
@@ -87,10 +144,26 @@ global:
       httpAnnotations: []
     schedulerName: ""
 
+probes:
+  # How many failed startup probes asr, transcribe-realtime and transcribe-batch
+  # may accumulate before the kubelet restarts them. Each loads every encoder and
+  # decoder it's configured for before reporting healthy, and large extra models
+  # (multi-GB encoders loaded onto a GPU) can take well over a minute. With
+  # periodSeconds from global.lumenvox.probes (5 by default), the default of 12
+  # works out to 12 x 5s = 1 minute.
+  asrStartupFailureThreshold: 12
+  transcribeRealtimeStartupFailureThreshold: 12
+  transcribeBatchStartupFailureThreshold: 12
+
 asr:
   useFakeResult: "false"
   cacheMaxEntries: "1000"
   cacheMaxSizeMb: "500"
+  # Sets ASR_SETTINGS__MAX_ACTIVE_REQUESTS (concurrent requests per pod). Empty
+  # leaves it unset so the service uses its built-in default. When GPU is on for
+  # a language, global.gpu.<service>.maxActiveRequests (or the per-language
+  # services.<service>.gpu.maxActiveRequests) wins over this.
+  maxActiveRequests: ""
 
 transcribeRealtime:
   # Audio buffer length (ms) used by the realtime transcription engine.
@@ -103,6 +176,27 @@ transcribeRealtime:
   # derive from enableFlowSense.
   flowSenseEnabled: ""
   flowSenseGate: ""
+  # Sets ASR_SETTINGS__MAX_ACTIVE_REQUESTS (concurrent requests per pod). Empty
+  # leaves it unset so the service uses its built-in default. When GPU is on for
+  # a language, global.gpu.<service>.maxActiveRequests (or the per-language
+  # services.<service>.gpu.maxActiveRequests) wins over this.
+  maxActiveRequests: ""
+
+transcribeBatch:
+  # Sets ASR_SETTINGS__MAX_ACTIVE_REQUESTS (concurrent requests per pod). Empty
+  # leaves it unset so the service uses its built-in default. When GPU is on for
+  # a language, global.gpu.<service>.maxActiveRequests (or the per-language
+  # services.<service>.gpu.maxActiveRequests) wins over this.
+  maxActiveRequests: ""
+  # PodDisruptionBudget per transcribe-batch-<lang> deployment. Stops a voluntary
+  # eviction (e.g. Karpenter consolidation) from removing the last ready pod while
+  # the autoscaler is also scaling down, which can leave no ready batch pod for
+  # 45-90 s. Off by default: with a single replica it also blocks node drains
+  # and Karpenter drift replacement until a second pod exists. Pair it with
+  # consolidationPolicy: WhenEmpty on the GPU NodePool.
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 1
 
 grammar:
   maxGrammarTransitions: ""

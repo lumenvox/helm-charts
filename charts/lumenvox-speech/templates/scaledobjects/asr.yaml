@@ -1,0 +1,5 @@
+{{- if and .Values.global.keda.enabled (not .Values.global.minimalInstall) .Values.global.asr.enabled }}
+{{- range .Values.global.asrLanguages }}
+{{- include "lumenvox-speech.SCALEDOBJECT" (dict "root" $ "service" "asr" "name" (printf "asr-%s" (.name | replace "_" "-")) "looped" true "langCount" (len $.Values.global.asrLanguages) "lang" . "langCfg" (dig "services" "asr" "autoscaling" (dict) .)) }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,19 @@
+# Values for grafana/tempo: persistent volume for traces and WAL.
+#   helm upgrade tempo grafana/tempo -n monitoring --reuse-values \
+#     -f charts/lumenvox-otel-collector/examples/backends/tempo-persistence.yaml
+#
+# volumeClaimTemplates is immutable: on an existing release, run
+# `kubectl delete statefulset tempo -n monitoring` before upgrading.
+
+persistence:
+  enabled: true
+  # Requires a dynamically provisioning StorageClass; unset uses the default.
+  # storageClassName: <your class>
+  accessModes:
+    - ReadWriteOnce
+  size: 20Gi
+  enableStatefulSetAutoDeletePVC: false
+
+tempo:
+  # Tempo stops accepting writes when the volume is full; size accordingly.
+  retention: 168h

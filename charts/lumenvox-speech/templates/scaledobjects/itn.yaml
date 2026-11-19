@@ -1,0 +1,5 @@
+{{- if .Values.global.keda.enabled }}
+{{- range .Values.global.itnLanguages }}
+{{- include "lumenvox-speech.SCALEDOBJECT" (dict "root" $ "service" "itn" "name" (printf "itn-%s" (.name | replace "_" "-")) "looped" true "langCount" (len $.Values.global.itnLanguages) "lang" . "langCfg" (.autoscaling | default (dict))) }}
+{{- end }}
+{{- end }}

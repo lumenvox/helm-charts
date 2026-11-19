@@ -1,0 +1,136 @@
+{{- if .Values.gateway.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "otelcol.gatewayName" . }}
+  namespace: {{ include "otelcol.namespace" . }}
+  labels:
+    app: {{ include "otelcol.gatewayName" . }}
+{{ include "otelcol.labels" . | indent 4 }}
+spec:
+  # tail_sampling requires all spans of a trace on one replica. Above 1, add a
+  # loadbalancing exporter tier keyed on traceID.
+  replicas: {{ .Values.gateway.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "otelcol.gatewayName" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "otelcol.gatewayName" . }}
+{{ include "otelcol.labels" . | indent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/gateway-configmap.yaml") . | sha256sum }}
+        linkerd.io/inject: disabled
+        sidecar.istio.io/inject: "false"
+        {{- if and .Values.selfTelemetry.enabled .Values.selfTelemetry.prometheusAnnotations }}
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "{{ .Values.ports.selfMetrics }}"
+        prometheus.io/path: "/metrics"
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "otelcol.serviceAccountName" . }}
+      terminationGracePeriodSeconds: 60
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.global.imagePullSecrets }}
+        - name: {{ . }}
+      {{- end }}
+      {{- end }}
+      containers:
+        - name: otel-collector
+          image: {{ include "otelcol.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: ["--config=/conf/config.yaml"]
+          ports:
+            - name: otlp-grpc
+              containerPort: {{ .Values.ports.grpc }}
+              protocol: TCP
+            - name: otlp-http
+              containerPort: {{ .Values.ports.http }}
+              protocol: TCP
+            - name: health
+              containerPort: {{ .Values.ports.health }}
+              protocol: TCP
+            {{- if .Values.selfTelemetry.enabled }}
+            - name: self-metrics
+              containerPort: {{ .Values.ports.selfMetrics }}
+              protocol: TCP
+            {{- end }}
+          {{- $ddSecret := "" }}
+          {{- if eq .Values.gateway.backend "datadog" }}
+          {{- $ddSecret = .Values.gateway.datadog.existingSecret }}
+          {{- end }}
+          {{- if or $ddSecret .Values.gateway.extraEnvFromSecrets }}
+          envFrom:
+          {{- if $ddSecret }}
+            - secretRef:
+                name: {{ $ddSecret }}
+          {{- end }}
+          {{- range .Values.gateway.extraEnvFromSecrets }}
+            - secretRef:
+                name: {{ . }}
+          {{- end }}
+          {{- end }}
+          env:
+            - name: K8S_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            {{- with include "otelcol.goMemLimit" (dig "limits" "memory" "" (.Values.gateway.resources | default dict)) }}
+            # See otelcol.goMemLimit.
+            - name: GOMEMLIMIT
+              value: {{ . | quote }}
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.ports.health }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.ports.health }}
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+{{ toYaml .Values.gateway.resources | indent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /conf
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "otelcol.gatewayName" . }}
+            items:
+              - key: config.yaml
+                path: config.yaml
+      {{- if .Values.global.lumenvox }}
+      {{- if .Values.global.lumenvox.schedulerName }}
+      schedulerName: {{ .Values.global.lumenvox.schedulerName }}
+      {{- end }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "otelcol.gatewayName" . }}
+  namespace: {{ include "otelcol.namespace" . }}
+  labels:
+{{ include "otelcol.labels" . | indent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    app: {{ include "otelcol.gatewayName" . }}
+  ports:
+    - name: otlp-grpc
+      port: {{ .Values.ports.grpc }}
+      targetPort: otlp-grpc
+      appProtocol: kubernetes.io/h2c
+      protocol: TCP
+    - name: otlp-http
+      port: {{ .Values.ports.http }}
+      targetPort: otlp-http
+      protocol: TCP
+{{- end }}

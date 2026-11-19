@@ -146,10 +146,8 @@ Two more worth knowing about:
 > redis reads it only at startup. The operator restarts a pod when its own
 > spec changes, so a change that touches ONLY the ConfigMap — `maxmemory`,
 > `maxclients`, `io-threads`, `extraConfig` — leaves running pods on the old
-> values indefinitely. Worse, it can leave the cluster split: observed on
-> cloud-speech-1 with three pods on a new `maxmemory` and three still on the
-> old one, because only one of the two StatefulSets had a spec change to
-> trigger a roll. Either apply it at runtime
+> values. If only one of the two StatefulSets rolls, the cluster runs mixed
+> values. Either apply it at runtime
 > (`redis-cli CONFIG SET maxmemory <bytes>`, which the file then matches on
 > the next restart) or force a roll:
 >
