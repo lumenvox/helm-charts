@@ -415,6 +415,8 @@ global:
 
 The GPU defaults are sized for one NVIDIA A10G per pod: about 96 concurrent transcribe-realtime calls, or 8 concurrent transcribe-batch jobs. A CPU transcribe-realtime pod handles about 48 calls with the default model, and a CPU transcribe-batch pod about 2 jobs; add batch pods rather than raising jobs per pod. A pod's capacity is set by the lowest-capacity model it serves. On CPU, `hidef` lowers realtime capacity to about 8 calls. On an A10G it handles about 128, so the default model's 96 sets the GPU figure. Capacity depends on instance type, models and audio, so validate these figures on your own deployment.
 
+Each transcribe-batch pod writes up to about 5 GB of temporary data to its node's root volume; nodes that run batch pods need a root volume of 100 GiB or more. Queued batch jobs are held in Redis until a pod takes them, at about 3 MB per job for 4-minute 8 kHz calls; size the Redis leaders for the largest expected backlog (see `redis.clusterMode.operator.leader` in the external-services chart).
+
 ### ITN (Inverse Text Normalization)
 
 | Parameter             | Description                      | Default |
@@ -502,6 +504,22 @@ Language identification must be enabled via `global.enableLanguageId: true`.
 | Parameter                                       | Description                                | Default |
 |-------------------------------------------------|--------------------------------------------|---------|
 | `lumenvox-speech.grammar.maxGrammarTransitions` | Maximum grammar complexity (0 = unlimited) | `0`     |
+
+### Sessions
+
+| Parameter                                                 | Description                                     | Default |
+|-----------------------------------------------------------|-------------------------------------------------|---------|
+| `lumenvox-speech.lumenvoxApi.enableSessionReconnect`      | Lets a client reconnect to an existing session  | `false` |
+| `lumenvox-speech.lumenvoxApi.inactiveSessionCloseTimeout` | Closes sessions with no activity for this long  | `"60m"` |
+
+### TTS Watermarking
+
+Neural TTS and Legacy TTS add an inaudible watermark to their audio that marks it as synthetic speech.
+
+| Parameter                                  | Description                                                                                                        | Default    |
+|--------------------------------------------|--------------------------------------------------------------------------------------------------------------------|------------|
+| `lumenvox-speech.tts.watermarking.enabled` | Adds the watermark                                                                                                 | `true`     |
+| `lumenvox-speech.tts.watermarking.level`   | When a watermark cannot be applied: `strict` returns an error, `relaxed` returns the audio without a watermark | `"strict"` |
 
 ### Resource Management
 
@@ -1110,6 +1128,19 @@ Per-service fields go under `global.<service>.autoscaling`; per-language under `
 **Selector.** The query is `sum(<metric>{<selector>})`. `app` matches `app="<deployment>"`; `namespace` matches the release namespace; `selectorLabels` is a label map in which `$(deployment)`, `$(namespace)` and `$(language)` are substituted. asr, transcribeRealtime, transcribeBatch and neuralTts default to `app`; itn defaults to `namespace` because its default metric comes from the transcribe pods. `namespace` on a per-language service with more than one language fails the render.
 
 **Pending requests.** `pendingMetric: voice_metrics_transcribe_batch_pending_requests` adds the voice-metrics pending gauge, which clients set by POSTing to `/api/v1/pending-requests` and which holds its last value. The gauge has no language label, so it is only allowed with a single language; `pendingSelector` defaults to `namespace`.
+
+**Batch queue depth.** transcribe-batch pods take jobs from a shared RabbitMQ queue named `<first 8 characters of global.licensing.clusterGuid>_transcribe_batch_<language>`, and each pod stops taking jobs at its load limit (at most `maxActiveRequests`; about 2 jobs on a CPU pod). `transcribe_batch_active_requests` per pod never exceeds that limit, so with a `threshold` at or above it the fleet does not grow on that metric alone. To scale on waiting jobs, add the queue's ready count as the pending term:
+
+```yaml
+global:
+  transcribeBatch:
+    autoscaling:
+      pendingMetric: rabbitmq_detailed_queue_messages_ready
+      pendingSelectorLabels:
+        queue: "a1b2c3d4_transcribe_batch_en"
+```
+
+This metric requires Prometheus to scrape RabbitMQ's per-queue endpoint, `/metrics/detailed?family=queue_coarse_metrics` on port 15692.
 
 **GPU threshold.** For asr, transcribeRealtime and transcribeBatch with GPU enabled, the threshold is the language's `threshold`, else `gpuThreshold` (language, then service). It does not fall back to the service `threshold`. Set `gpuThreshold` to about 0.75 x the pod's capacity (see [Sizing](#sizing)) and below `maxActiveRequests`.
 
