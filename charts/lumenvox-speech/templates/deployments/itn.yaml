@@ -36,13 +36,13 @@ spec:
               containerPort: 5110
           readinessProbe:
             httpGet:
-              path: /health
+              path: /ready
               port: http
             initialDelaySeconds: {{ $.Values.global.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ $.Values.global.lumenvox.probes.periodSeconds }}
           startupProbe:
             httpGet:
-              path: /health
+              path: /ready
               port: http
             failureThreshold: 12
             periodSeconds: {{ $.Values.global.lumenvox.probes.periodSeconds }}

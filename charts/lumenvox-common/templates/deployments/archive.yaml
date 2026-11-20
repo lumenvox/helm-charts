@@ -27,13 +27,23 @@ spec:
           ports:
             - name: http
               containerPort: 5110
+          # Readiness uses /ready, which drops while a dependency is unavailable;
+          # liveness stays on /health.
           readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
+            periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
+          {{- if .Values.global.lumenvox.service.livenessProbe.enabled }}
+          livenessProbe:
             exec:
               command:
               - /usr/bin/archive-manager
               - --healthcheck
             initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
+          {{- end }}
           {{- $res := include "lumenvox-common.RESOLVE_SERVICE_RESOURCES" (dict "root" $ "service" "archive" "cpu" "50m" "memory" "50Mi") | fromJson }}
           {{- $lim := include "lumenvox-common.RESOLVE_SERVICE_RESOURCES" (dict "root" $ "service" "archive" "kind" "limits" "cpu" "200m" "memory" "100Mi" "requests" $res) | fromJson }}
           resources:

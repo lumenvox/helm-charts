@@ -35,11 +35,12 @@ spec:
               containerPort: 5000
             - name: http  # Prometheus=/metrics, Health=/health, /ready
               containerPort: 5110
+          # Readiness uses /ready, which drops while RabbitMQ is unavailable;
+          # liveness stays on /health.
           readinessProbe:
-            exec:
-              command:
-              - /usr/bin/lumenvox-api
-              - --healthcheck
+            httpGet:
+              path: /ready
+              port: http
             initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
           {{- if .Values.global.lumenvox.service.livenessProbe.enabled }}
@@ -113,6 +114,10 @@ spec:
               value: 'deployment-service.{{ default .Release.Namespace .Values.global.defaultNamespace }}:5000'
             - name: GOLANG_PROTOBUF_REGISTRATION_CONFLICT
               value: 'ignore'
+            - name: LV_API_SETTINGS__ENABLE_SESSION_RECONNECT
+              value: '{{ .Values.lumenvoxApi.enableSessionReconnect }}'
+            - name: LV_API_SETTINGS__INACTIVE_SESSION_CLOSE_TIMEOUT
+              value: '{{ .Values.lumenvoxApi.inactiveSessionCloseTimeout }}'
             {{- if $drain.seconds }}
             - name: DRAIN_TIMEOUT_SECONDS
               value: '{{ $drain.seconds }}'

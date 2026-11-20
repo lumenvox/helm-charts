@@ -72,3 +72,7 @@ leaving tokenAuthUrl empty would leave lumenvox-api reachable without a token.
 {{- fail "\n\ndisableTokenAuth is false but global.lumenvox.ingress.jwtAuth.tokenAuthUrl is empty. In Ingress mode nginx enforces token auth by calling that URL for each request, so set it (e.g. http://token-auth-service.<namespace>.svc.cluster.local:8082/auth), or lumenvox-api would accept requests without a token." }}
 {{- end }}
 {{- end }}
+{{- $wmLevel := toString .Values.tts.watermarking.level }}
+{{- if not (has $wmLevel (list "strict" "relaxed")) }}
+{{- fail (printf "\n\nlumenvox-speech.tts.watermarking.level is %q; use \"strict\" or \"relaxed\"." $wmLevel) }}
+{{- end }}

@@ -145,15 +145,23 @@ global:
     schedulerName: ""
 
 probes:
-  # How many failed startup probes asr, transcribe-realtime and transcribe-batch
-  # may accumulate before the kubelet restarts them. Each loads every encoder and
-  # decoder it's configured for before reporting healthy, and large extra models
-  # (multi-GB encoders loaded onto a GPU) can take well over a minute. With
-  # periodSeconds from global.lumenvox.probes (5 by default), the default of 12
-  # works out to 12 x 5s = 1 minute.
+  # How many failed startup probes each service may accumulate before the kubelet
+  # restarts it. With periodSeconds from global.lumenvox.probes (5 by default),
+  # 12 is 1 minute, 36 is 3 minutes and 60 is 5 minutes.
+  #
+  # asr, transcribe-realtime and transcribe-batch load every encoder and decoder
+  # they're configured for before reporting healthy, and large extra models
+  # (multi-GB encoders loaded onto a GPU) can take well over a minute. Batch pods
+  # often start many at once when autoscaling, which slows model loading on
+  # shared nodes.
   asrStartupFailureThreshold: 12
   transcribeRealtimeStartupFailureThreshold: 12
-  transcribeBatchStartupFailureThreshold: 12
+  transcribeBatchStartupFailureThreshold: 36
+  # grammar and legacy TTS open their health port only after loading their
+  # configuration, which can take several minutes.
+  grammarStartupFailureThreshold: 45
+  ttsStartupFailureThreshold: 60
+  neuralTtsStartupFailureThreshold: 12
 
 asr:
   useFakeResult: "false"
@@ -204,6 +212,12 @@ grammar:
 
 tts:
   useFakeResult: "false"
+  # Inaudible watermark on Neural TTS and Legacy TTS audio, marking it as synthetic
+  # speech. level sets what happens when a watermark cannot be applied: "strict"
+  # returns an error, "relaxed" returns the audio without a watermark.
+  watermarking:
+    enabled: true
+    level: strict
   # Optional: override neural-tts resources. When not set, platform "cloud" uses limits cpu: 3000m, memory: 20000Mi
   #  requests:
   #    cpu: 2000m
@@ -212,6 +226,12 @@ tts:
   #    cpu: 3000m
   #    memory: 8000Mi
   neuralTtsResources: {}
+
+lumenvoxApi:
+  # Lets a client reconnect to an existing session.
+  enableSessionReconnect: false
+  # Sessions with no activity for this long are closed, e.g. "30m" or "2h".
+  inactiveSessionCloseTimeout: "60m"
 
 vad:
   redisDataTimeout: ""

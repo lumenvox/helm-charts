@@ -42,7 +42,7 @@ spec:
               command:
               - /usr/bin/deployment
               - --healthcheck
-            initialDelaySeconds: {{ .Values.lumenvox.deploymentStartDelaySeconds }}
+            initialDelaySeconds: {{ max (int .Values.global.lumenvox.service.startDelaySeconds) (int .Values.lumenvox.deploymentStartDelaySeconds) }}
             periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
           {{- end }}
           {{- $res := include "lumenvox-common.RESOLVE_SERVICE_RESOURCES" (dict "root" $ "service" "deployment" "cpu" "50m" "memory" "50Mi") | fromJson }}

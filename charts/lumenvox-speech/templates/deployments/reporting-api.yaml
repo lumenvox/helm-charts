@@ -33,14 +33,14 @@ spec:
             httpGet:
               path: /health
               port: http
-            initialDelaySeconds: 12
+            initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
           {{- if .Values.global.lumenvox.service.livenessProbe.enabled }}
           livenessProbe:
             httpGet:
               path: /health
               port: http
-            initialDelaySeconds: 12
+            initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
           {{- end }}
           {{- $res := include "lumenvox-common.RESOLVE_SERVICE_RESOURCES" (dict "root" $ "service" "reportingApi" "cpu" "50m" "memory" "100Mi") | fromJson }}

@@ -369,7 +369,10 @@ redis:
         size: 10Gi
         nodeConfSize: 1Gi
       # Size leader and follower identically: after a failover, follower-*
-      # pods can be masters.
+      # pods can be masters. Queued transcribe-batch jobs hold their audio and
+      # state in redis until a pod takes them: allow about 3 MB per queued job
+      # for 4-minute 8 kHz calls, spread across the leaders. When redis is full
+      # it evicts keys (maxmemoryPolicy), and jobs whose keys are evicted fail.
       leader:
         resources:
           requests: {cpu: "3", memory: 2Gi}

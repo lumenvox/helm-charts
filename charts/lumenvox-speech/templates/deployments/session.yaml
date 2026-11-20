@@ -33,11 +33,12 @@ spec:
           ports:
             - name: http
               containerPort: 5110
+          # Readiness uses /ready, which drops while a dependency is unavailable;
+          # liveness stays on /health.
           readinessProbe:
-            exec:
-              command:
-              - /usr/bin/session
-              - --healthcheck
+            httpGet:
+              path: /ready
+              port: http
             initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
           {{- if .Values.global.lumenvox.service.livenessProbe.enabled }}

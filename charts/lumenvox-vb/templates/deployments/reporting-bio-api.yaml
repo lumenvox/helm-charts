@@ -28,14 +28,14 @@ spec:
             httpGet:
               path: /health
               port: rest
-            initialDelaySeconds: 12
+            initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
           {{- if .Values.global.lumenvox.service.livenessProbe.enabled }}
           livenessProbe:
             httpGet:
               path: /health
               port: rest
-            initialDelaySeconds: 12
+            initialDelaySeconds: {{ .Values.global.lumenvox.service.startDelaySeconds }}
             periodSeconds: {{ .Values.global.lumenvox.probes.periodSeconds }}
           {{- end }}
           resources:
