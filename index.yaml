@@ -7,6 +7,43 @@ entries:
         - name: cloud-init-tools
           image: lumenvox/cloud-init-tools:8.1
     apiVersion: v2
+    appVersion: 8.1.1
+    created: "2026-11-20T17:55:54.762180238Z"
+    dependencies:
+    - condition: global.enabled.lumenvoxVb
+      name: lumenvox-vb
+      repository: https://lumenvox.github.io/helm-charts
+      version: 8.1.1
+    - condition: global.enabled.lumenvoxCommon
+      name: lumenvox-common
+      repository: https://lumenvox.github.io/helm-charts
+      version: 8.1.1
+    - condition: global.enabled.lumenvoxSpeech
+      name: lumenvox-speech
+      repository: https://lumenvox.github.io/helm-charts
+      version: 8.1.1
+    - condition: global.enabled.externalServices
+      name: lumenvox-external-services
+      repository: https://lumenvox.github.io/helm-charts
+      version: 8.1.1
+    - condition: global.enabled.otelCollector
+      name: lumenvox-otel-collector
+      repository: https://lumenvox.github.io/helm-charts
+      version: 8.1.0
+    description: LumenVox Helm chart for Kubernetes
+    digest: d085995a611d45e877dabc7c455f0fdfb31a9d6ad6627d9016857edbb08ce854
+    home: https://lumenvox.com
+    name: lumenvox
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-8.1.1/lumenvox-8.1.1.tgz
+    version: 8.1.1
+  - annotations:
+      artifacthub.io/containsSecurityUpdates: "true"
+      artifacthub.io/images: |
+        - name: cloud-init-tools
+          image: lumenvox/cloud-init-tools:8.1
+    apiVersion: v2
     appVersion: 8.1.0
     created: "2026-11-19T21:23:09.176658311Z"
     dependencies:
