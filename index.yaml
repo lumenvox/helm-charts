@@ -1589,6 +1589,42 @@ entries:
         - name: file-store
           image: lumenvox/file-store:8.1
     apiVersion: v2
+    appVersion: 8.1.1
+    created: "2026-11-20T17:54:23.849964741Z"
+    description: LumenVox Common Components Helm chart for Kubernetes
+    digest: 832be40aca9eae8d43285ddd9ae3e709f4f656b854579cea57121ed256dac5b4
+    home: https://lumenvox.com
+    name: lumenvox-common
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-common-8.1.1/lumenvox-common-8.1.1.tgz
+    version: 8.1.1
+  - annotations:
+      artifacthub.io/containsSecurityUpdates: "true"
+      artifacthub.io/images: |
+        - name: admin-portal
+          image: lumenvox/admin-portal:8.1
+        - name: archive
+          image: lumenvox/archive:8.1
+        - name: binary-storage
+          image: lumenvox/storage:8.1
+        - name: cloud-init-tools
+          image: lumenvox/cloud-init-tools:8.1
+        - name: configuration
+          image: lumenvox/configuration:8.1
+        - name: deployment
+          image: lumenvox/deployment:8.1
+        - name: deployment-portal
+          image: lumenvox/deployment-portal:8.1
+        - name: license
+          image: lumenvox/license:8.1
+        - name: management-api
+          image: lumenvox/management-api:8.1
+        - name: resource
+          image: lumenvox/resource:8.1
+        - name: file-store
+          image: lumenvox/file-store:8.1
+    apiVersion: v2
     appVersion: 8.1.0
     created: "2026-11-19T21:14:32.533818437Z"
     description: LumenVox Common Components Helm chart for Kubernetes
@@ -3116,6 +3152,28 @@ entries:
         - name: redis
           image: docker.io/redis:8.2.4-alpine
     apiVersion: v2
+    appVersion: 8.1.1
+    created: "2026-11-20T17:54:24.111645344Z"
+    description: LumenVox External Services Helm chart for Kubernetes
+    digest: 61791172c68e7830db3243f934044e24f389b9f14336eace0987b484986936bd
+    home: https://lumenvox.com
+    name: lumenvox-external-services
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-external-services-8.1.1/lumenvox-external-services-8.1.1.tgz
+    version: 8.1.1
+  - annotations:
+      artifacthub.io/containsSecurityUpdates: "true"
+      artifacthub.io/images: |
+        - name: mongodb
+          image: docker.io/mongo:8.2.12
+        - name: postgresql
+          image: docker.io/postgres:17.5
+        - name: rabbitmq
+          image: docker.io/rabbitmq:4.1.8-management
+        - name: redis
+          image: docker.io/redis:8.2.4-alpine
+    apiVersion: v2
     appVersion: 8.1.0
     created: "2026-11-19T21:14:32.852330544Z"
     description: LumenVox External Services Helm chart for Kubernetes
@@ -3166,6 +3224,50 @@ entries:
     - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-otel-collector-8.1.0/lumenvox-otel-collector-8.1.0.tgz
     version: 8.1.0
   lumenvox-speech:
+  - annotations:
+      artifacthub.io/containsSecurityUpdates: "true"
+      artifacthub.io/images: |
+        - name: asr
+          image: lumenvox/asr:8.1
+        - name: diarization
+          image: lumenvox/diarization:8.1
+        - name: cloud-init-tools
+          image: lumenvox/cloud-init-tools:8.1
+        - name: cloud-logging-sidecar
+          image: lumenvox/cloud-logging-sidecar:8.1
+        - name: grammar
+          image: lumenvox/grammar:8.1
+        - name: itn
+          image: lumenvox/itn:8.1
+        - name: lid
+          image: lumenvox/lid:8.1
+        - name: lumenvox-api
+          image: lumenvox/lumenvox-api:8.1
+        - name: neural-tts
+          image: lumenvox/neural-tts:8.1
+        - name: neuron
+          image: lumenvox/neuron:8.1
+        - name: nlu
+          image: lumenvox/nlu:8.1
+        - name: reporting-api
+          image: lumenvox/reporting-api:8.1
+        - name: session
+          image: lumenvox/session:8.1
+        - name: tts
+          image: lumenvox/tts:8.1
+        - name: vad
+          image: lumenvox/vad:8.1
+    apiVersion: v2
+    appVersion: 8.1.1
+    created: "2026-11-20T17:54:24.367729325Z"
+    description: LumenVox Speech Helm chart for Kubernetes
+    digest: f1dfde0ea78bb9f018644f5aa8b3e3a68d24e50277274f16a0b5a90e10b49e47
+    home: https://lumenvox.com
+    name: lumenvox-speech
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-speech-8.1.1/lumenvox-speech-8.1.1.tgz
+    version: 8.1.1
   - annotations:
       artifacthub.io/containsSecurityUpdates: "true"
       artifacthub.io/images: |
@@ -4348,6 +4450,36 @@ entries:
     - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-speech-3.0.0/lumenvox-speech-3.0.0.tgz
     version: 3.0.0
   lumenvox-vb:
+  - annotations:
+      artifacthub.io/containsSecurityUpdates: "true"
+      artifacthub.io/images: |
+        - name: audit
+          image: lumenvox/audit:8.1
+        - name: biometric-active
+          image: lumenvox/biometric-active:8.1
+        - name: biometric-api
+          image: lumenvox/biometric-api:8.1
+        - name: biometric-identity
+          image: lumenvox/biometric-identity:8.1
+        - name: cloud-init-tools
+          image: lumenvox/cloud-init-tools:8.1
+        - name: reporting-bio-api
+          image: lumenvox/reporting-bio-api:8.1
+        - name: reporting
+          image: lumenvox/reporting:8.1
+        - name: transaction
+          image: lumenvox/transaction:8.1
+    apiVersion: v2
+    appVersion: 8.1.1
+    created: "2026-11-20T17:54:24.63779973Z"
+    description: LumenVox Voice Biometrics Helm chart for Kubernetes
+    digest: 7cd7a394990023ba8b7a7662dadbc5bc61a7789bb7066ef90a7fa6198c1d6bd4
+    home: https://lumenvox.com
+    name: lumenvox-vb
+    type: application
+    urls:
+    - https://github.com/lumenvox/helm-charts/releases/download/lumenvox-vb-8.1.1/lumenvox-vb-8.1.1.tgz
+    version: 8.1.1
   - annotations:
       artifacthub.io/containsSecurityUpdates: "true"
       artifacthub.io/images: |
